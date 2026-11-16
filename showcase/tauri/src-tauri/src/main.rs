@@ -1606,6 +1606,13 @@ fn handle_sidecar(app: &AppHandle, msg: Value) {
             } else {
                 stop_voice(app);
             }
+            // Hands-free listening, the pause that ends a take, and how loud it must be over the room: for the
+            // helper, after it (re)starts so a fresh instance gets the saved settings too (macOS ignores this).
+            let handsfree = msg.get("handsfree").and_then(Value::as_bool).unwrap_or(true);
+            let pause = msg.get("pause").and_then(Value::as_f64).unwrap_or(1.5).clamp(0.5, 4.0);
+            let vad_voice = msg.get("vadVoice").and_then(Value::as_f64).map(|v| v.clamp(0.01, 1.0));
+            let vad_level = msg.get("vadLevel").and_then(Value::as_f64).map(|v| v.clamp(0.01, 1.0));
+            to_voice(app, &json!({ "cmd": "vad", "handsfree": handsfree, "pause": pause, "voice": vad_voice, "level": vad_level }));
         }
         Some("overlays") => {
             let ids: Vec<String> = msg.get("ids").and_then(Value::as_array).map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_owned)).collect()).unwrap_or_default();

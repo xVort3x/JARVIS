@@ -109,7 +109,7 @@ html, body { height: 100%; background: transparent; }
   transition: color 120ms steps(2, end);
 }
 .navi:hover { color: var(--ink); --fill: rgba(56, 184, 255, 0.05); }
-.navi[aria-current="page"] { color: var(--accent); font-weight: 600; --fill: rgba(56, 184, 255, 0.08); --bc: var(--accent); }
+.navi[aria-current="page"] { color: var(--accent); font-weight: 600; --fill: var(--fill-hi); --bc: var(--accent); }
 /* Needs you (an update, no account): one small LED at the end, nothing more. */
 .navi .dot { display: none; width: 6px; height: 6px; margin-inline-start: auto; background: var(--accent); border-radius: 50%; box-shadow: 0 0 6px rgba(56, 184, 255, 0.8); }
 .navi.flag .dot { display: block; }

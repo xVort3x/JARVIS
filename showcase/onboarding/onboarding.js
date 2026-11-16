@@ -1323,7 +1323,7 @@
       kind: 'state', platform: q.get('platform') || 'darwin', step: +(q.get('step') || 0), look: 'jarvis', size: q.get('size') || 'default', voice: true, actions: false, login: true, filesAsked: q.get('filesAsked') === '1',
       // &tts=gemini&gemini=1: Gemini as the voice, its key saved.
       replies: q.get('replies') === 'voice' ? 'voice' : 'text', fishKey: q.get('fish') === '1',
-      bind: q.get('session') === 'wayland' ? Object.fromEntries(['summon', 'talk', 'ask', 'list', 'panel'].map((k) => [k, `'/home/sam/Apps/Jarvis 0.1.41.AppImage' --${k}`])) : null,
+      bind: q.get('session') === 'wayland' ? Object.fromEntries(['summon', 'talk', 'ask', 'list', 'panel'].map((k) => [k, `'/home/sam/Apps/Jarvis 0.2.0.AppImage' --${k}`])) : null,
       tts: q.get('tts') === 'gemini' ? 'gemini' : 'fish', geminiKey: q.get('gemini') === '1', geminiVoice: 'Kore',
       geminiVoices: [['Zephyr', 'Bright'], ['Puck', 'Upbeat'], ['Charon', 'Informative'], ['Kore', 'Firm']].map(([id, style]) => ({ id, style })),
       keys: q.get('platform') === 'win32' ? { talk: ['control', 'option'], write: ['control', 'shift'], summon: 'Control+Shift+KeyS', snap: 'Control+Shift+KeyA' } : { talk: ['control', 'option'], write: win ? ['control', 'shift'] : ['option', 'command'], summon: 'Control+Alt+KeyS', snap: 'Control+Alt+KeyA' }, connected: null,

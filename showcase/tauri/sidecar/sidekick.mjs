@@ -31,6 +31,7 @@ import { foldInput, foldPrompt, memoryInput, memoryPrompt, oneShot, parseBrain, 
 import { briefNote } from './brief.mjs';
 import { CHECK_MS, DEFAULT_DISTRACTIONS, check as focusCheck, parseDistractions, startBlock } from './focus.mjs';
 import { saveCardImage } from './cardimage.mjs';
+import { SENSITIVITY, helperVad, vadPause, vadSensitivity, voiceMode } from './voicemode.mjs';
 import { DEFAULT_WAKE_NAME, cleanWakeName, wakeName } from './wakename.mjs';
 import { KEY_NAME as SYNC_KEY, MIN_PASSPHRASE, checkFolder, folderReady, merge as syncMerge, newDevice, prepareFolder, readRemotes, suggestFolders, tooMuchGone, writeOwn } from './sync.mjs';
 import { EMOTES, ToolCallFilter, ReplyStream } from './reply.mjs';
@@ -106,6 +107,9 @@ const DEFAULTS = {
   provider: null, model: null, sound: false, allowActions: false, voice: true,
   onboarded: false, onboardStep: 0, filesAsked: false, keys: DEFAULT_KEYS, muteWhileTalking: true, autoListen: false, wakeWord: false, setupVersion: 0, size: 'default', look: 'jarvis', introDone: false,
   replies: 'text', // 'voice': spoken (with Fish Audio or Gemini) as well as shown
+  voiceMode: 'handsfree', // 'handsfree' (tap the talk keys, a pause sends it), 'ptt' (hold to talk), 'text' (no microphone)
+  vadPause: 1.5, // seconds of silence that ends a hands-free take
+  vadSensitivity: 'normal', // how loud over the room it has to be to count as talking
   tts: 'fish', // which one speaks: 'fish' (Fish Audio), 'gemini' or 'voicestudio' (the VoiceStudio app on this computer)
   studioVoices: {}, // the VoiceStudio voice for Jarvis (a saved profile id; none: the selected engine's default voice)
   fishModel: FISH_CHOICES[0].id, // Drama 3 (most expressive) or S2.1 Pro (natural pace, cheaper)
@@ -158,6 +162,12 @@ let shellInfo = null; // resolves the shell's reply to it: screens, tray, panel,
     const pick = map.jarvis ?? map[oldLook];
     config[key] = pick ? { jarvis: pick } : {};
   }
+  // Voice modes arrived in 0.2.0. A config from before keeps the tap gesture (hands-free), or text-only when
+  // voice was off; entering text mode also silences spoken replies.
+  if (!['ptt', 'handsfree', 'text'].includes(config.voiceMode)) config.voiceMode = saved?.voice === false ? 'text' : 'handsfree';
+  if (config.voiceMode === 'text') { config.voice = false; config.replies = 'text'; }
+  config.vadPause = vadPause(config);
+  config.vadSensitivity = vadSensitivity(config);
   config.schemaVersion = 2;
   config.look = 'jarvis';
   config.sound = false;
@@ -1873,6 +1883,7 @@ function panelState() {
     studio: tts().local ? studioState() : null,
     voice: VOICE_OK ? {
       on: !!config.voice, keys: HOTKEYS_OK ? talkSymbols() : null, ready: voiceReady(), mac: MAC, mute: config.muteWhileTalking !== false, autoListen: !!config.autoListen, snoozeListen: !!config.snoozeListen, wakeWord: !!config.wakeWord, wakeName: wakeName(config),
+      mode: voiceMode(config), vad: { pause: vadPause(config), sensitivity: vadSensitivity(config) },
       // The mic picker: what the voice helper lists, the pick ('' is automatic) and the mic automatic uses now.
       mics: mics.list, mic: config.mic ?? '', micAuto: mics.list.find((x) => x.id === mics.auto)?.name ?? '',
       download: NEEDS_MODEL && config.voice && !voiceReady() ? { status: voiceModel.status, pct: voiceModel.total ? Math.floor((voiceModel.done / voiceModel.total) * 100) : 0, size: sizeLabel() } : null,
@@ -1886,7 +1897,7 @@ function panelState() {
 }
 
 
-const voiceConfig = () => send({ type: 'voice_config', enabled: VOICE_OK && config.voice && voiceReady(), mute: config.muteWhileTalking !== false, sound: !!config.sound, wake: MAC && !!config.wakeWord, wakeName: wakeName(config), ...(NEEDS_MODEL ? { model: MODEL_DIR } : {}) });
+const voiceConfig = () => { const v = helperVad(config); send({ type: 'voice_config', enabled: VOICE_OK && config.voice && voiceReady(), mute: config.muteWhileTalking !== false, sound: !!config.sound, wake: MAC && !!config.wakeWord, wakeName: wakeName(config), handsfree: v.handsfree, pause: v.pause, sensitivity: v.sensitivity, vadVoice: v.voice, vadLevel: v.level, ...(NEEDS_MODEL ? { model: MODEL_DIR } : {}) }); };
 
 // Progress goes to the setup guide often and to the tray menu now and then.
 let modelShownAt = 0, modelMenuAt = 0;
@@ -2118,6 +2129,25 @@ async function onMenu(id, via) {
   else if (id === 'list') showList({ seconds: 20 });
   else if (id.startsWith('mic:') && VOICE_OK) { config.mic = id.slice(4, 304); saveConfig(); micPick(); menu(); }
   else if (id === 'mutetalk') { config.muteWhileTalking = config.muteWhileTalking === false; saveConfig(); voiceConfig(); menu(); }
+  else if (id.startsWith('voicemode:') && VOICE_OK) {
+    const mode = id.slice('voicemode:'.length);
+    if (mode !== 'ptt' && mode !== 'handsfree' && mode !== 'text') return;
+    config.voiceMode = mode;
+    if (mode === 'text') { config.voice = false; config.replies = 'text'; } else config.voice = true;
+    saveConfig(); voiceConfig(); menu();
+    if (mode !== 'text' && config.voice && !voiceReady()) return startVoiceDownload();
+    say(mode === 'text' ? 'Text only. I read and answer in writing.' : mode === 'ptt' ? `Push to talk. Hold ${talkWords()} and talk.` : `Hands-free. Tap ${talkWords()}, talk, and I send when you pause (or tap again to send early).`, 'happy');
+  }
+  else if (id.startsWith('vadpause:') && VOICE_OK) {
+    const seconds = Number(id.slice('vadpause:'.length));
+    if (!Number.isFinite(seconds)) return;
+    config.vadPause = Math.min(4, Math.max(0.5, seconds)); saveConfig(); voiceConfig(); menu();
+  }
+  else if (id.startsWith('vadsensitivity:') && VOICE_OK) {
+    const s = id.slice('vadsensitivity:'.length);
+    if (!SENSITIVITY[s]) return;
+    config.vadSensitivity = s; saveConfig(); voiceConfig(); menu();
+  }
   else if (id === 'autolisten') { config.autoListen = !config.autoListen; saveConfig(); menu(); }
   else if (id === 'snoozelisten') { config.snoozeListen = !config.snoozeListen; saveConfig(); menu(); }
   else if (id === 'wakeword' && MAC) { config.wakeWord = !config.wakeWord; saveConfig(); agentStale = true; voiceConfig(); menu(); }

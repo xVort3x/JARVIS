@@ -135,6 +135,7 @@ enum Phase {
 const TAP_LIMIT: f64 = 0.25;
 // A release must last this long to count, so one glitchy frame of key state can't end a session.
 const RELEASE_DEBOUNCE: f64 = 0.09;
+// Hands-free: how much silence ends a take (the panel's "Pause to send", 0.5 to 4.0 s; this is the Normal default).
 const PAUSE_ENDS: f64 = 1.5;
 const MAX_SESSION: f64 = 60.0;
 // Keep the mic open a moment after release so a word said while letting go isn't clipped.
@@ -142,7 +143,7 @@ const TAIL: f64 = 0.3;
 const FINAL_TIMEOUT: f64 = 30.0;
 const READ_EVERY: f64 = 0.8;
 // Parakeet makes up words ("Thank you.") from silence, so a take is only read once the mic heard a voice:
-// about -49 dBFS, above room noise and below quiet speech.
+// about -49 dBFS, above room noise and below quiet speech. The panel's "Mic sensitivity" tunes this.
 const SPEECH_LEVEL: f64 = 0.15;
 // Hands-free, a take also ends once this much more sound came in without new words: steady noise or a voice in the
 // background can keep the level up, but it doesn't keep adding to what was said (#64).
@@ -152,16 +153,22 @@ const STALE_ENDS: f64 = 4.0;
 /// and keep a hands-free take open (#64). It starts at the take's first reading, falls almost at once to a quieter
 /// level and rises slowly to a louder one: speech dips between words, so it barely moves the floor, while noise that
 /// stays up soon becomes it.
-#[derive(Default)]
 struct NoiseFloor {
     level: f64,
     at: Option<f64>,
+    voice: f64, // the bar a voice has to clear over the room; the panel's Mic sensitivity sets it
+}
+
+impl Default for NoiseFloor {
+    fn default() -> NoiseFloor {
+        NoiseFloor { level: 0.0, at: None, voice: Self::VOICE }
+    }
 }
 
 impl NoiseFloor {
     const FALL: f64 = 0.05;
     const RISE: f64 = 4.0;
-    // A voice is at least this far above the floor (0.25 is 10 dB) and above the old fixed bar.
+    // A voice is at least this far above the floor (0.25 is 10 dB) and above the bar the config sets.
     const ABOVE: f64 = 0.25;
     const VOICE: f64 = 0.2;
 
@@ -169,10 +176,10 @@ impl NoiseFloor {
     fn is_voice(&mut self, v: f64, now: f64) -> bool {
         let Some(at) = self.at.replace(now) else {
             self.level = v;
-            return v > Self::VOICE;
+            return v > self.voice;
         };
         let dt = (now - at).clamp(0.0, 1.0);
-        let voice = v > Self::VOICE.max(self.level + Self::ABOVE);
+        let voice = v > self.voice.max(self.level + Self::ABOVE);
         let tau = if v < self.level { Self::FALL } else { Self::RISE };
         self.level += (v - self.level) * (dt / tau).min(1.0);
         voice
@@ -192,6 +199,11 @@ struct Voice {
     heard_at: f64,
     voice_at: f64,
     floor: NoiseFloor,
+    // The hands-free behaviour the panel asks for: whether a quick tap starts a hands-free take, how many seconds
+    // of silence end it, and how loud over the room it has to be to count as talking.
+    handsfree: bool,
+    pause_ends: f64,
+    speech_level: f64,
     level_at: f64,
     released_at: Option<f64>,
     blocked: bool,
@@ -228,6 +240,9 @@ impl Voice {
             heard_at: 0.0,
             voice_at: 0.0,
             floor: NoiseFloor::default(),
+            handsfree: true,
+            pause_ends: PAUSE_ENDS,
+            speech_level: SPEECH_LEVEL,
             level_at: 0.0,
             released_at: None,
             blocked: false,
@@ -319,8 +334,15 @@ impl Voice {
                     self.cancel();
                     self.blocked = true;
                 } else if released {
-                    self.phase = Phase::HandsFree;
-                    self.show_listening("handsfree", now);
+                    if self.handsfree {
+                        self.phase = Phase::HandsFree;
+                        self.show_listening("handsfree", now);
+                    } else {
+                        // Push to talk: a quick tap is not a take; only holding talks.
+                        log("tap ignored (push to talk)");
+                        self.phase = Phase::Idle;
+                        self.released_at = None;
+                    }
                 } else if down && now - self.chord_at >= TAP_LIMIT {
                     self.phase = Phase::Holding;
                     self.show_listening("hold", now);
@@ -344,13 +366,13 @@ impl Voice {
                 }
                 let quiet = now - self.heard_at.max(self.voice_at);
                 let stale = self.read_len.saturating_sub(self.heard_len) as f64 / RATE as f64;
-                if !self.best.is_empty() && quiet > PAUSE_ENDS {
+                if !self.best.is_empty() && quiet > self.pause_ends {
                     self.end("pause", now);
                     self.finish();
                 } else if !self.best.is_empty() && stale > STALE_ENDS {
                     self.end("no new words", now);
                     self.finish();
-                } else if self.best.is_empty() && !self.reading && now - self.listen_at > 8.0 && now - self.voice_at > PAUSE_ENDS {
+                } else if self.best.is_empty() && !self.reading && now - self.listen_at > 8.0 && now - self.voice_at > self.pause_ends {
                     self.end("nothing heard", now);
                     self.cancel();
                 } else if now - self.listen_at > MAX_SESSION {
@@ -409,7 +431,8 @@ impl Voice {
 
     fn start_audio(&mut self) {
         self.buf.lock().unwrap().clear();
-        self.floor = NoiseFloor::default();
+        let bar = self.floor.voice; // keep the configured Mic sensitivity across takes
+        self.floor = NoiseFloor { level: 0.0, at: None, voice: bar };
         let sink = Sink::new(self.buf.clone(), self.tx.clone());
         let started = match &self.test_audio {
             Some(p) => audio::play_file(p, sink).map_err(|e| MicError::new("failed", e)),
@@ -501,7 +524,7 @@ impl Voice {
         if self.floor.is_voice(v, now) {
             self.voice_at = now;
         }
-        if v > SPEECH_LEVEL && self.phase != Phase::Idle {
+        if v > self.speech_level && self.phase != Phase::Idle {
             self.spoke = true;
         }
         if !matches!(self.phase, Phase::Holding | Phase::HandsFree) || now - self.level_at < 0.05 {
@@ -610,6 +633,16 @@ impl Voice {
                 Some("chord") => {
                     let mods: Vec<String> = msg.get("mods").and_then(Value::as_array).map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_owned)).collect()).unwrap_or_default();
                     self.set_chord(&mods);
+                }
+                // The panel's voice settings, applied to whatever the helper is doing: hands-free tap-to-talk on or
+                // off, the pause that ends a hands-free take, and mic sensitivity (the bar a voice must clear over
+                // the room).
+                Some("vad") => {
+                    if let Some(b) = msg.get("handsfree").and_then(Value::as_bool) { self.handsfree = b; }
+                    if let Some(p) = msg.get("pause").and_then(Value::as_f64) { self.pause_ends = p.clamp(0.5, 4.0); }
+                    if let Some(bar) = msg.get("voice").and_then(Value::as_f64) { self.floor.voice = bar.clamp(0.01, 1.0); }
+                    if let Some(sp) = msg.get("level").and_then(Value::as_f64) { self.speech_level = sp.clamp(0.01, 1.0); }
+                    log(&format!("vad: handsfree {}, pause {:.2}s, voice bar {:.2}, floor {:.2}", self.handsfree, self.pause_ends, self.floor.voice, self.speech_level));
                 }
                 // Muting the speakers while listening is macOS-only for now.
                 _ => {}
@@ -858,6 +891,49 @@ mod tests {
         assert_eq!(v["code"], "no_input", "the code older app builds already handle");
         assert_eq!(v["reason"], "busy");
         assert_eq!(v["message"], "device in use");
+    }
+
+    #[test]
+    fn the_vad_command_sets_the_listening_behaviour() {
+        let (mut v, _jobs, wav) = voice();
+        assert!(v.handsfree && (v.pause_ends - PAUSE_ENDS).abs() < f64::EPSILON, "the default is Normal hands-free");
+        let exit = v.handle(Ev::Cmd(json!({ "cmd": "vad", "handsfree": false, "pause": 3.0, "voice": 0.3, "level": 0.25 })));
+        assert!(!exit);
+        assert!(!v.handsfree);
+        assert_eq!(v.pause_ends, 3.0);
+        assert_eq!(v.floor.voice, 0.3);
+        assert_eq!(v.speech_level, 0.25);
+        // Out-of-range values are clamped, never trusted.
+        v.handle(Ev::Cmd(json!({ "cmd": "vad", "pause": 99.0, "voice": -1.0, "level": 7.0 })));
+        assert_eq!(v.pause_ends, 4.0);
+        assert_eq!(v.floor.voice, 0.01);
+        assert_eq!(v.speech_level, 1.0);
+        let _ = std::fs::remove_file(wav);
+    }
+
+    #[test]
+    fn a_shorter_pause_ends_a_hands_free_take_sooner() {
+        let (mut v, _jobs, wav) = voice();
+        v.toggle();
+        v.on_level(0.5);
+        v.on_text(v.take, "lights off".into(), false);
+        v.heard_at = v.now() - 1.0;
+        v.voice_at = v.now() - 1.0;
+        v.handle(Ev::Cmd(json!({ "cmd": "vad", "pause": 0.75 })));
+        v.tick();
+        assert_eq!(v.phase, Phase::Finishing, "with a Short pause, a second of silence ends the take");
+        let _ = std::fs::remove_file(wav);
+    }
+
+    #[test]
+    fn a_new_take_keeps_the_configured_sensitivity() {
+        let (mut v, _jobs, wav) = voice();
+        v.handle(Ev::Cmd(json!({ "cmd": "vad", "voice": 0.1 })));
+        v.toggle();
+        assert_eq!(v.floor.voice, 0.1, "a take starts with the configured bar");
+        v.cancel();
+        assert_eq!(v.floor.voice, 0.1, "and it survives the take ending");
+        let _ = std::fs::remove_file(wav);
     }
 
     #[test]

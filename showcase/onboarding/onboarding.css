@@ -29,6 +29,7 @@
   --accent-hi: #9bdcff;
   --accent-lo: #1f86c9;
   --accent-ink: #03121c;
+  --fill-hi: #14212e; /* selected .px: accent frame, dark interior */
   --line: #202633;
   --line-hi: #313a4a;
   --line-hot: #4b576d;
@@ -204,7 +205,7 @@ h2 { margin: 0; font: 600 13px/1.35 var(--mono); font-stretch: 100; color: var(-
   transition: transform .18s var(--ease), background-color .18s var(--ease);
 }
 .switch[aria-checked="true"] { --bc: var(--accent); --fill: rgba(56, 184, 255, 0.30); }
-.switch[aria-checked="true"]::after { transform: translateX(18px); background: var(--accent); box-shadow: 0 0 8px rgba(56, 184, 255, 0.8); }
+.switch[aria-checked="true"]::after { transform: translateX(18px); background: var(--accent-hi); box-shadow: 0 0 8px rgba(56, 184, 255, 0.8); }
 
 /* ---------- providers ---------- */
 .providers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
@@ -228,10 +229,10 @@ h2 { margin: 0; font: 600 13px/1.35 var(--mono); font-stretch: 100; color: var(-
 .prov:active { --fill: rgba(255, 255, 255, 0.08); }
 .prov:disabled { cursor: default; opacity: 0.5; }
 .prov.busy { --bc: var(--accent); opacity: 1; }
-.prov.on { --bc: var(--accent); --fill: rgba(56, 184, 255, 0.08); }
+.prov.on { --bc: var(--accent); --fill: var(--fill-hi); }
 .prov.on small { color: var(--accent); }
 /* Picked (an API-key provider whose field is open, or a reply choice): a lit frame on the plain fill. */
-.prov[aria-pressed="true"], .prov[aria-checked="true"] { --bc: var(--accent); }
+.prov[aria-pressed="true"], .prov[aria-checked="true"] { --bc: var(--accent); --fill: var(--fill-hi); }
 .prov[aria-checked="true"] small { color: var(--accent); }
 
 .inline { margin: 4px 0 8px; }
@@ -284,7 +285,7 @@ input::placeholder { color: var(--ink-3); }
 .chords { display: flex; flex-wrap: wrap; gap: 6px; }
 .chord { appearance: none; display: inline-flex; padding: 5px; border: 0; cursor: pointer; --bc: rgba(255, 255, 255, 0.09); --fill: transparent; border-radius: 8px; }
 .chord:hover { --bc: rgba(255, 255, 255, 0.18); }
-.chord[aria-checked="true"] { --bc: var(--accent); --fill: rgba(56, 184, 255, 0.08); }
+.chord[aria-checked="true"] { --bc: var(--accent); --fill: var(--fill-hi); }
 .chord[aria-checked="true"] .cap { --bc: var(--accent); color: var(--accent); }
 .try { display: flex; align-items: center; gap: 10px; min-height: 28px; margin-top: 10px; font-size: 12px; color: var(--ink-2); }
 .try-label { flex: none; display: inline-flex; align-items: center; gap: 6px; }

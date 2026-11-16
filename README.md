@@ -85,6 +85,18 @@ Windows and Linux uses [NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvid
 [istupakov](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx), run with
 [parakeet-rs](https://github.com/altunenes/parakeet-rs). The model (about 670 MB) downloads once at setup and isn't bundled.</sub>
 
+## Talking to Jarvis
+
+On the panel's **Listening** page you pick how you talk to me:
+
+- **Hands-free** (default): tap the talk keys (Ctrl+Alt on Windows and Linux, ⌃⌥ on macOS), speak, and I send my answer when
+  you pause — or tap again to send early. My voice talks over you politely and stops the moment you start yours.
+- **Push to talk:** hold the talk keys, speak, let go. I answer the moment you release.
+- **Text only:** no microphone, no spoken replies. I read and write like any chat.
+
+Two settings shape hands-free: **Pause to send** (Short, Normal about 1.5 s, Long) and **Mic sensitivity** (Low, Normal, High).
+Esc stops a reply mid-sentence, and talking over me stops me too.
+
 ## Get started
 
 1. Install Jarvis from the **Assets** list on the release page. The *Source code* downloads there are the code,
