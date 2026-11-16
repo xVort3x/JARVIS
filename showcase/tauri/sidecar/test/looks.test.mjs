@@ -2,24 +2,24 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-// One identity: Jarvis, with one voice. No look picker, no people.js, no character greetings.
+// One identity: J.A.R.V.I.S, with one voice. No look picker, no people.js, no character greetings.
 const src = (p) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'utf8');
 const side = src('../sidekick.mjs'), guide = src('../../../onboarding/onboarding.js'), guidePage = src('../../../onboarding/index.html');
 const looks = [...side.slice(side.indexOf('const LOOKS = ['), side.indexOf('];', side.indexOf('const LOOKS = ['))).matchAll(/\['(\w+)', '([^']+)', '([^']+)'\]/g)];
-assert.deepEqual(looks.map((m) => m[1]), ['jarvis'], 'Jarvis is the only look');
-assert.equal(looks[0][2], 'Jarvis');
+assert.deepEqual(looks.map((m) => m[1]), ['jarvis'], 'J.A.R.V.I.S is the only look');
+assert.equal(looks[0][2], 'J.A.R.V.I.S');
 assert.equal(looks[0][3], 'e13fa398a7f445a685316a3de6089ce7');
-assert.match(side, /const lookName = \(\) => 'Jarvis'/);
+assert.match(side, /const lookName = \(\) => 'J.A.R.V.I.S'/);
 {
   const at = side.indexOf('function setLook(');
   const set = side.slice(at, side.indexOf('return true;', at) + 20);
   assert.match(set, /if \(l !== 'jarvis'\) return false;/, 'any other look is refused');
   assert.ok(!/LOOK_GREETINGS|geminiVoice\(|studioVoice\(|speech\./.test(set), 'no per-look voice or greeting');
 }
-// The prompt and the manual name Jarvis only. The frontend's internal `Roamie.*` API namespace is not
+// The prompt and the manual name J.A.R.V.I.S only. The frontend's internal `Roamie.*` API namespace is not
 // user-visible, so it does not count as branding.
 const withoutApi = (text) => text.replace(/\bRoamie\./g, '');
-assert.match(side.slice(side.indexOf('const stablePrompt'), side.indexOf('const stablePrompt') + 700), /You are Jarvis/);
+assert.match(side.slice(side.indexOf('const stablePrompt'), side.indexOf('const stablePrompt') + 700), /You are J.A.R.V.I.S/);
 for (const [name, text] of [['sidekick', side], ['setup guide', guide], ['setup guide page', guidePage]]) {
   assert.ok(!/Roamie|Anime Girl|Rita X|Ken Kai|By Ken Kai/.test(withoutApi(text)), `${name}: old names are gone`);
 }

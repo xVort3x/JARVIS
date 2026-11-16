@@ -6,16 +6,16 @@
   <key>LSUIElement</key>
   <true/>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Jarvis listens while you hold your talk shortcut.</string>
+  <string>J.A.R.V.I.S listens while you hold your talk shortcut.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
-  <string>Jarvis turns what you say into text, on your Mac.</string>
+  <string>J.A.R.V.I.S turns what you say into text, on your Mac.</string>
   <key>NSDesktopFolderUsageDescription</key>
-  <string>Jarvis reads files on your Desktop when you ask it to.</string>
+  <string>J.A.R.V.I.S reads files on your Desktop when you ask it to.</string>
   <key>NSDocumentsFolderUsageDescription</key>
-  <string>Jarvis reads files in Documents when you ask it to.</string>
+  <string>J.A.R.V.I.S reads files in Documents when you ask it to.</string>
   <key>NSDownloadsFolderUsageDescription</key>
-  <string>Jarvis reads files in Downloads when you ask it to.</string>
+  <string>J.A.R.V.I.S reads files in Downloads when you ask it to.</string>
   <key>NSScreenCaptureUsageDescription</key>
-  <string>Jarvis looks at your screen when you ask it to.</string>
+  <string>J.A.R.V.I.S looks at your screen when you ask it to.</string>
 </dict>
 </plist>

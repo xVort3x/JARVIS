@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Jarvis: a Tauri 2 desktop app (Rust shell in `showcase/tauri/src-tauri`), a Node sidecar that runs the
+J.A.R.V.I.S: a Tauri 2 desktop app (Rust shell in `showcase/tauri/src-tauri`), a Node sidecar that runs the
 agent (`showcase/tauri/sidecar`), shared browser JS in `showcase/roamies`, macOS Swift helpers built by
 `src-tauri/build.rs`, and two Windows helpers built by `build.sh` for Windows targets: voice
 (`src-tauri/voice-win`, Rust + Parakeet; `--transcribe <wav>` and `--test-audio <wav>` test speech without a

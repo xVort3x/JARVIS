@@ -1,4 +1,4 @@
-// Hands helper for Jarvis on Windows, the twin of hands/main.swift: lets the agent see one window or app, read its
+// Hands helper for J.A.R.V.I.S on Windows, the twin of hands/main.swift: lets the agent see one window or app, read its
 // controls and work them. Same commands, same JSON: one command per run, one JSON object on stdout, live progress as
 // "@"-prefixed JSON lines on stderr.
 //
@@ -334,7 +334,7 @@ mod smoke {
             println!("{} {name}{}", if ok { "ok" } else { "FAIL" }, if ok || detail.is_empty() { String::new() } else { format!(" ({detail})") });
             bad += usize::from(!ok);
         };
-        let phrase = "Jarvis smoke 4711 Grüße \u{1F600}";
+        let phrase = "J.A.R.V.I.S smoke 4711 Grüße \u{1F600}";
         let _ = Command::new("notepad.exe").spawn();
         let is_notepad = |w: &Value| app_matches(w["app"].as_str().unwrap_or(""), "", "notepad") || w["title"].as_str().unwrap_or("").contains("Notepad");
         let Some(win) = wait_window(is_notepad) else {

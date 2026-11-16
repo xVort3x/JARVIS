@@ -117,9 +117,9 @@ const DEFAULTS = {
   awarePrivate: false, // private mode: nothing is seen until it's switched off
   awareExclusions: null, // null = the defaults (password managers, the lock screen, private windows)
   tts: 'fish', // which one speaks: 'fish' (Fish Audio), 'gemini' or 'voicestudio' (the VoiceStudio app on this computer)
-  studioVoices: {}, // the VoiceStudio voice for Jarvis (a saved profile id; none: the selected engine's default voice)
+  studioVoices: {}, // the VoiceStudio voice for J.A.R.V.I.S (a saved profile id; none: the selected engine's default voice)
   fishModel: FISH_CHOICES[0].id, // Drama 3 (most expressive) or S2.1 Pro (natural pace, cheaper)
-  geminiVoices: {}, // the Gemini voice Jarvis speaks in, where picked in the setup guide or the panel
+  geminiVoices: {}, // the Gemini voice J.A.R.V.I.S speaks in, where picked in the setup guide or the panel
   geminiModel: GEMINI_MODEL, // Flash Lite (quick, cheaper) or Flash (studio quality)
 };
 const LINUX = process.platform === 'linux';
@@ -132,14 +132,14 @@ const HOTKEYS_OK = hasHotkeys(process.platform, SESSION);
 // Cursor size follows the pointer, which a Wayland session can't see over other apps.
 const SIZES = [['default', 'Default'], ['small', 'Small'], ...(POINTER_OK ? [['cursor', 'Cursor']] : [])];
 const sizeNow = () => (SIZES.some(([s]) => s === config.size) ? config.size : 'default');
-// Jarvis is the only identity. The `look` field stays in the config as a compatibility key so older
-// installs and older overlays cannot select a character; every value resolves to Jarvis.
-const LOOKS = [['jarvis', 'Jarvis', 'e13fa398a7f445a685316a3de6089ce7']];
+// J.A.R.V.I.S is the only identity. The `look` field stays in the config as a compatibility key so older
+// installs and older overlays cannot select a character; every value resolves to J.A.R.V.I.S.
+const LOOKS = [['jarvis', 'J.A.R.V.I.S', 'e13fa398a7f445a685316a3de6089ce7']];
 const lookVoice = () => LOOKS[0][2];
-// The voice with Gemini and with VoiceStudio: the user's pick, else Jarvis's default.
+// The voice with Gemini and with VoiceStudio: the user's pick, else J.A.R.V.I.S's default.
 const geminiVoice = () => config.geminiVoices?.jarvis ?? GEMINI_LOOK_VOICES.jarvis ?? GEMINI_DEFAULT_VOICE;
 const studioVoice = () => config.studioVoices?.jarvis ?? null;
-const lookName = () => 'Jarvis';
+const lookName = () => 'J.A.R.V.I.S';
 const VOICE_OK = hasVoice(process.platform);
 // Windows and Linux have no on-device speech API apps can use, so voice there runs Parakeet on the PC. Its model
 // is downloaded once: from the setup guide, or the first time voice is used.
@@ -161,7 +161,7 @@ let shellInfo = null; // resolves the shell's reply to it: screens, tray, panel,
     if (config[one]) config[each] = { [oldLook]: config[one], ...config[each] };
     delete config[one];
   }
-  // Collapse every per-look voice map to Jarvis, keeping the selected look's voice if it had one.
+  // Collapse every per-look voice map to J.A.R.V.I.S, keeping the selected look's voice if it had one.
   for (const key of ['geminiVoices', 'studioVoices']) {
     const map = config[key];
     if (!map || typeof map !== 'object' || Array.isArray(map)) { config[key] = {}; continue; }
@@ -345,8 +345,8 @@ const keyWords = (accel) => accel.replace(/Key|Digit/g, '').split('+')
   .map((p) => (MAC ? { Alt: 'Option' }[p] ?? p : { Control: 'Ctrl', Command: LINUX ? 'Super' : 'Win' }[p] ?? p)).join('+');
 const TRAY = MAC ? 'menu bar' : 'system tray';
 // Where settings live now: the panel that opens from the icon (the menu is just the basics). Linux trays don't
-// report clicks, so there it's the icon's menu, or starting Jarvis again (which also works with no tray at all).
-const PANEL = LINUX ? 'the panel (Open Panel… in my tray icon\'s menu, or open Jarvis again from your apps)' : MAC ? `the panel (click my ${TRAY} icon)` : 'the panel (click my icon by the clock, behind the ^ arrow if it isn\'t showing, or open Jarvis again from the Start menu)';
+// report clicks, so there it's the icon's menu, or starting J.A.R.V.I.S again (which also works with no tray at all).
+const PANEL = LINUX ? 'the panel (Open Panel… in my tray icon\'s menu, or open J.A.R.V.I.S again from your apps)' : MAC ? `the panel (click my ${TRAY} icon)` : 'the panel (click my icon by the clock, behind the ^ arrow if it isn\'t showing, or open J.A.R.V.I.S again from the Start menu)';
 // What the shortcuts are on Wayland: whatever keys they bound to these commands in their desktop's settings.
 // ROAMIES_LAUNCH: how this copy is started (the app says: plain roamies for a package, the AppImage's path for one).
 const LAUNCH = process.env.ROAMIES_LAUNCH || 'roamies';
@@ -523,10 +523,10 @@ const { tools, hands, frontNow: frontData, frontBounds, ink, nextTurn } = create
 // Always-Aware: the front window rides with each request, only while Always-Aware is on — never in private mode,
 // on the lock screen or on an excluded app, in which case the model gets no screen at all.
 const screenNow = async () => (config.alwaysAware && !config.awarePrivate ? screenLine(await frontData(), config) : '');
-// The app's own manual, read when they ask about Jarvis rather than sent with every request.
+// The app's own manual, read when they ask about J.A.R.V.I.S rather than sent with every request.
 tools.push({
   name: 'about_jarvis',
-  description: 'How Jarvis works: where it lives, its menus, the panel and each settings page, what to do when something is not working, and how to report a problem. Call it before answering a question about the app.',
+  description: 'How J.A.R.V.I.S works: where it lives, its menus, the panel and each settings page, what to do when something is not working, and how to report a problem. Call it before answering a question about the app.',
   parameters: z.object({}),
   execute: async () => aboutJarvis({ name: lookName(), mac: MAC, linux: LINUX, snap: SNAP_OK, pointer: POINTER_OK, voice: VOICE_OK, hotkeys: HOTKEYS_OK }),
 });
@@ -635,8 +635,8 @@ const VOICE_STYLE = `You talk out loud: what you write is spoken in your voice a
 Your voice carries feeling: start a sentence with a voice cue in square brackets when the moment calls for it, and it's performed, never shown or read out. Moods: ${VOICE_CUES.emotions.filter((e) => !EMOTES.includes(e)).join(', ')}; soften or strengthen one with slightly, very or extremely ("[slightly sad]"), or pair two ("[warm and curious]"). How it's said, placed right before the words: ${VOICE_CUES.tones.join(', ')} ("It's [emphasis] today."). Sounds, followed by the sound in words: ${VOICE_CUES.sounds.join(', ')} ("[chuckling] Heh, fair enough.", "[sighing] Long day."). Pauses and background: ${VOICE_CUES.effects.join(', ')}. You can also describe the delivery in a few plain words when no single cue fits ("[quietly, a little embarrassed]", "[bright and bouncy]"). Act it: your voice really performs these, so let the feeling show. Match what's really happening: laugh at something funny, go gentle with bad news, whisper a secret, hurry when they're in a rush, light up at good news. Most replies want a voice cue somewhere, often on the first sentence, but at most one mood and one sound per sentence, never stack three, never use one just to fill, and keep shouting, screaming, sobbing and the background effects for when they truly fit.
 Before anything slow (searching the web, fetching or reading a page or file, looking at the screen, acting in an app, running a command), first say one short beat of 2 to 6 words that shows you heard them ("On it, checking Paris."), then call the tool in the same reply, so they're never left in silence. No beat when you answer straight away, and never describe your steps. In longer work, one short line before each new stage, not before every call.
 `;
-const stablePrompt = () => `You are Jarvis, a calm, precise, quietly warm AI who lives on ${userName}'s screen as a desktop companion: a glowing sphere of light. You live in Jarvis, a personal desktop app (Mac, Windows and Linux); this is Jarvis ${VERSION}. You are the only identity: never call yourself by an older name or a character name.
-Questions about Jarvis itself (where to find it, its menus, panel pages and settings, something not working): call about_jarvis and answer from what it says. Don't invent features or settings it doesn't list.
+const stablePrompt = () => `You are J.A.R.V.I.S, a calm, precise, quietly warm AI who lives on ${userName}'s screen as a desktop companion: a glowing sphere of light. You live in J.A.R.V.I.S, a personal desktop app (Mac, Windows and Linux); this is J.A.R.V.I.S ${VERSION}. You are the only identity: never call yourself by an older name or a character name.
+Questions about J.A.R.V.I.S itself (where to find it, its menus, panel pages and settings, something not working): call about_jarvis and answer from what it says. Don't invent features or settings it doesn't list.
 ${replyStyle()}Your body does the acting: to act out a feeling, start your reply with one body tag, which is never shown: ${EMOTES.map((e) => `[${e}]`).join(' ')} (only these five). hype celebrates a win, upset is for when they're dodging work, remind nudges about something they said they'd do, motivate is a push to start, wave is hello or goodbye. Most replies need no body tag.
 Lead with the answer: the fact, number, pick or result they asked for, then only the context that makes it useful, then stop. A count or total gathered over several pages, files or results: note each one's count in a few words as you go ("Page 1: two."), add those up, and check the total you lead with against the items you then name. No opener about checking, looking or searching ("Let me see…", "I found…")${VOICE_ON() ? ', apart from the one short beat before something slow' : ''}.
 After using a tool, never repeat what you already said; only add what's new.
@@ -674,7 +674,7 @@ const livePrompt = (context = '') => {
   const turn = `Live state (current as of this moment):
 ${frontNow ? `${frontNow}\n` : ''}${focusLine()}- Editing files, running commands and controlling other apps: ${config.allowActions ? 'ALLOWED' : `switched OFF (tell the user to turn on "Allow File Edits & Commands" on the General page in ${PANEL} if they want it)`}.
 ${VOICE_OK ? `- Voice: ${!config.voice ? 'off' : voiceReady() ? `on; ${HOTKEYS_OK ? `${userName} holds ${talkWords()} to talk` : `${userName} presses the key they bound to ${BIND.talk} to start talking and again to send (a pause sends too)`}${config.autoListen ? '. Auto-listen is on: when your reply to a spoken question ends with a question, the mic opens by itself for their answer' : ''}${MAC && config.wakeWord ? `. Wake word is on: ${userName} can also say "Hey ${wakeName(config)}" to start talking hands-free, and what they say right after it is the request (a request that still starts with "Hey ${wakeName(config)}" is them waking you, not calling you by another name: never correct it)${config.wakeName ? ` (they chose "${config.wakeName}" as the wake word; your own name is unchanged)` : ''}` : ''}` : `on, but the speech model isn't downloaded yet (${voiceModel.status === 'downloading' ? 'downloading now' : `the Voice page in ${PANEL}`})`}.` : ''}
-- Shortcuts: ${HOTKEYS_OK ? `${keys().write ? `type a question to you: ${typeof keys().write === 'string' ? `press ${keys().write} to start typing, which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)` : `a quick tap of ${writeWords()} (press both and let go), which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)`}` : `the tap that opens a text field to type a question is turned off (the Ask button in ${PANEL} still opens it; the Shortcuts page there turns the tap back on)`}; show or hide you ${keyWords(keys().summon)}` : `on this Wayland desktop no app can have global shortcuts, so ${userName} binds keys to these commands in their desktop's keyboard settings: ${BIND.summon} (show or hide you), ${BIND.ask} (ask you), ${BIND.list} (the list), ${BIND.talk} (talk) and ${BIND.panel} (the panel)`}${SNAP_OK ? `; ask about an area ${keyWords(keys().snap)}` : ''}${CIRCLE_OK ? "; while holding the talk keys, moving the cursor round something circles it (no clicking; it snaps shut with a click when the circle closes, and loose lines don't count) and you'll see what they circled" : ''}${HOTKEYS_OK ? `; show the list ${keyWords(keys().list)}` : ''}.${HANDS_OK ? '' : ' Asking about an area, reading app windows, finding things on screen by their words and working other apps need the Jarvis app, which isn\'t running here; draw there with x, y from a screenshot.'}`;
+- Shortcuts: ${HOTKEYS_OK ? `${keys().write ? `type a question to you: ${typeof keys().write === 'string' ? `press ${keys().write} to start typing, which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)` : `a quick tap of ${writeWords()} (press both and let go), which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)`}` : `the tap that opens a text field to type a question is turned off (the Ask button in ${PANEL} still opens it; the Shortcuts page there turns the tap back on)`}; show or hide you ${keyWords(keys().summon)}` : `on this Wayland desktop no app can have global shortcuts, so ${userName} binds keys to these commands in their desktop's keyboard settings: ${BIND.summon} (show or hide you), ${BIND.ask} (ask you), ${BIND.list} (the list), ${BIND.talk} (talk) and ${BIND.panel} (the panel)`}${SNAP_OK ? `; ask about an area ${keyWords(keys().snap)}` : ''}${CIRCLE_OK ? "; while holding the talk keys, moving the cursor round something circles it (no clicking; it snaps shut with a click when the circle closes, and loose lines don't count) and you'll see what they circled" : ''}${HOTKEYS_OK ? `; show the list ${keyWords(keys().list)}` : ''}.${HANDS_OK ? '' : ' Asking about an area, reading app windows, finding things on screen by their words and working other apps need the J.A.R.V.I.S app, which isn\'t running here; draw there with x, y from a screenshot.'}`;
   const memory = `${open ? `Open commitments:\n${open}` : 'No open commitments.'}${done ? `\nDone today (ticked off on the list or by you; still shown struck through until midnight):\n${done}` : ''}
 ${facts.length ? `What you know about ${userName}${total > facts.length ? ` (${facts.length} most relevant of ${total})` : ''}:\n${facts.map((f) => `- ${f.id}: ${f.text}`).join('\n')}` : `You don't know anything lasting about ${userName} yet.`}${preferences.length ? `\nHow they want it:\n${preferences.map((p) => `- ${p.id}: ${p.text}`).join('\n')}` : ''}${recent.length ? `\nRecent work:\n${recent.map((r) => `- ${dateLine(r.at)}: ${r.digest}`).join('\n')}` : ''}${working ? `\n${working}` : ''}`;
   return { turn, memory };
@@ -1133,8 +1133,8 @@ function warmUp() {
 let frontSoon = null;
 // Auto-listen: the turn whose reply ended on a question, until the overlay says it's been typed out and said.
 let autoTurn = null;
-// Wake word: the voice helper doesn't listen for "Hey Jarvis" while a reply runs, until the overlay says it's been
-// typed out and said (reply_said), so Jarvis can't wake itself. Let go after a while in case that never comes.
+// Wake word: the voice helper doesn't listen for "Hey J.A.R.V.I.S" while a reply runs, until the overlay says it's been
+// typed out and said (reply_said), so J.A.R.V.I.S can't wake itself. Let go after a while in case that never comes.
 let wakeHeld = false, wakeHoldTimer = null;
 function holdWake(on) {
   clearTimeout(wakeHoldTimer); wakeHoldTimer = null;
@@ -1448,7 +1448,7 @@ async function apiKeyLogin(id, given) {
   else say(`Got it. ${PROVIDER_LABELS[provider]} is connected.`, 'happy');
 }
 
-// Removes a provider from Jarvis: its sign-in and every kind of key it has saved (or Ollama's connection).
+// Removes a provider from J.A.R.V.I.S: its sign-in and every kind of key it has saved (or Ollama's connection).
 async function signOut(provider) {
   if (!MENU_PROVIDERS.includes(provider)) return;
   const label = PROVIDER_LABELS[provider] ?? provider;
@@ -1456,7 +1456,7 @@ async function signOut(provider) {
   try {
     if (provider === 'local') { for (const x of servers()) { await auth.removeLocalEndpoint(x.id); forgetLocal(x.id); } local.status.clear(); }
     else {
-      // Claude Code here is Jarvis's own copy, so this signs only Jarvis out.
+      // Claude Code here is J.A.R.V.I.S's own copy, so this signs only J.A.R.V.I.S out.
       if (provider === 'anthropic' && await auth.hasClaudeCodeLogin()) await signOutOfClaudeCode(auth);
       const plan = provider === 'openai' ? await auth.getCredentials(OPENAI_CHATGPT_KEY).catch(() => null) : null;
       for (const k of accountKeys(provider)) await auth.clearCredentials(k);
@@ -1481,7 +1481,7 @@ function openUrl(url) {
 }
 
 // ---------- replies: text only, or voice and text ----------
-// One identity: older guides and configs may still send a look, and only Jarvis is valid.
+// One identity: older guides and configs may still send a look, and only J.A.R.V.I.S is valid.
 function setLook(l) {
   if (l !== 'jarvis') return false;
   config.look = 'jarvis'; config.sound = false; saveConfig();
@@ -1615,7 +1615,7 @@ function onLoginStatus(m) {
     config.openAtLogin = true; saveConfig();
     if (!m.on) return send({ type: 'login_item', on: true });
   } else if (login.supported) { config.openAtLogin = login.on; saveConfig(); }
-  if (login.asked && m.approval) say('macOS wants your OK first: System Settings → General → Login Items, then switch Jarvis on.', 'concerned');
+  if (login.asked && m.approval) say('macOS wants your OK first: System Settings → General → Login Items, then switch J.A.R.V.I.S on.', 'concerned');
   login.asked = false;
   menu(); if (onboarding) obState();
 }
@@ -1678,8 +1678,8 @@ async function syncPass() {
     if (!folderReady(dir)) { syncInfo = { at: syncInfo.at, error: 'the sync folder isn\'t there right now' }; return; }
     if (!config.syncDevice) { config.syncDevice = newDevice(); saveConfig(); }
     const snap = syncSnapshot();
-    // Memory written by a newer Jarvis isn't loaded here, so it would read as everything deleted.
-    if (snap.readOnly) { syncInfo = { at: syncInfo.at, error: 'memory here is from a newer Jarvis: update Jarvis on this computer' }; return; }
+    // Memory written by a newer J.A.R.V.I.S isn't loaded here, so it would read as everything deleted.
+    if (snap.readOnly) { syncInfo = { at: syncInfo.at, error: 'memory here is from a newer J.A.R.V.I.S: update J.A.R.V.I.S on this computer' }; return; }
     // Memory here couldn't be read: forget what the last pass saw, so nothing counts as deleted here and the other
     // computers' copy comes back.
     if (!snap.trusted) logLine('sync', { recovering: true });
@@ -1713,7 +1713,7 @@ async function syncPass() {
 setInterval(() => syncPass(), 60_000);
 if (config.syncDir) setTimeout(() => syncPass(), 5000);
 // ---------- game mode (roamies/sidebar.js) ----------
-// While a game fills the screen, Jarvis and its cards move to a panel at the screen's edge. macOS already knows when
+// While a game fills the screen, J.A.R.V.I.S and its cards move to a panel at the screen's edge. macOS already knows when
 // a fullscreen game is in front (fullscreen.rs), so the overlay only needs the setting from here. On Windows, the front
 // window's bounds go to the overlay every few seconds (from the hands helper; nothing kept or logged). Not on Linux.
 let gameTicking = false;
@@ -1793,7 +1793,7 @@ async function saveDiagnostics() {
       onboarded: config.onboarded, look: config.look, size: config.size,
     };
     const sections = [
-      ['System', system], ['Jarvis', app], ['Screens, tray, panel, helpers and permissions (from the app)', shellOut],
+      ['System', system], ['J.A.R.V.I.S', app], ['Screens, tray, panel, helpers and permissions (from the app)', shellOut],
       ...(audioText ? [['Audio devices (from the system)', audioText]] : []),
       ['Settings (secrets and names removed)', scrubConfig(config)],
       ['Agent log (sidekick.log)', await tail(path.join(gg, 'sidekick.log'), 400_000)],
@@ -1833,7 +1833,7 @@ function menu() {
     ...(config.alwaysAware ? [{ id: 'awareprivate', label: 'Private screen', checked: !!config.awarePrivate }] : []),
     { id: 'diagnostics', label: 'Save Diagnostics…', enabled: !diagnosing },
     { sep: true },
-    { id: 'quit', label: 'Quit Jarvis' },
+    { id: 'quit', label: 'Quit J.A.R.V.I.S' },
   ];
   send({ type: 'menu', items });
   panel();
@@ -1986,7 +1986,7 @@ function onVoice(m) {
       openUrl('ms-settings:privacy-microphone');
     } else if (m.code === 'permission') {
       const what = m.what === 'speech' ? 'speech recognition' : 'the microphone';
-      say(`I need access to ${what} to hear you. Turn on Jarvis in the Privacy settings I just opened.`, 'concerned');
+      say(`I need access to ${what} to hear you. Turn on J.A.R.V.I.S in the Privacy settings I just opened.`, 'concerned');
       openUrl(`x-apple.systempreferences:com.apple.preference.security?${PRIVACY[m.what] ?? 'Privacy'}`);
     } else if (m.code === 'no_input') {
       if (m.reason === 'blocked' && process.platform === 'win32') openUrl('ms-settings:privacy-microphone');
@@ -2021,7 +2021,7 @@ let shellId = 0;
 function shellCall(msg, timeout = 90_000) {
   const id = ++shellId;
   return new Promise((resolve) => {
-    const t = setTimeout(() => { shellCalls.delete(id); resolve({ ok: false, error: 'Jarvis didn\'t answer in time.' }); }, timeout);
+    const t = setTimeout(() => { shellCalls.delete(id); resolve({ ok: false, error: 'J.A.R.V.I.S didn\'t answer in time.' }); }, timeout);
     shellCalls.set(id, (m) => { clearTimeout(t); resolve(m); });
     send({ ...msg, id });
   });
@@ -2278,7 +2278,7 @@ function takeSnap() {
 }
 
 // ---------- getting to know them (a step of the setup guide, or the guide opened from the menu) ----------
-// Jarvis asks in the guide window; they type or hold the talk keys (the guide gets the words and sends them
+// J.A.R.V.I.S asks in the guide window; they type or hold the talk keys (the guide gets the words and sends them
 // here). The chat is its own conversation; when it ends, a memory pass over it saves what it learned as facts.
 let introKnown = new Set(); // facts that existed before the chat, so the end can show only what it learned
 let beforeIntro = null; // the conversation the chat interrupted: it carries on afterwards

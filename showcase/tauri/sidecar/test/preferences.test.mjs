@@ -1,4 +1,4 @@
-// Layered memory: preferences (how they like Jarvis to work), session summaries (what a conversation was about),
+// Layered memory: preferences (how they like J.A.R.V.I.S to work), session summaries (what a conversation was about),
 // usage-weighted fact eviction. Runs against a throwaway HOME. Run: npm test
 import assert from 'node:assert/strict';
 import fs from 'node:fs';

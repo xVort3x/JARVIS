@@ -45,7 +45,7 @@ final class Wave {
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + 1)
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.alphaValue = 0
-        panel.setAccessibilityLabel("Jarvis is listening")
+        panel.setAccessibilityLabel("J.A.R.V.I.S is listening")
 
         let view = NSView(frame: NSRect(origin: .zero, size: size))
         view.wantsLayer = true

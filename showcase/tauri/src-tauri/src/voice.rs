@@ -183,7 +183,7 @@ pub(crate) fn set_hotkey(slot: usize, accel: &str) -> Result<(), String> {
             return Ok(());
         }
         if keys.iter().enumerate().any(|(i, k)| i != slot && k.map(|c| c.id()) == Some(new.id())) {
-            return Err("already used by the other Jarvis shortcut".to_string());
+            return Err("already used by the other J.A.R.V.I.S shortcut".to_string());
         }
         if let Some(old) = current {
             let _ = manager.unregister(old);

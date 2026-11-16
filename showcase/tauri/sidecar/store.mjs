@@ -107,7 +107,7 @@ const ID_RE = /^\d{8}-\d{6}-[a-z0-9]{6}$/;
 // stop words for query matching: small and enough
 const STOP_Q = new Set('the a an and or but to of in on at for with is are was were be it this that my me i you your his her its our their what how when where why can do does just like about from have has had will would should could not no yes so if then than'.split(' '));
 
-/** One line about what a conversation was about, saved when it ends: what future Jarvis can answer "what was
+/** One line about what a conversation was about, saved when it ends: what future J.A.R.V.I.S can answer "what was
  *  I working on?" from, instead of guessing from the facts alone. */
 export async function saveSessionSummary(id, digest, at = Date.now()) {
   if (!ID_RE.test(String(id ?? ''))) return null;

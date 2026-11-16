@@ -1,6 +1,6 @@
 {
   "name": "roamies-sidekick",
-  "description": "The Jarvis agent: a Node sidecar for the Jarvis desktop app",
+  "description": "The J.A.R.V.I.S agent: a Node sidecar for the J.A.R.V.I.S desktop app",
   "private": true,
   "license": "AGPL-3.0-only",
   "repository": {

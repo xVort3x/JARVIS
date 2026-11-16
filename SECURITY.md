@@ -1,6 +1,6 @@
 # Security policy
 
-Jarvis reads your AI provider API keys and OAuth tokens from your machine (`~/.gg/auth.json`) and runs a
+J.A.R.V.I.S reads your AI provider API keys and OAuth tokens from your machine (`~/.gg/auth.json`) and runs a
 local agent that can take screenshots, read windows and read files, and, if you turn
 them on, click and type in other apps, write files and run commands. Security reports are taken seriously.
 

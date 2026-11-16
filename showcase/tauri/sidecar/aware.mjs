@@ -1,4 +1,4 @@
-// Always-Aware: what Jarvis is allowed to know about your screen, and what happens to every picture it takes.
+// Always-Aware: what J.A.R.V.I.S is allowed to know about your screen, and what happens to every picture it takes.
 // Pure logic, so the tests can drive it; sidekick.mjs owns the config and the wiring.
 //
 // The always-in-context line (the app in front, its window title) only goes into a request while Always-Aware is

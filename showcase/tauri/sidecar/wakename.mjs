@@ -1,7 +1,8 @@
 // The wake word's name, chosen by the user ("Hey Jarvis"). The voice helper (voice/main.swift, WakeWord.setName) applies
-// the same rule; this one turns a typed name into one to save, or says why not, before it gets that far.
+// the same rule; this one turns a typed name into one to save, or says why not, before it gets that far. Spoken, the
+// default wake word is "Jarvis" — J.A.R.V.I.S is the app's name, the way "Jarvis" is said aloud.
 export const DEFAULT_WAKE_NAME = 'Jarvis';
-// Words people say all the time: as a wake name, "Hey there"-style chatter would wake Jarvis.
+// Words people say all the time: as a wake name, "Hey there"-style chatter would wake J.A.R.V.I.S.
 const COMMON = new Set(['hello', 'there', 'okay', 'yeah', 'thanks', 'sorry', 'right', 'what', 'this', 'that', 'with', 'have',
   'just', 'like', 'about', 'would', 'could', 'really', 'maybe', 'guys', 'everyone', 'everybody', 'buddy', 'listen', 'look',
   'siri', 'alexa', 'google']);
@@ -10,7 +11,7 @@ const COMMON = new Set(['hello', 'there', 'okay', 'yeah', 'thanks', 'sorry', 'ri
 export function cleanWakeName(raw) {
   const t = String(raw ?? '').trim().replace(/^(hey|hi)[\s,]+/i, '');
   if (!t || t.toLowerCase() === DEFAULT_WAKE_NAME.toLowerCase()) return { ok: true, name: '' };
-  if (/\s/.test(t)) return { ok: false, why: 'Just one word, please, like Jarvis.' };
+  if (/\s/.test(t)) return { ok: false, why: 'Just one word, please, like J.A.R.V.I.S.' };
   const w = t.replace(/[^\p{L}]/gu, '');
   if (w.length !== t.length) return { ok: false, why: 'Letters only, please.' };
   if (w.length < 4) return { ok: false, why: 'At least 4 letters, so it isn\'t heard by mistake.' };

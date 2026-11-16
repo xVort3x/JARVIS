@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in Jarvis isn't working right.
+description: Something in J.A.R.V.I.S isn't working right.
 labels: [bug]
 body:
   - type: textarea
@@ -24,7 +24,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Jarvis version
+      label: J.A.R.V.I.S version
       description: Find it in the panel > About.
     validations:
       required: true
@@ -44,4 +44,4 @@ body:
     id: logs
     attributes:
       label: Diagnostics file
-      description: In Jarvis, open the panel > About > Save diagnostics (or the tray icon's menu > Save Diagnostics…). It saves a jarvis-diagnostics-….log file in Downloads with keys and personal details removed. Drag that file into this box.
+      description: In J.A.R.V.I.S, open the panel > About > Save diagnostics (or the tray icon's menu > Save Diagnostics…). It saves a j.a.r.v.i.s-diagnostics-….log file in Downloads with keys and personal details removed. Drag that file into this box.

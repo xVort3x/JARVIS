@@ -36,7 +36,7 @@ final class Buddy: NSObject {
         // Above games' own fullscreen windows, which sit at the status bar level.
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-        panel.setAccessibilityLabel("Jarvis sidekick")
+        panel.setAccessibilityLabel("J.A.R.V.I.S sidekick")
         let view = NSView(frame: NSRect(origin: .zero, size: panel.frame.size))
         view.wantsLayer = true
         view.autoresizingMask = [.width, .height]

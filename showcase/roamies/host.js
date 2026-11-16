@@ -76,8 +76,8 @@
   // and key repeat all just work. Type to ask (m.bar) shows its own field beside the cursor instead (ask-bar.js).
   const field = document.createElement('input');
   Object.assign(field.style, { position: 'fixed', left: '0', top: '0', width: '1px', height: '1px', opacity: '0', pointerEvents: 'none' });
-  // One look: Jarvis.
-  field.setAttribute('aria-label', 'Message for Jarvis');
+  // One look: J.A.R.V.I.S.
+  field.setAttribute('aria-label', 'Message for J.A.R.V.I.S');
   field.autocomplete = 'off'; field.spellcheck = false;
   document.addEventListener('DOMContentLoaded', () => document.body.appendChild(field));
   if (document.body) document.body.appendChild(field);
@@ -193,7 +193,7 @@
     autoListen = me;
   }
 
-  // Wake word: once a reply has been typed out and said, the sidecar may listen for "Hey Jarvis" again.
+  // Wake word: once a reply has been typed out and said, the sidecar may listen for "Hey J.A.R.V.I.S" again.
   let saidWatch = null;
   function reportSaid(rid) {
     clearInterval(saidWatch);
@@ -446,7 +446,7 @@
     }
     if (m.kind === 'look') {
       for (const t of Roamie.tiles ?? []) t.creature.setLook?.(m.look);
-      field.setAttribute('aria-label', 'Message for Jarvis');
+      field.setAttribute('aria-label', 'Message for J.A.R.V.I.S');
       return;
     }
     if (!getAgent()) return;

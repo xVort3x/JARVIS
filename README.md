@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="showcase/tauri/src-tauri/icons/128x128@2x.png" width="128" alt="Jarvis icon">
+  <img src="showcase/tauri/src-tauri/icons/128x128@2x.png" width="128" alt="J.A.R.V.I.S icon">
 </p>
 
 <p align="center">
@@ -10,11 +10,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg?style=for-the-badge" alt="AGPL-3.0 License"></a>
 </p>
 
-Jarvis is a desktop assistant: hold the talk keys and speak, or type, and it answers out loud or on a card
+J.A.R.V.I.S is a desktop assistant: hold the talk keys and speak, or type, and it answers out loud or on a card
 beside what you are doing. It remembers what you said you would do, reminds you when it is due, and can point
 at, explain or operate what is on screen when you allow it.
 
-## Why Jarvis
+## Why J.A.R.V.I.S
 
 - **Talk, don't type.** Hold ⌃⌥ (Ctrl+Alt on Windows and Linux), say it, let go. On macOS and Windows, circle something with the cursor while you talk and it sees what you mean.
 - **Or type.** Tap ⌥⌘ (Ctrl+Shift on Windows and Linux) and a small text field opens beside your cursor. Type, press Enter.
@@ -25,22 +25,22 @@ at, explain or operate what is on screen when you allow it.
 - **It does the clicking.** Opens apps, sites and files, and on macOS and Windows clicks or types in other apps for you when you turn that on.
 - **Your subscriptions.** Sign in with Claude or ChatGPT, or use an API key (Gemini, Grok, Kimi Code and more).
 
-## Jarvis shows you how
+## J.A.R.V.I.S shows you how
 
 <p align="center">
-  <img src="docs/art/jarvis-shows-you-how.gif" alt="Asked &quot;How do I export this as an MP4?&quot;, Jarvis turns into its reticle cursor, rings the Format menu, then MP4, then the Export button in a video editor, waiting for each click while a caption reads each step">
+  <img src="docs/art/jarvis-shows-you-how.gif" alt="Asked &quot;How do I export this as an MP4?&quot;, J.A.R.V.I.S turns into its reticle cursor, rings the Format menu, then MP4, then the Export button in a video editor, waiting for each click while a caption reads each step">
 </p>
 
-Ask how to do something in any app. Jarvis turns into its cursor, rings the exact button on your real screen,
+Ask how to do something in any app. J.A.R.V.I.S turns into its cursor, rings the exact button on your real screen,
 says the step out loud and waits for your click before showing the next one.
 
-## Jarvis explains anything
+## J.A.R.V.I.S explains anything
 
 <p align="center">
-  <img src="docs/art/jarvis-explains.gif" alt="Asked how black holes work while reading Wikipedia, Jarvis draws an answer card tied to the page, a turning 3D black hole with its glowing disk, underlines the key sentence and adds a discovery timeline">
+  <img src="docs/art/jarvis-explains.gif" alt="Asked how black holes work while reading Wikipedia, J.A.R.V.I.S draws an answer card tied to the page, a turning 3D black hole with its glowing disk, underlines the key sentence and adds a discovery timeline">
 </p>
 
-Ask about whatever you're looking at. Jarvis sketches the answer right beside it while it talks: cards, graphs,
+Ask about whatever you're looking at. J.A.R.V.I.S sketches the answer right beside it while it talks: cards, graphs,
 timelines, photos, molecules and turning 3D models, all in its own blue ink. Ask it to change any part, or
 clear it all in one go. It also picks the picture that fits the question by itself: flow diagrams, tables, bar
 charts, maps, worked maths, geometry figures, photos with their parts named, 3D models whose parts move, and
@@ -48,7 +48,7 @@ quizzes you answer with a click.
 
 ## Also included
 
-- **The Jarvis panel:** click the menu bar or tray icon (on Linux, **Open Panel** in its menu) for what it's doing, what it remembers, and every setting.
+- **The J.A.R.V.I.S panel:** click the menu bar or tray icon (on Linux, **Open Panel** in its menu) for what it's doing, what it remembers, and every setting.
 - **Safe by default:** file edits, commands and app control stay off until you turn them on, and risky steps always ask.
 - **Shows its work:** every tool plays its own animation, so you can see what it's doing.
 - **Where keys live:** your Fish Audio or Gemini voice key stays in the macOS Keychain (encrypted with Windows DPAPI on Windows, in your desktop's keyring on Linux). AI sign-ins are stored in `~/.gg/auth.json`, shared with GG Coder.
@@ -69,15 +69,15 @@ quizzes you answer with a click.
 | Talk shortcut          | Hold ⌃⌥                    | Hold Ctrl+Alt               | Hold Ctrl+Alt, or a key you bind\* |
 | Type shortcut          | Tap ⌥⌘                     | Tap Ctrl+Shift              | Tap Ctrl+Shift, or a key you bind\* |
 
-<sub>\* On Wayland (the default on Ubuntu, Fedora and KDE), apps can't grab keys, so you bind Jarvis' commands to keys
+<sub>\* On Wayland (the default on Ubuntu, Fedora and KDE), apps can't grab keys, so you bind J.A.R.V.I.S' commands to keys
 in your desktop's keyboard settings. [Linux (beta)](#linux-beta) shows how.</sub>
 
 <sub>Before macOS 26, talking uses Apple's older speech recognizer, which needs Siri or Dictation turned on.</sub>
 
-<sub>On Windows, Jarvis reads other apps through UI Automation and finds words on screen with Windows' own text
+<sub>On Windows, J.A.R.V.I.S reads other apps through UI Automation and finds words on screen with Windows' own text
 recognition (it needs a Windows language with text recognition, which most have). It can't type or click in apps
 running as administrator, and it borrows your cursor for real clicks, keys and scrolling, giving it back when it's done.
-Windows also leaves Jarvis out of every screen capture, so it won't show in your screenshots or screen shares.</sub>
+Windows also leaves J.A.R.V.I.S out of every screen capture, so it won't show in your screenshots or screen shares.</sub>
 
 <sub>Spoken replies are billed to your own Fish Audio or Google AI Studio account; the panel shows what each voice model costs. Voice on
 Windows and Linux uses [NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)
@@ -85,7 +85,7 @@ Windows and Linux uses [NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvid
 [istupakov](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx), run with
 [parakeet-rs](https://github.com/altunenes/parakeet-rs). The model (about 670 MB) downloads once at setup and isn't bundled.</sub>
 
-## Talking to Jarvis
+## Talking to J.A.R.V.I.S
 
 On the panel's **Listening** page you pick how you talk to me:
 
@@ -109,7 +109,7 @@ corner of the screen shows it.
 - **Private mode:** one flip and I see nothing at all until you flip it back. Same as Always-Aware off.
 
 Password fields are always blacked out of every picture that goes to the AI, from every source. No picture is
-ever kept: on a request one is taken, used and thrown away. Jarvis never says anything about your screen on its
+ever kept: on a request one is taken, used and thrown away. J.A.R.V.I.S never says anything about your screen on its
 own — it just knows, when you ask. In the list of what leaves your computer: the AI provider you pick, and nothing
 else. [PRIVACY.md](PRIVACY.md) says exactly what.
 
@@ -127,7 +127,7 @@ transcript too), or everything at once.
 
 ## Get started
 
-1. Install Jarvis from the **Assets** list on the release page. The *Source code* downloads there are the code,
+1. Install J.A.R.V.I.S from the **Assets** list on the release page. The *Source code* downloads there are the code,
    not the app, and won't run on their own.
 
    **macOS (Apple silicon or Intel):** [Download the latest release](https://github.com/KenKaiii/Roamies/releases/latest) and open the `.dmg` for your Mac (`aarch64` for Apple silicon, `x64` for Intel). Requires macOS 13.5 or later.
@@ -136,7 +136,7 @@ transcript too), or everything at once.
 
    **Linux (beta, x86_64):** [Download the latest release](https://github.com/KenKaiii/Roamies/releases/latest) and pick one:
    the `.deb` (Ubuntu, Debian, Mint, Pop!_OS: `sudo apt install ./Jarvis_*_amd64.deb`), the `.rpm` (Fedora,
-   openSUSE: `sudo dnf install ./Jarvis-*.x86_64.rpm`), or the `.AppImage` (any distro: `chmod +x` it and run it).
+   openSUSE: `sudo dnf install ./J.A.R.V.I.S-*.x86_64.rpm`), or the `.AppImage` (any distro: `chmod +x` it and run it).
    Needs glibc 2.38 or later: Ubuntu 24.04, Fedora 39, Debian 13 or newer. See
    [Linux (beta)](#linux-beta) for what works and how to set up shortcuts.
 
@@ -155,17 +155,17 @@ transcript too), or everything at once.
 
 2. Open the app, follow the setup guide, and hold ⌃⌥ (Ctrl+Alt on Windows and Linux) to say hi.
 
-<sub>The first time you sign in with Claude, Jarvis downloads Claude Code (about 140 MB). On Windows and Linux, the voice model (about 670 MB) downloads once at setup.</sub>
+<sub>The first time you sign in with Claude, J.A.R.V.I.S downloads Claude Code (about 140 MB). On Windows and Linux, the voice model (about 670 MB) downloads once at setup.</sub>
 
 ## Local models
 
-Jarvis can run on a model on your own computer or server instead of a cloud provider: Ollama, LM Studio, or any
+J.A.R.V.I.S can run on a model on your own computer or server instead of a cloud provider: Ollama, LM Studio, or any
 OpenAI-compatible server (llama.cpp, vLLM, oMLX and others). Connect them on the panel's **Model** page.
 
-**What a model needs to work with Jarvis.** Only models that pass the first two show up in the model list:
+**What a model needs to work with J.A.R.V.I.S.** Only models that pass the first two show up in the model list:
 
-- **It sees images.** Jarvis looks at your screen through screenshots.
-- **It calls tools.** Everything Jarvis does, from clicking to drawing on screen, is a tool call.
+- **It sees images.** J.A.R.V.I.S looks at your screen through screenshots.
+- **It calls tools.** Everything J.A.R.V.I.S does, from clicking to drawing on screen, is a tool call.
 - **It points precisely.** To show you a button or click it, the model has to say where it is on a screenshot,
   to within a few pixels. This is called GUI grounding, and it's where small models fall down: they read the screen
   fine but point next to the thing, or at the wrong one.
@@ -182,21 +182,21 @@ ScreenSpot-Pro results (a grounding test on real app screenshots) put them at ab
 
 Smaller models (4B and under) can chat about your screen but often point at the wrong place. Qwen3.5 and Qwen3.6
 models also work. Models made only for grounding (Holo2, MolmoPoint and the like) point better, but they
-can't hold a conversation or call tools, so they don't suit Jarvis.
+can't hold a conversation or call tools, so they don't suit J.A.R.V.I.S.
 
-<sub>Qwen3-VL and Qwen3.5 give positions on a 0 to 1000 grid instead of in pixels. Jarvis knows this from the model's
+<sub>Qwen3-VL and Qwen3.5 give positions on a 0 to 1000 grid instead of in pixels. J.A.R.V.I.S knows this from the model's
 name and converts. A fine-tune with a different name may point in the wrong place.</sub>
 
 **Ollama:** install it from [ollama.com](https://ollama.com), run `ollama pull qwen3-vl:8b` (or `qwen3-vl:30b`), and
 press **Connect** next to Ollama. Give it enough context: in Ollama's settings set **Context length** to 32k or more,
-or start it with `OLLAMA_CONTEXT_LENGTH=32768`. Jarvis warns you if it's too small.
+or start it with `OLLAMA_CONTEXT_LENGTH=32768`. J.A.R.V.I.S warns you if it's too small.
 
 **LM Studio:** install it from [lmstudio.ai](https://lmstudio.ai), download a vision model (Qwen3-VL 8B or larger),
 turn on its server (**Developer → Start Server**, or `lms server start`), load the model with **Context Length** set to
 32k or more, and press **Connect** next to LM Studio.
 
 **Any other server:** press **Add server** next to *Another server*, then give it a name, its address (for example
-`http://127.0.0.1:8080/v1`; Jarvis adds `/v1` if you leave it off), and its API key if it needs one. Most servers
+`http://127.0.0.1:8080/v1`; J.A.R.V.I.S adds `/v1` if you leave it off), and its API key if it needs one. Most servers
 don't say whether a model can see images, so turn on **Its models can see images** when yours can (llama.cpp
 says so itself). The server has to answer before it's saved. Start it with tool calling, vision and enough context on:
 
@@ -205,14 +205,14 @@ says so itself). The server has to answer before it's saved. Start it with tool 
 
 <sub>With a model on your computer, your messages and screenshots stay on it. A server on another machine gets them
 over your network, so use `https://` or a network you trust. A server's key is saved with your other sign-ins in
-`~/.gg/auth.json` (shared with GG Coder), not in Jarvis' settings file.</sub>
+`~/.gg/auth.json` (shared with GG Coder), not in J.A.R.V.I.S' settings file.</sub>
 
 ## Linux (beta)
 
-Jarvis on Linux is a beta: it runs on GNOME, KDE Plasma and other desktops, on Wayland or X11, but it's been tested
+J.A.R.V.I.S on Linux is a beta: it runs on GNOME, KDE Plasma and other desktops, on Wayland or X11, but it's been tested
 far less than on macOS and Windows. Bug reports with your distro, desktop and session (`echo $XDG_SESSION_TYPE`) help.
 
-**What works:** the Jarvis overlay, the panel, typed and spoken questions (speech runs on your computer), spoken
+**What works:** the J.A.R.V.I.S overlay, the panel, typed and spoken questions (speech runs on your computer), spoken
 replies, memory and reminders, whole-screen screenshots and pointing at things on them, cards and diagrams, files and
 commands, and Open at Login.
 
@@ -244,37 +244,37 @@ On X11 sessions the shortcuts work as on Windows (hold Ctrl+Alt to talk, Ctrl+Al
 
 - **No tray icon on GNOME:** GNOME hides tray icons unless the
   [AppIndicator extension](https://extensions.gnome.org/extension/615/appindicator-support/) is on (Ubuntu has it on
-  already). Without it, open Jarvis again from your apps (or run `roamies --panel`) to get the panel.
-- **The overlay draws black or not at all (often NVIDIA):** start Jarvis with `WEBKIT_DISABLE_DMABUF_RENDERER=1`.
-- **"Couldn't save the key" for Fish Audio:** Jarvis keeps it in your keyring with `secret-tool`. Install it
+  already). Without it, open J.A.R.V.I.S again from your apps (or run `roamies --panel`) to get the panel.
+- **The overlay draws black or not at all (often NVIDIA):** start J.A.R.V.I.S with `WEBKIT_DISABLE_DMABUF_RENDERER=1`.
+- **"Couldn't save the key" for Fish Audio:** J.A.R.V.I.S keeps it in your keyring with `secret-tool`. Install it
   (`libsecret-tools` on Debian and Ubuntu, `libsecret` on Fedora and Arch) and make sure a keyring (GNOME Keyring,
   KWallet or KeePassXC) is running.
-- **It can't hear you:** check the input device picked in your sound settings; Jarvis uses the default microphone.
+- **It can't hear you:** check the input device picked in your sound settings; J.A.R.V.I.S uses the default microphone.
 - **With fractional scaling** the overlay may look a little soft, and pointing a little off.
 
 ## Privacy
 
-Jarvis has no analytics, and nothing is collected by the developer. Your messages, and screenshots when you ask
+J.A.R.V.I.S has no analytics, and nothing is collected by the developer. Your messages, and screenshots when you ask
 about the screen, go to the AI provider you pick. [PRIVACY.md](PRIVACY.md) lists what's sent where.
 
 ## Uninstall
 
 **macOS:**
 
-1. Turn off **Open at login** (panel > Behavior), then quit Jarvis from the menu bar.
-2. Drag Jarvis from Applications to the Trash.
+1. Turn off **Open at login** (panel > Behavior), then quit J.A.R.V.I.S from the menu bar.
+2. Drag J.A.R.V.I.S from Applications to the Trash.
 3. Delete `~/.gg/sidekick` and `~/.gg/sidekick.json`. Keep `~/.gg/auth.json` if you use GG Coder.
-4. Open Keychain Access, search for "Jarvis" and delete the Fish Audio and Gemini voice keys.
+4. Open Keychain Access, search for "J.A.R.V.I.S" and delete the Fish Audio and Gemini voice keys.
 
 **Windows:**
 
-1. Turn off **Open at login** (panel > Behavior), then uninstall Jarvis from Settings > Apps.
+1. Turn off **Open at login** (panel > Behavior), then uninstall J.A.R.V.I.S from Settings > Apps.
 2. Delete `%USERPROFILE%\.gg\sidekick` and `%USERPROFILE%\.gg\sidekick.json`. Keep `auth.json` if you use GG Coder.
 3. Delete the voice model folder, `%LOCALAPPDATA%\Jarvis\models`.
 
 **Linux:**
 
-1. Turn off **Open at login** (panel > Behavior), then quit Jarvis from its tray menu (or the panel's About page).
+1. Turn off **Open at login** (panel > Behavior), then quit J.A.R.V.I.S from its tray menu (or the panel's About page).
 2. Remove the package (`sudo apt remove roamies` or `sudo dnf remove roamies`), or delete the AppImage.
 3. Delete `~/.gg/sidekick` (the voice model is in `~/.gg/sidekick/models`) and `~/.gg/sidekick.json`. Keep
    `~/.gg/auth.json` if you use GG Coder.
@@ -282,7 +282,7 @@ about the screen, go to the AI provider you pick. [PRIVACY.md](PRIVACY.md) lists
 
 ## Build with the framework
 
-Jarvis' brain is a [gg-framework](https://github.com/KenKaiii/gg-framework) agent running in a Node
+J.A.R.V.I.S' brain is a [gg-framework](https://github.com/KenKaiii/gg-framework) agent running in a Node
 sidecar. Want to build your own? Install just what you need.
 
 - [**@kenkaiiii/gg-ai**](https://github.com/KenKaiii/gg-framework/blob/main/packages/gg-ai/README.md): Connect to AI providers and stream responses.
@@ -295,7 +295,7 @@ For your own agent, start here:
 npm install @kenkaiiii/gg-ai @kenkaiiii/gg-agent
 ```
 
-The package links above cover setup and usage. Jarvis is licensed under [AGPL-3.0](LICENSE): you can build
+The package links above cover setup and usage. J.A.R.V.I.S is licensed under [AGPL-3.0](LICENSE): you can build
 on it, and if you distribute your changes or run them as a network service, you share their source under
 the same license.
 

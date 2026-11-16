@@ -1,4 +1,4 @@
-// How you talk to Jarvis: push to talk (hold the talk keys), hands-free (tap, then speak; a pause sends it), or
+// How you talk to J.A.R.V.I.S: push to talk (hold the talk keys), hands-free (tap, then speak; a pause sends it), or
 // text only. And how the microphone decides you've stopped (VAD): the pause that ends a hands-free take, and how
 // loud it has to be over the room to count as talking at all. Kept pure so the tests can drive it.
 

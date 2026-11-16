@@ -1,6 +1,6 @@
 #!/bin/bash
 # Syncs the shared web files into dist/, then bundles with the Tauri CLI.
-# ./build.sh        release bundle (Jarvis.app on macOS, the installer on Windows, .AppImage/.deb/.rpm on Linux)
+# ./build.sh        release bundle (J.A.R.V.I.S.app on macOS, the installer on Windows, .AppImage/.deb/.rpm on Linux)
 # ./build.sh dev    debug binary only, faster
 set -euo pipefail
 cd "$(dirname "$0")"

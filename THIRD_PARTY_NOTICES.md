@@ -1,6 +1,6 @@
 # Third-party notices
 
-Jarvis is licensed under [AGPL-3.0](LICENSE). It builds on the components below, each under its own license.
+J.A.R.V.I.S is licensed under [AGPL-3.0](LICENSE). It builds on the components below, each under its own license.
 
 | Component | How it's used | License |
 | --------- | ------------- | ------- |

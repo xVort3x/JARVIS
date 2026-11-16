@@ -47,7 +47,7 @@
       // Size: 'default', 'small' (half the body) or 'cursor' (a pixel arrow pointer). Text keeps its size either way.
       let form = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('form')) || 'default', lastEnv = null;
       let userForm = form;
-      // One look: Jarvis (roamies/jarvis.js), a globe of points with a lit heart, and a HUD reticle at cursor size.
+      // One look: J.A.R.V.I.S (roamies/jarvis.js), a globe of points with a lit heart, and a HUD reticle at cursor size.
       // Moves, sizes and everything else are shared.
       const drawn = () => Roamie.jarvis;
       const pickLook = () => 'jarvis';

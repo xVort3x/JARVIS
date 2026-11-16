@@ -54,7 +54,7 @@ export async function prepareFolder(dir, passphrase) {
     const fresh = { version: 1, kdf: 'scrypt', salt: salt.toString('base64'), check: seal(key, CHECK, 'check') };
     try { await fs.writeFile(file, JSON.stringify(fresh), { flag: 'wx', mode: 0o600 }); return { key }; } catch { head = await read(); }
   }
-  if (head?.version !== 1 || head.kdf !== 'scrypt' || typeof head.salt !== 'string') return { error: 'The sync folder was set up by a newer Jarvis, or its sync.json is damaged.' };
+  if (head?.version !== 1 || head.kdf !== 'scrypt' || typeof head.salt !== 'string') return { error: 'The sync folder was set up by a newer J.A.R.V.I.S, or its sync.json is damaged.' };
   const key = deriveKey(passphrase, Buffer.from(head.salt, 'base64'));
   try { if (unseal(key, head.check, 'check') === CHECK) return { key }; } catch { /* wrong passphrase */ }
   return { error: "That isn't the passphrase this sync folder was set up with. Use the same one as on your other computer." };

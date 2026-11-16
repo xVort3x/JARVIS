@@ -67,7 +67,7 @@ const show = (v) => (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
 
 /** The report as text: a header, then each section ([title, text or object]) in order, all of it redacted. */
 export function buildReport({ now = new Date(), version = '0.0.0', sections = [] }, scrub = {}) {
-  let out = `Jarvis diagnostics\nMade ${now.toISOString()} by Jarvis ${version}.\n`
+  let out = `J.A.R.V.I.S diagnostics\nMade ${now.toISOString()} by J.A.R.V.I.S ${version}.\n`
     + 'Send this file to whoever is helping you.\n'
     + 'Keys, tokens, emails, your home folder and user name have been removed. Look it over before sending if you like.\n';
   for (const [title, body] of sections) {
@@ -109,7 +109,7 @@ export async function reportDir(home = os.homedir()) {
   return home;
 }
 
-export const reportName = (now = new Date()) => `jarvis-diagnostics-${now.toISOString().slice(0, 19).replace(/[T:]/g, '-')}.log`;
+export const reportName = (now = new Date()) => `j.a.r.v.i.s-diagnostics-${now.toISOString().slice(0, 19).replace(/[T:]/g, '-')}.log`;
 
 /** Shows the saved file in Finder, Explorer or the file manager. */
 export function reveal(file) {

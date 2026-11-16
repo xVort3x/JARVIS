@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { QUESTIONS, opener, openNote, answerNote, answerTurn, wantsSkip, endsChat, questionIn, splitTurn, plain, stripNote } from '../intro.mjs';
 
 assert.equal(QUESTIONS, 4);
-assert.match(opener('Ken'), /^Hi Ken, I'm Jarvis!.*four quick questions\. What are you working on these days\?$/);
+assert.match(opener('Ken'), /^Hi Ken, I'm J.A.R.V.I.S!.*four quick questions\. What are you working on these days\?$/);
 assert.ok(!/[—–]| - /.test(opener('Ken')), 'no dashes in the opener');
 assert.match(openNote('Ken'), /word for word.*"\[wave\] Hi Ken/s);
 
@@ -35,8 +35,8 @@ assert.equal(questionIn(`${'a'.repeat(120)}?`), 'Type your answer…', 'too long
 assert.equal(questionIn('VS Code, nice. 😄 What\'s the actual thing you\'re going for right now? Could be X.'), "What's the actual thing you're going for right now?", 'no emoji in front');
 assert.equal(questionIn("100k by summer, love it! Okay, last one: have you used AI helpers before, like ChatGPT, Claude, Gemini, an AI that does things on your computer, or none yet?"), 'Have you used AI helpers before?', 'long question cut to its core');
 // The guide window shows the reaction, the question as the heading, and the nudge after it.
-assert.deepEqual(splitTurn("[wave] Hi Ken, I'm Jarvis! I've got four quick questions. What are you working on these days?"),
-  { lead: "Hi Ken, I'm Jarvis! I've got four quick questions.", question: 'What are you working on these days?', hint: '' });
+assert.deepEqual(splitTurn("[wave] Hi Ken, I'm J.A.R.V.I.S! I've got four quick questions. What are you working on these days?"),
+  { lead: "Hi Ken, I'm J.A.R.V.I.S! I've got four quick questions.", question: 'What are you working on these days?', hint: '' });
 assert.deepEqual(splitTurn('[warm] Night shifts and exam prep, wow. What does a normal week look like? Could be the hospital, Anki, or something else entirely.'),
   { lead: 'Night shifts and exam prep, wow.', question: 'What does a normal week look like?', hint: 'Could be the hospital, Anki, or something else entirely.' });
 assert.deepEqual(splitTurn('Okay, last one: have you used AI helpers before?'), { lead: '', question: 'Okay, last one: have you used AI helpers before?', hint: '' });
@@ -50,8 +50,8 @@ console.log('intro tests: passed');
   const { DrawArgs, checkDraw } = await import('../draw.mjs');
   assert.equal(goalFrom([{ text: 'Is a YouTuber' }, { text: 'Wants to launch a course by March' }]), 'Wants to launch a course by March');
   assert.equal(goalFrom([{ text: 'Likes coffee' }]), null);
-  const withGoal = tourBeats('Ken', 'Jarvis', 'Wants to launch a course by March');
-  const without = tourBeats('Ken', 'Jarvis', null, { mac: false });
+  const withGoal = tourBeats('Ken', 'J.A.R.V.I.S', 'Wants to launch a course by March');
+  const without = tourBeats('Ken', 'J.A.R.V.I.S', null, { mac: false });
   for (const beats of [withGoal, without]) { assert.ok(DrawArgs.safeParse({ beats }).success, 'the tour fits the draw schema'); assert.deepEqual(checkDraw({ beats }), []); }
   assert.equal(withGoal.at(-1).marks[0].kind, 'medal');
   assert.ok(!without.some((b) => b.marks.some((m) => m.kind === 'medal')), 'no goal, no medal');
@@ -63,13 +63,13 @@ console.log('intro tests: passed');
 {
   const { showcaseBeats, SHOWCASE } = await import('../intro.mjs');
   const { DrawArgs, checkDraw } = await import('../draw.mjs');
-  const beats = showcaseBeats('Ken', 'Jarvis');
+  const beats = showcaseBeats('Ken', 'J.A.R.V.I.S');
   assert.ok(DrawArgs.safeParse({ beats }).success, 'the showcase fits the draw schema');
   assert.deepEqual(checkDraw({ beats }), [], 'the showcase passes the draw checks (the molecule parses)');
   assert.equal(beats.length, SHOWCASE.length + 1, 'one beat per capability, then a wrap-up');
   assert.deepEqual(beats.slice(0, -1).map((b) => b.marks[0].kind), ['card', 'graph', 'timeline', 'molecule', 'model', 'list']);
   assert.ok(beats[0].marks[0].sources.length, 'the web search card shows where it came from');
-  assert.match(beats.at(-1).say, /Jarvis/, 'the wrap-up uses the look\'s name');
+  assert.match(beats.at(-1).say, /J.A.R.V.I.S/, 'the wrap-up uses the look\'s name');
   assert.ok(!beats.some((b) => b.marks.some((m) => m.action || m.at)), 'nothing to click and nothing on the screen to find');
   console.log('showcase tests: passed');
 }

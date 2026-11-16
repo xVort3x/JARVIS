@@ -202,10 +202,10 @@
   // Quit asks first: the first press turns it into Confirm for 4 s, the second quits.
   const quitB = $('head-quit');
   let quitTimer = 0;
-  const unarmQuit = () => { clearTimeout(quitTimer); quitB.setAttribute('aria-pressed', 'false'); quitB.setAttribute('aria-label', 'Quit Jarvis'); };
+  const unarmQuit = () => { clearTimeout(quitTimer); quitB.setAttribute('aria-pressed', 'false'); quitB.setAttribute('aria-label', 'Quit J.A.R.V.I.S'); };
   quitB.addEventListener('click', () => {
     if (quitB.getAttribute('aria-pressed') === 'true') { unarmQuit(); act('quit'); return; }
-    quitB.setAttribute('aria-pressed', 'true'); quitB.setAttribute('aria-label', 'Confirm: quit Jarvis');
+    quitB.setAttribute('aria-pressed', 'true'); quitB.setAttribute('aria-label', 'Confirm: quit J.A.R.V.I.S');
     quitTimer = setTimeout(unarmQuit, 4000);
   });
   function mark(page, why) {
@@ -216,7 +216,7 @@
     if (sr) { if (why) sr.textContent = ` (${why})`; else sr.remove(); }
   }
 
-  // ---------------------------------------------------------------- live Jarvis
+  // ---------------------------------------------------------------- live J.A.R.V.I.S
   // The same LED renderer as on the desktop and in the setup guide, drawn small: the header one reacts to what's
   // going on. One loop draws it, only while the panel is up and the canvas is on screen.
   const LED = [[6, 12, 28], [12, 36, 74], [22, 88, 148], [56, 184, 255], [206, 246, 255]];
@@ -229,7 +229,7 @@
     think: (t) => ({ arms: 1, tl: [-0.08, 0.5 + Math.sin(t * 2) * 0.03], tr: [0.98, 0.34], mouth: Math.sin(t * 0.9) > 0.6 ? 'o' : 'flat', brow: 'raised' }),
     concerned: () => ({ arms: 0.7, tl: [-0.45, 0.95], tr: [0.45, 0.95], mouth: 'frown', brow: 'raised' }),
   };
-  // Jarvis on a canvas of w×h CSS px: the one on screen at half scale (the app's unit, every dot half size), so
+  // J.A.R.V.I.S on a canvas of w×h CSS px: the one on screen at half scale (the app's unit, every dot half size), so
   // each size shows its own art at its real size.
   const ZOOM = 0.5, UNIT = 340;
   function liveJarvis(canvas, w, h, { y = 0.56, form = 'default' } = {}) {
@@ -282,7 +282,7 @@
   }
   requestAnimationFrame(loop);
 
-  // The header's Jarvis, reacting to what's going on. A short line beside it when something changes.
+  // The header's J.A.R.V.I.S, reacting to what's going on. A short line beside it when something changes.
   const avatar = liveJarvis($('avatar'), 100, 74, { y: 0.55 });
   let quipTimer = 0, seen = { opened: 0 };
   function quip(text, secs = 2.6) {
@@ -486,7 +486,7 @@
         el('span', { className: 'acct-name' }, p.label, p.on ? el('span', { className: 'led on', role: 'img', 'aria-label': p.method === 'local' ? 'Connected' : 'Signed in', 'data-tip': p.method === 'local' ? 'Connected' : 'Signed in' }) : null),
         p.on ? el('span', { className: 'row-btns' },
           p.key ? changeKey(p) : null,
-          ui.key === p.id ? null : armed(p.signedIn && !p.keySaved ? 'Sign out' : 'Remove', 'Confirm', `signout:${p.id}`, `signout:${p.id}`, `Remove ${p.label} from Jarvis`))
+          ui.key === p.id ? null : armed(p.signedIn && !p.keySaved ? 'Sign out' : 'Remove', 'Confirm', `signout:${p.id}`, `signout:${p.id}`, `Remove ${p.label} from J.A.R.V.I.S`))
           : state.loggingIn === p.id ? el('span', { className: 'waiting', textContent: 'Signing in…' })
           : p.method === 'oauth' ? (p.key ? el('span', { className: 'links' }, signIn(p), addKey(p)) : signIn(p))
           : addKey(p)),
@@ -578,7 +578,7 @@
         picks('Voice provider', Object.entries(TTS_NAMES), tts, (x) => {
           if (x !== 'voicestudio' && !state[`${x}Key`]) { ui.key = x; note(`Add a ${TTS_NAMES[x]} key to hear me talk.`); } // its key field opens with it
           act(`tts:${x}`);
-        }, 'tts', { fish: "Jarvis's voice, acted out with feeling. Billed to your Fish Audio account.", gemini: "Google's voices: pick one of 30. Billed to your Google AI Studio account.", voicestudio: 'The free VoiceStudio app on this computer, in the engine and voices you set up there. Nothing leaves your computer.' }),
+        }, 'tts', { fish: "J.A.R.V.I.S's voice, acted out with feeling. Billed to your Fish Audio account.", gemini: "Google's voices: pick one of 30. Billed to your Google AI Studio account.", voicestudio: 'The free VoiceStudio app on this computer, in the engine and voices you set up there. Nothing leaves your computer.' }),
         local ? el('div', { className: 'reveal', 'data-anim': 'studio' }, studioRows()) : null,
         tts === 'gemini' && hasKey && state.geminiVoices?.length ? el('div', { className: 'reveal', 'data-anim': 'gemini-voice' },
           el('p', { className: 'sub', textContent: `Voice for ${state.name}` }),
@@ -657,8 +657,8 @@
             { '0.75': 'Wait three quarters of a second of quiet.', '1.5': 'A natural pause, like a breath between sentences.', '3': 'Long silence before I send (slow talkers).' }),
           mac ? null : picks('Mic sensitivity', [['low', 'Low'], ['normal', 'Normal'], ['high', 'High']], sens, (x) => act(`vadsensitivity:${x}`), 'vadsensitivity',
             { low: 'Needs a clear voice, barely notices the room.', normal: 'Works out the room first, then hears you.', high: 'Hears a quiet voice; noise may open the mic.' }),
-          mac ? toggle('Wake word', needs(`Say “Hey ${v.wakeName || 'Jarvis'}” to talk. Mic stays on.`), v.wakeWord, () => act('wakeword'), 'wakeword') : null,
-          mac ? el('div', { className: 'setting' }, el('span', {}, 'Wake word name', el('small', { textContent: `Hey ${v.wakeName || 'Jarvis'}` })),
+          mac ? toggle('Wake word', needs(`Say “Hey ${v.wakeName || 'J.A.R.V.I.S'}” to talk. Mic stays on.`), v.wakeWord, () => act('wakeword'), 'wakeword') : null,
+          mac ? el('div', { className: 'setting' }, el('span', {}, 'Wake word name', el('small', { textContent: `Hey ${v.wakeName || 'J.A.R.V.I.S'}` })),
             link('Change', () => act('wakename'), { k: 'wakename', aria: 'Change the wake word name' })) : null) : null,
       ],
     ];
@@ -882,7 +882,7 @@
   });
   window.__panelOpen = (fromBottom = false) => {
     body.classList.remove('shut', 'shutting', 'opening');
-    // Jarvis switches on with the panel, and waves if it's been a while.
+    // J.A.R.V.I.S switches on with the panel, and waves if it's been a while.
     if (avatar) { avatar.kit.vanish(null, true); setTimeout(() => { avatar.appear(); if (Date.now() - seen.opened > 10 * 60e3) setTimeout(() => avatar.act('wave'), 500); seen.opened = Date.now(); }, REDUCED.matches ? 0 : 120); }
     body.classList.toggle('from-bottom', !!fromBottom);
     if (REDUCED.matches) return render(null, false);
@@ -926,10 +926,10 @@
 
   // ---------------------------------------------------------------- browser preview
   function preview() {
-    document.title = 'Jarvis panel (preview with sample data)';
+    document.title = 'J.A.R.V.I.S panel (preview with sample data)';
     const at = Date.now(), q = new URLSearchParams(location.search);
     const s = {
-      version: '0.4.0', os: /Win/.test(navigator.platform) ? 'win' : 'mac',
+      version: '0.5.0', os: /Win/.test(navigator.platform) ? 'win' : 'mac',
       status: { state: 'ready', text: 'Ready' }, busy: false, canNew: true,
       model: { provider: 'anthropic', id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5', providerLabel: 'Anthropic' },
       providers: [
@@ -958,11 +958,11 @@
         { at: at - 9.4 * 60e3, kind: 'ask', text: 'what does this error mean' },
       ],
       usage: { requests: 14, tokens: 31240 },
-      facts: [{ id: 'f1', text: 'Prefers short answers in the morning' }, { id: 'f2', text: 'Working on the Jarvis launch, due end of month' }, { id: 'f3', text: 'Has a cat called Miso' }],
+      facts: [{ id: 'f1', text: 'Prefers short answers in the morning' }, { id: 'f2', text: 'Working on the J.A.R.V.I.S launch, due end of month' }, { id: 'f3', text: 'Has a cat called Miso' }],
       preferences: [{ id: 'p1', text: 'Starts with the answer, then the detail' }, { id: 'p2', text: 'Runs tests before calling anything done' }, { id: 'p3', text: 'Prefers PowerShell over bash' }],
-      summaries: [{ id: 's1', digest: 'Debugging their Rust build', at: at - 864e5 * 1 }, { id: 's2', digest: 'Planning the Jarvis launch', at: at - 864e5 * 3 }, { id: 's3', digest: 'Setting up memory sync between their PCs', at: at - 864e5 * 6 }],
+      summaries: [{ id: 's1', digest: 'Debugging their Rust build', at: at - 864e5 * 1 }, { id: 's2', digest: 'Planning the J.A.R.V.I.S launch', at: at - 864e5 * 3 }, { id: 's3', digest: 'Setting up memory sync between their PCs', at: at - 864e5 * 6 }],
       commitments: [{ id: 'c1', text: 'Send the launch email', when: 'Fri 7 Nov, 10:00', overdue: false }, { id: 'c2', text: 'Book the dentist', when: 'Mon 3 Nov, 09:00', overdue: true }],
-      name: 'Jarvis', look: 'jarvis', looks: [['jarvis', 'Jarvis']],
+      name: 'J.A.R.V.I.S', look: 'jarvis', looks: [['jarvis', 'J.A.R.V.I.S']],
       size: 'default', sizes: [['default', 'Default'], ['small', 'Small'], ['cursor', 'Cursor']],
       replies: 'voice', fishKey: true, fishModel: 'drama-3', fishFree: false,
       // ?tts=gemini: Gemini as the voice, its key saved.
@@ -972,7 +972,7 @@
       geminiShared: new URLSearchParams(location.search).has('shared'), geminiModel: 'gemini-3.8-flash-lite-tts',
       geminiModels: [{ id: 'gemini-3.8-flash-lite-tts', name: 'Flash Lite', per10s: 0.0015 }, { id: 'gemini-3.8-flash-tts', name: 'Flash', per10s: 0.00225 }],
       fishModels: [{ id: 'drama-3', name: 'Drama 3', perM: 50, promo: { perM: 10, until: '2026-12-01T08:00:00Z' } }, { id: 's2.1-pro', name: 'S2.1 Pro', perM: 15 }],
-      voice: { on: true, keys: 'Ctrl+Alt', ready: true, mac: false, mute: true, mics: [{ id: 'BuiltIn', name: 'MacBook Pro Microphone' }, { id: 'airpods', name: 'AirPods Pro' }], mic: '', micAuto: 'MacBook Pro Microphone', wakeWord: false, wakeName: 'Jarvis', download: null, mode: 'handsfree', vad: { pause: 1.5, sensitivity: 'normal' } }, askKeys: '⌥⌘', aware: { on: true, mode: 'front', private: false, exclusions: ['1password', 'logonui', 'InPrivate', 'my bank'] }, brief: { on: true, todoist: false, canTodoist: true }, focus: { until: null, task: '', list: ['YouTube', 'Reddit', 'X', 'Steam', 'Netflix'], custom: false }, sync: { dir: '', at: null, error: null, paused: false }, shortcuts: { talk: { value: 'control+option', pairs: [['control+option', 'Control+Option'], ['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] }, keys: [{ id: 'summon', words: 'Control+Option+S' }, { id: 'snap', words: 'Control+Option+A' }, { id: 'list', words: 'Control+Option+L' }] }, writeKeys: { value: 'option+command', pairs: [['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] },
+      voice: { on: true, keys: 'Ctrl+Alt', ready: true, mac: false, mute: true, mics: [{ id: 'BuiltIn', name: 'MacBook Pro Microphone' }, { id: 'airpods', name: 'AirPods Pro' }], mic: '', micAuto: 'MacBook Pro Microphone', wakeWord: false, wakeName: 'J.A.R.V.I.S', download: null, mode: 'handsfree', vad: { pause: 1.5, sensitivity: 'normal' } }, askKeys: '⌥⌘', aware: { on: true, mode: 'front', private: false, exclusions: ['1password', 'logonui', 'InPrivate', 'my bank'] }, brief: { on: true, todoist: false, canTodoist: true }, focus: { until: null, task: '', list: ['YouTube', 'Reddit', 'X', 'Steam', 'Netflix'], custom: false }, sync: { dir: '', at: null, error: null, paused: false }, shortcuts: { talk: { value: 'control+option', pairs: [['control+option', 'Control+Option'], ['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] }, keys: [{ id: 'summon', words: 'Control+Option+S' }, { id: 'snap', words: 'Control+Option+A' }, { id: 'list', words: 'Control+Option+L' }] }, writeKeys: { value: 'option+command', pairs: [['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] },
       sound: false, actions: false, login: { on: true },
       intro: false,
     };

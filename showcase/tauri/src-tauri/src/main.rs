@@ -740,7 +740,7 @@ fn show_panel(app: &AppHandle, rect: Option<tauri::Rect>, toggle: bool) {
         Some(w) => w,
         None => {
             let b = WebviewWindowBuilder::new(app, PANEL_LABEL, WebviewUrl::App("panel/index.html".into()))
-                .title("Jarvis")
+                .title("J.A.R.V.I.S")
                 .inner_size(PANEL_W, PANEL_H)
                 .resizable(false)
                 .maximizable(false)
@@ -898,7 +898,7 @@ fn open_onboarding(app: &AppHandle, mode: Option<&str>) {
     }
     let url = if chat { "onboarding/index.html?mode=chat" } else { "onboarding/index.html" };
     let mut b = WebviewWindowBuilder::new(app, ONBOARDING_LABEL, WebviewUrl::App(url.into()))
-        .title(if chat { "Get to know you" } else { "Welcome to Jarvis" })
+        .title(if chat { "Get to know you" } else { "Welcome to J.A.R.V.I.S" })
         .inner_size(780.0, 540.0)
         .resizable(false)
         .maximizable(false)
@@ -1089,7 +1089,7 @@ fn build_overlays(app: &AppHandle) -> tauri::Result<()> {
         #[cfg(not(target_os = "linux"))]
         let unmanaged = false;
         let w = WebviewWindowBuilder::new(app, label, WebviewUrl::App("desktop.html".into()))
-            .title("Jarvis")
+            .title("J.A.R.V.I.S")
             .visible(!unmanaged)
             .transparent(true)
             .decorations(false)
@@ -1392,8 +1392,8 @@ fn fallback_menu(app: &AppHandle, status: &str) {
     set_menu(app, &[
         json!({ "id": "status", "label": status, "enabled": false }),
         json!({ "sep": true }),
-        json!({ "id": "restart", "label": "Restart Jarvis" }),
-        json!({ "id": "quit", "label": "Quit Jarvis" }),
+        json!({ "id": "restart", "label": "Restart J.A.R.V.I.S" }),
+        json!({ "id": "quit", "label": "Quit J.A.R.V.I.S" }),
     ]);
 }
 
@@ -1440,7 +1440,7 @@ fn login_item(app: &AppHandle, set: Option<bool>) {
     #[cfg(target_os = "macos")]
     let (supported, on, approval) = {
         use objc2_service_management::{SMAppService, SMAppServiceStatus};
-        let in_apps = exe_s.starts_with("/Applications/") || exe_s.contains("/Applications/Jarvis.app/") || exe_s.contains("/Applications/Roamies.app/");
+        let in_apps = exe_s.starts_with("/Applications/") || exe_s.contains("/Applications/J.A.R.V.I.S.app/") || exe_s.contains("/Applications/Roamies.app/");
         if !objc2::available!(macos = 13.0) || !installed || !in_apps {
             (false, false, false)
         } else {
@@ -1467,20 +1467,22 @@ fn login_item(app: &AppHandle, set: Option<bool>) {
             (false, false, false)
         } else {
             match set {
-                // "Jarvis" is the value Task Manager's Startup apps shows; "Roamies" is deleted if an older
-                // install left it behind, so upgrading never registers the app twice.
+                // "J.A.R.V.I.S" is the value Task Manager's Startup apps shows; "Jarvis" and "Roamies" are deleted if
+                // an older install left them behind, so upgrading never registers the app twice.
                 Some(true) => {
                     let v = format!("\"{}\"", exe.display());
-                    reg(&["add", KEY, "/v", "Jarvis", "/t", "REG_SZ", "/d", &v, "/f"]);
+                    reg(&["add", KEY, "/v", "J.A.R.V.I.S", "/t", "REG_SZ", "/d", &v, "/f"]);
+                    reg(&["delete", KEY, "/v", "Jarvis", "/f"]);
                     reg(&["delete", KEY, "/v", "Roamies", "/f"]);
                 }
                 Some(false) => {
+                    reg(&["delete", KEY, "/v", "J.A.R.V.I.S", "/f"]);
                     reg(&["delete", KEY, "/v", "Jarvis", "/f"]);
                     reg(&["delete", KEY, "/v", "Roamies", "/f"]);
                 }
                 None => {}
             }
-            let on = reg(&["query", KEY, "/v", "Jarvis"]) || reg(&["query", KEY, "/v", "Roamies"]);
+            let on = reg(&["query", KEY, "/v", "J.A.R.V.I.S"]) || reg(&["query", KEY, "/v", "Jarvis"]) || reg(&["query", KEY, "/v", "Roamies"]);
             (true, on, false)
         }
     };
@@ -1686,12 +1688,12 @@ fn main() {
                 app.set_menu(Menu::default(app.handle())?)?;
             }
 
-            let starting = MenuItem::with_id(app, "status", "Starting Jarvis…", false, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit Jarvis", true, None::<&str>)?;
+            let starting = MenuItem::with_id(app, "status", "Starting J.A.R.V.I.S…", false, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "Quit J.A.R.V.I.S", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&starting, &quit])?;
             // Left click opens the panel; right click shows the short menu.
             let mut tray = TrayIconBuilder::with_id("roamies")
-                .tooltip("Jarvis")
+                .tooltip("J.A.R.V.I.S")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, e| {
@@ -1727,7 +1729,7 @@ fn main() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("failed to run Jarvis")
+        .expect("failed to run J.A.R.V.I.S")
         .run(|_, e| {
             if matches!(e, tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit) {
                 sidecar::QUITTING.store(true, Ordering::SeqCst);
@@ -1769,13 +1771,13 @@ mod tests {
         assert!(overlays_stale(&one, &[s(0, 2560)], 1, 1).is_some(), "resolution changed");
         assert!(overlays_stale(&one, &[s(100, 1920)], 1, 1).is_some(), "moved in the arrangement");
         assert!(overlays_stale(&one, &[Screen { scale: 1.0, ..s(0, 1920) }], 1, 1).is_some(), "scale changed");
-        assert_eq!(overlays_stale(&two, &two, 1, 1), None, "two screens and one Jarvis: one overlay is all there is");
-        assert!(overlays_stale(&two, &two, 1, 2).is_some(), "Jarvis on two screens and one overlay: build");
-        // build_overlays puts every Jarvis on one screen's overlay when there's one screen: counting one overlay per
-        // Jarvis there would rebuild every 3 s, forever.
-        assert_eq!(overlays_stale(&one, &one, 1, 2), None, "Jarvis twice on one screen: one overlay holds both");
-        assert!(overlays_stale(&one, &one, 0, 2).is_some(), "Jarvis on one screen and no overlay: build");
-        assert_eq!(overlays_stale(&one, &one, 0, 0), None, "no Jarvis: no overlay is missing");
+        assert_eq!(overlays_stale(&two, &two, 1, 1), None, "two screens and one J.A.R.V.I.S: one overlay is all there is");
+        assert!(overlays_stale(&two, &two, 1, 2).is_some(), "J.A.R.V.I.S on two screens and one overlay: build");
+        // build_overlays puts every J.A.R.V.I.S on one screen's overlay when there's one screen: counting one overlay per
+        // J.A.R.V.I.S there would rebuild every 3 s, forever.
+        assert_eq!(overlays_stale(&one, &one, 1, 2), None, "J.A.R.V.I.S twice on one screen: one overlay holds both");
+        assert!(overlays_stale(&one, &one, 0, 2).is_some(), "J.A.R.V.I.S on one screen and no overlay: build");
+        assert_eq!(overlays_stale(&one, &one, 0, 0), None, "no J.A.R.V.I.S: no overlay is missing");
     }
 
     #[test]

@@ -157,7 +157,7 @@ jobs:
           if (-not $setup) { throw 'No installer was built' }
           $p = Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait -PassThru
           if ($p.ExitCode) { throw "The installer failed (exit code $($p.ExitCode))" }
-          $app = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Jarvis'), (Join-Path $env:ProgramFiles 'Jarvis') -Filter roamies.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          $app = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'J.A.R.V.I.S'), (Join-Path $env:ProgramFiles 'J.A.R.V.I.S') -Filter roamies.exe -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $app) { throw 'roamies.exe is not where the installer puts it' }
           $dir = $app.DirectoryName
           "Installed in $dir"
@@ -184,9 +184,9 @@ jobs:
           if ($alive) { taskkill /PID $run.Id /T /F | Out-Null }
           if (-not ($started -and $alive)) {
             Get-Content (Join-Path $env:USERPROFILE '.gg/sidekick.log') -ErrorAction SilentlyContinue | Select-Object -Last 40
-            throw "The installed Jarvis didn't start its sidecar (started: $started, still running: $alive)"
+            throw "The installed J.A.R.V.I.S didn't start its sidecar (started: $started, still running: $alive)"
           }
-          "The installed Jarvis started its sidecar (pid $($run.Id))"
+          "The installed J.A.R.V.I.S started its sidecar (pid $($run.Id))"
 
       # Tauri notarizes the app inside; the DMG around it is a download of its own that macOS checks too.
       - name: Notarize the DMG
@@ -229,7 +229,7 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           [[ "$TAG" == v* ]] || TAG="v$(node -p "require('./src-tauri/tauri.conf.json').version")"
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --draft --title "Jarvis $TAG" --generate-notes || true
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --draft --title "J.A.R.V.I.S $TAG" --generate-notes || true
           shopt -s nullglob
           B=src-tauri/target/${{ matrix.target }}/release/bundle
           files=($B/dmg/*.dmg $B/nsis/*-setup.exe $B/appimage/*.AppImage $B/deb/*.deb $B/rpm/*.rpm)

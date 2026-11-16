@@ -1,6 +1,6 @@
 // One place that words every error a person sees. explain() turns whatever went wrong into one short line that says
 // what happened and what to do. The raw error never reaches the screen: it goes to the activity log and to Copy
-// details. Causes Jarvis doesn't recognise keep their area's code in the line, so a report can be traced.
+// details. Causes J.A.R.V.I.S doesn't recognise keep their area's code in the line, so a report can be traced.
 import { redact } from './diagnostics.mjs';
 
 /** The longest a line may be. */
@@ -65,7 +65,7 @@ const AREAS = {
     code: 'E50',
     unknown: () => "I couldn't hear that (E50). Try again.",
     known: [
-      ['E51', /onnx|parakeet|voice model|model (?:file|load|missing|not found)/i, () => "My voice model didn't load. Restart Jarvis.", true],
+      ['E51', /onnx|parakeet|voice model|model (?:file|load|missing|not found)/i, () => "My voice model didn't load. Restart J.A.R.V.I.S.", true],
       ['E52', NET, () => 'Speech recognition needs the internet. Try again.'],
     ],
   },
@@ -144,7 +144,7 @@ export function everyLine(ctx = {}) {
 export function detailsText(problem, { version = '0.0.0', os = '' } = {}, scrub = {}) {
   const at = new Date(problem?.at ?? Date.now()).toISOString();
   return redact([
-    `Jarvis error ${problem?.code ?? '?'} (${problem?.area ?? '?'})`,
+    `J.A.R.V.I.S error ${problem?.code ?? '?'} (${problem?.area ?? '?'})`,
     `Version: ${version}`,
     `OS: ${os}`,
     `Time: ${at}`,

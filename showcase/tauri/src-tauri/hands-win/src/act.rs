@@ -927,7 +927,7 @@ pub fn act(arg: &str) -> ! {
         crate::fail(&format!("Blocked for safety: I can point at things in {name}, but I never type or click in it. Show the user where to click instead."));
     }
     if elevated_above_me(w.pid) {
-        crate::fail(&format!("{} is running as administrator, so Windows doesn't let Jarvis type or click in it. Show the user where to click instead.", w.app));
+        crate::fail(&format!("{} is running as administrator, so Windows doesn't let J.A.R.V.I.S type or click in it. Show the user where to click instead.", w.app));
     }
     let bg = std::env::var("ROAMIES_BG").as_deref() != Ok("0");
     {

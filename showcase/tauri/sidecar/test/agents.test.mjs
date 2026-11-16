@@ -228,7 +228,7 @@ assert.match(agentSystem('maker', { dir: '/x', returns: 'answer' }), /report is 
 // The manager, with a fake fork: folders, states, limits, yes/no, finishing, stopping.
 {
   const home = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'roamies-agentmgr-')));
-  const root = path.join(home, 'Jarvis');
+  const root = path.join(home, 'J.A.R.V.I.S');
   let T = new Date(2026, 10, 13, 14, 5).getTime();
   const children = [], events = [], opened = [], revealed = [];
   const fork = (runner, args, opts) => {
@@ -398,7 +398,7 @@ assert.match(agentSystem('maker', { dir: '/x', returns: 'answer' }), /report is 
   assert.equal(fs.readFileSync(path.join(desk, 'card 2.txt'), 'utf8'), 'made');
   assert.ok(await mgr.openFile(g.id, path.join(desk, 'card 2.txt')), 'its delivered copy opens too');
   await assert.rejects(mgr.start({ type: 'maker', title: 'x', brief: 'x', deliver_to: '~/.ssh' }), /Can't deliver/);
-  // Next launch: one still marked working was cut off when Jarvis closed.
+  // Next launch: one still marked working was cut off when J.A.R.V.I.S closed.
   const live = await mgr.start({ type: 'maker', title: 'Cut off', brief: 'x' });
   mgr.stopAll();
   await tick();
@@ -407,7 +407,7 @@ assert.match(agentSystem('maker', { dir: '/x', returns: 'answer' }), /report is 
   const again = mk();
   await again.loaded;
   assert.equal(again.get(live.id).state, 'stopped');
-  assert.equal(again.get(live.id).reason, 'Jarvis closed');
+  assert.equal(again.get(live.id).reason, 'J.A.R.V.I.S closed');
   assert.equal(again.get(a.id).title, 'Dog brand landing page', 'earlier agents are known again');
   again.stopAll();
   await tick();

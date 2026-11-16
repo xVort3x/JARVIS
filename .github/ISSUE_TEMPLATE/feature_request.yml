@@ -1,11 +1,11 @@
 name: Feature request
-description: Suggest an idea for Jarvis.
+description: Suggest an idea for J.A.R.V.I.S.
 labels: [enhancement]
 body:
   - type: textarea
     id: problem
     attributes:
-      label: What would you like Jarvis to do?
+      label: What would you like J.A.R.V.I.S to do?
     validations:
       required: true
   - type: textarea

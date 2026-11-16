@@ -1,5 +1,5 @@
 // Setup guide: Welcome → Permissions → Connect AI → Replies → What I can do → Shortcuts → About you → Find me.
-// Jarvis lives on the left: it drops in on each step, points at what needs doing and cheers when something gets
+// J.A.R.V.I.S lives on the left: it drops in on each step, points at what needs doing and cheers when something gets
 // done, and listens when you test your voice. Talks to the app through Tauri commands; opened in a plain browser
 // it runs a simulated preview instead.
 (() => {
@@ -11,7 +11,7 @@
   const invoke = window.__TAURI__?.core?.invoke ?? preview();
   const send = (msg) => invoke('sidecar_send', { msg }).catch(() => {});
 
-  // ---------------------------------------------------------------- Jarvis
+  // ---------------------------------------------------------------- J.A.R.V.I.S
   const canvas = $('roamie'), ctx = canvas.getContext('2d'), quipEl = $('quip'), tailEl = $('quip-tail');
   const HOME = { x: 150, y: 330 };
   let W = innerWidth, H = innerHeight, dpr = 1, K = null, clock = 0, actUntil = 0, poseFn = null;
@@ -21,7 +21,7 @@
     mouse: { x: 0, y: 0, inside: false, active: false }, sleepy: 0, reduced: reduced.matches,
   };
   const sidekick = Roamie.ditherKit({
-    id: 'guide', label: 'Jarvis', matrix: true, pixel: 1.3, glow: 0.55, speed: 80,
+    id: 'guide', label: 'J.A.R.V.I.S', matrix: true, pixel: 1.3, glow: 0.55, speed: 80,
     pal: [[6, 12, 28], [12, 36, 74], [22, 88, 148], [56, 184, 255], [206, 246, 255]],
     // busy: no random acts; pose: whatever the current step wants, except while acting something out.
     // calm while a quip is up: the act keeps its gesture but drops its icon, which would sit on the bubble.
@@ -254,9 +254,9 @@
         else if (st === 'granted') side = okMark(this.asked[r.id] || !isMac() ? 'Allowed' : 'Already allowed');
         else if (this.waiting === r.id) side = el('span', { className: 'waiting', textContent: 'Waiting for you…' });
         else if (r.id === 'screen' && this.asked.screen) side = el('span', { className: 'pair' },
-          el('button', { className: 'px btn ghost', type: 'button', textContent: 'Settings', onclick: () => { this.openSettings(r); quip('Switch on Jarvis'); } }),
+          el('button', { className: 'px btn ghost', type: 'button', textContent: 'Settings', onclick: () => { this.openSettings(r); quip('Switch on J.A.R.V.I.S'); } }),
           el('button', { className: 'px btn primary', type: 'button', textContent: 'Reopen', onclick: () => { quip('Be right back!'); setTimeout(() => invoke('relaunch'), 400); } }));
-        else if (st === 'denied' || this.asked[r.id]) side = el('button', { className: 'px btn ghost', type: 'button', textContent: 'Open Settings', onclick: () => { this.openSettings(r); quip(isMac() ? 'Switch Jarvis on!' : 'Turn on desktop apps!', 4); } });
+        else if (st === 'denied' || this.asked[r.id]) side = el('button', { className: 'px btn ghost', type: 'button', textContent: 'Open Settings', onclick: () => { this.openSettings(r); quip(isMac() ? 'Switch J.A.R.V.I.S on!' : 'Turn on desktop apps!', 4); } });
         else if (!isMac()) side = el('span', { className: 'waiting', textContent: 'Checking…' });
         else side = el('button', { className: 'px btn primary', type: 'button', textContent: 'Allow', onclick: () => this.allow(r) });
         const li = el('li', { className: `px row${st === 'granted' ? ' granted' : r === firstPending ? ' focus' : ''}`, id: `perm-${r.id}` },
@@ -274,7 +274,7 @@
       if (state?.login != null) {
         const ls = el('button', { className: 'px switch', type: 'button', role: 'switch' });
         ls.setAttribute('aria-checked', String(!!state.login));
-        ls.setAttribute('aria-label', 'Open Jarvis at login');
+        ls.setAttribute('aria-label', 'Open J.A.R.V.I.S at login');
         ls.onclick = () => { const on = ls.getAttribute('aria-checked') !== 'true'; ls.setAttribute('aria-checked', String(on)); send({ type: 'set_login', on }); if (on) quip("See you every morning!"); };
         list.append(el('li', { className: 'px row' },
           el('div', {}, el('h2', { textContent: 'Open at login' }), el('p', { textContent: 'Start with your computer.' })), ls));
@@ -483,7 +483,7 @@
   // Text only, or Voice + text (spoken with Fish Audio, Gemini or VoiceStudio). Fish Audio and Gemini need the user's
   // own key: picking one opens the field, and the key is checked before voice turns on. VoiceStudio runs on this
   // computer and needs no key, only to be open: its status shows instead, with Check again. With Gemini and
-  // VoiceStudio there's also a voice to choose (Fish Audio's is Jarvis's).
+  // VoiceStudio there's also a voice to choose (Fish Audio's is J.A.R.V.I.S's).
   // link: where a key comes from. Gemini's is Google AI Studio's key page.
   // Fish Audio's sign-up link (keys are under Developers). It's disclosed in
   // the UI: the #fish-link button in index.html reads "Get a free key (affiliate link)".
@@ -559,7 +559,7 @@
       $('fish-change').setAttribute('aria-expanded', String(replies.changing));
       $('fish-save').disabled = replies.saving;
       $('fish-save').textContent = replies.saving ? 'Checking…' : 'Save';
-      // Talking hands-free (needs voice): open the mic for an answer, and on macOS, wake on "Hey Jarvis".
+      // Talking hands-free (needs voice): open the mic for an answer, and on macOS, wake on "Hey J.A.R.V.I.S".
       $('talk-rows').hidden = !state?.voice;
       $('wake-row').hidden = !isMac();
       $('autolisten-switch').setAttribute('aria-checked', String(!!state?.autoListen));
@@ -752,7 +752,7 @@
     enter() { keys.render(); aim($('chords')); setTimeout(() => at('keys') && quip(state?.voice ? 'Try talking to me!' : 'Your shortcuts'), 700); },
     leave() { if (keys.recording) keys.stop(); poseFn = null; voice.listening = false; },
   };
-  // Drawing, shown not told: a cursor holding the talk keys circles Jarvis and the loop snaps shut, like the
+  // Drawing, shown not told: a cursor holding the talk keys circles J.A.R.V.I.S and the loop snaps shut, like the
   // real pen. It loops while the step is open, pauses while they try talking or record a shortcut, and holds
   // still as a finished circle with reduced motion.
   const penDemo = {
@@ -788,7 +788,7 @@
       const snapped = f >= 1;
       $('pen-stroke').classList.toggle('snapped', snapped);
       // The cursor leads the ink, then drifts off after the snap; everything fades before the next go.
-      // Outward from Jarvis, so the cursor and keys never cover it.
+      // Outward from J.A.R.V.I.S, so the cursor and keys never cover it.
       const head = shown.at(-1), drift = snapped ? Math.min(1, (t - penDemo.START - penDemo.DRAW) / 1.2) : 0;
       const len = Math.hypot(head[0], head[1]) || 1, ux = head[0] / len, uy = head[1] / len;
       const cx = head[0] + ux * drift * 24, cy = head[1] + uy * drift * 24;
@@ -930,10 +930,10 @@
       const linux = isLinux();
       $('h-4').textContent = mac ? 'Find me up here' : linux ? 'Find me in the tray' : 'Find me down here';
       $('find-where').textContent = mac ? 'I live in your menu bar. Click ' : linux ? 'I live in the system tray. Click ' : 'I live in the system tray, at the bottom right of your taskbar. Click ';
-      // Linux: GNOME shows no tray without an extension, and opening Jarvis again works anywhere.
-      $('find-tip').innerHTML = linux ? "No tray on your desktop? On GNOME, add the <b>AppIndicator</b> extension. Or just open Jarvis again from your apps: that opens my panel." : "Don't see me? Click the <b>^</b> arrow next to the clock. To keep me in view, drag my icon onto the taskbar.";
+      // Linux: GNOME shows no tray without an extension, and opening J.A.R.V.I.S again works anywhere.
+      $('find-tip').innerHTML = linux ? "No tray on your desktop? On GNOME, add the <b>AppIndicator</b> extension. Or just open J.A.R.V.I.S again from your apps: that opens my panel." : "Don't see me? Click the <b>^</b> arrow next to the clock. To keep me in view, drag my icon onto the taskbar.";
       $('find-tip').hidden = mac;
-      // Windows: straight to the Taskbar settings, where Jarvis is switched on under Other system tray icons.
+      // Windows: straight to the Taskbar settings, where J.A.R.V.I.S is switched on under Other system tray icons.
       $('find-show').hidden = mac || linux;
       $('find-bar').classList.toggle('taskbar', !mac);
       poseFn = POSE.point(1.25, mac ? -1.45 : 1.2);
@@ -951,7 +951,7 @@
   // heading, anything after it the nudge. A sentence shows only once it's complete, so a question never starts
   // out in the reaction and jumps up. Each slot reveals its words one at a time, in reading order (reaction,
   // heading, nudge), at a steady pace that speeds up to catch up, so uneven chunks never show as lurches.
-  const SENTENCES = /[^.!?…]+(?:[.!?…]+["'”’)]*|$)/g;
+  const SENTENCES = /(?:J\.A\.R\.V\.I\.S|[^.!?…])+(?:[.!?…]+["'”’)]*|$)/g;
   const splitStream = (raw, final) => {
     const parts = raw.replace(/\s+/g, ' ').match(SENTENCES)?.map((x) => x.trim()).filter(Boolean) ?? [];
     // The last sentence counts once it has its stop and the stream has moved past it (or the reply is over).
@@ -1108,9 +1108,9 @@
       }
       // Fixed lines (not something it's saying) show at once; a turn's words reveal as they stream (above).
       const FIXED = {
-        skipped: ['Maybe later', 'No problem. Get to Know Me is in the Jarvis panel any time.'],
-        no_model: ['I need a brain first', 'Connect an AI account in the Jarvis panel, then try Get to Know Me again.'],
-        failed: ["That didn't work", "I couldn't reach the AI. Try Get to Know Me from the Jarvis panel in a moment."],
+        skipped: ['Maybe later', 'No problem. Get to Know Me is in the J.A.R.V.I.S panel any time.'],
+        no_model: ['I need a brain first', 'Connect an AI account in the J.A.R.V.I.S panel, then try Get to Know Me again.'],
+        failed: ["That didn't work", "I couldn't reach the AI. Try Get to Know Me from the J.A.R.V.I.S panel in a moment."],
       };
       if (FIXED[st] && chat.fixed !== st) { chat.fixed = st; reveal.now('chat-q', FIXED[st][0]); reveal.now('chat-lead', FIXED[st][1]); reveal.now('chat-hint', ''); }
       else if (thinking && !chat.n && !reveal.shown('chat-q')) reveal.now('chat-q', 'Getting to know you');
@@ -1175,7 +1175,7 @@
       }));
     },
     render() {
-      $('h-0').textContent = "Hi, I'm Jarvis.";
+      $('h-0').textContent = "Hi, I'm J.A.R.V.I.S.";
       look.radios('sizes', SIZES, state?.size ?? 'default', (v) => { state.size = v; sidekick.setForm?.(v); send({ type: 'ob_size', size: v }); quip(SIZE_QUIPS[v]); look.render(); });
     },
   };
@@ -1323,7 +1323,7 @@
       kind: 'state', platform: q.get('platform') || 'darwin', step: +(q.get('step') || 0), look: 'jarvis', size: q.get('size') || 'default', voice: true, actions: false, login: true, filesAsked: q.get('filesAsked') === '1',
       // &tts=gemini&gemini=1: Gemini as the voice, its key saved.
       replies: q.get('replies') === 'voice' ? 'voice' : 'text', fishKey: q.get('fish') === '1',
-      bind: q.get('session') === 'wayland' ? Object.fromEntries(['summon', 'talk', 'ask', 'list', 'panel'].map((k) => [k, `'/home/sam/Apps/Jarvis 0.2.0.AppImage' --${k}`])) : null,
+      bind: q.get('session') === 'wayland' ? Object.fromEntries(['summon', 'talk', 'ask', 'list', 'panel'].map((k) => [k, `'/home/sam/Apps/J.A.R.V.I.S 0.5.0.AppImage' --${k}`])) : null,
       tts: q.get('tts') === 'gemini' ? 'gemini' : 'fish', geminiKey: q.get('gemini') === '1', geminiVoice: 'Kore',
       geminiVoices: [['Zephyr', 'Bright'], ['Puck', 'Upbeat'], ['Charon', 'Informative'], ['Kore', 'Firm']].map(([id, style]) => ({ id, style })),
       keys: q.get('platform') === 'win32' ? { talk: ['control', 'option'], write: ['control', 'shift'], summon: 'Control+Shift+KeyS', snap: 'Control+Shift+KeyA' } : { talk: ['control', 'option'], write: win ? ['control', 'shift'] : ['option', 'command'], summon: 'Control+Alt+KeyS', snap: 'Control+Alt+KeyA' }, connected: null,
@@ -1350,7 +1350,7 @@
       else if (m.type === 'ob_files') { if (m.request) filesAsked = true; reply({ kind: 'files', status: Object.fromEntries(['Desktop', 'Documents', 'Downloads'].map((f) => [f, filesAsked ? 'granted' : 'unknown'])) }, m.request ? 1200 : 0); }
       else if (m.type === 'ob_login') {
         // Claude: the one-time download, then the browser. &login=hang: the browser never comes back (cancel or time out).
-        // &login=error: a failure Jarvis doesn't recognise (its code, and Copy details); &login=refused: one it does,
+        // &login=error: a failure J.A.R.V.I.S doesn't recognise (its code, and Copy details); &login=refused: one it does,
         // still worth reporting; &login=offline and &login=long (the longest line): ones with nothing to report. &copy=fail: copying the details fails.
         const fail = {
           error: { error: "Sign-in didn't work (E10). Try again.", code: 'E10', copy: true },
@@ -1404,7 +1404,7 @@
         // A canned chat: &chat=nomodel previews not being signed in.
         if (q.get('chat') === 'nomodel') return reply({ kind: 'chat_state', status: 'no_model' }, 300);
         const turns = [
-          ["[wave] Hi Sam, I'm Jarvis! I'm here to help you get things done and keep you on track. I've got four quick questions.", 'What are you working on these days?', ''],
+          ["[wave] Hi Sam, I'm J.A.R.V.I.S! I'm here to help you get things done and keep you on track. I've got four quick questions.", 'What are you working on these days?', ''],
           ['Night shifts and exam prep, that is a lot to juggle.', 'What does a normal week look like for you?', 'Could be the hospital, flashcards in Anki, or something else entirely.'],
           ['Phone, Anki and Google Docs, a tight little setup.', "What's the actual thing you're going for right now?", 'Could be passing the boards, a new role, or something else entirely.'],
           ['Passing the boards in March, love it.', 'Okay, last one: have you used AI helpers before?', ''],
