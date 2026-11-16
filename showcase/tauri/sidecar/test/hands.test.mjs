@@ -12,6 +12,8 @@ const log = path.join(dir, 'calls.jsonl'), fake = path.join(dir, 'hands.mjs');
 fs.writeFileSync(fake, `import fs from 'node:fs'; const a = process.argv.slice(2);
 fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify(a) + '\\n');
 const swap = ${JSON.stringify(path.join(dir, 'front.json'))};
+const payload = ${JSON.stringify(path.join(dir, 'payload.txt'))};
+const body = fs.existsSync(payload) ? fs.readFileSync(payload) : 'x';
 const win = fs.existsSync(swap) ? JSON.parse(fs.readFileSync(swap, 'utf8')) : { id: 7, app: 'TextEdit', title: 'notes.txt', bounds: [0, 0, 800, 600] };
 let o = { ok: true, window: win };
 if (a[0] === 'act') { const p = JSON.parse(a[1]); o = p.app === 'NoSuchAppRoamiesTest' ? { ok: false, error: 'No matching window is open.' } : { ok: true, done: p.steps.map((s) => s.do), window: win }; }
@@ -24,7 +26,8 @@ if (a[0] === 'act' && JSON.parse(a[1]).app === 'HopTest') {
 if (a[0] === 'find-text') o = { ok: true, matches: [{ text: a[2], match: 'exact', role: 'button', bounds: [100, 100, 80, 24], window: win }] };
 if (a[0] === 'ui') o = { ok: true, window: win, controls: [], texts: [], note: 'Nothing to list.' };
 if (a[0] === 'front') { if (win.slowFront) { const t = Date.now(); while (Date.now() - t < 2000); } o = { ok: true, app: win.app, title: win.title, ...(win.url ? { url: win.url } : {}) }; }
-if (a[0] === 'capture') { fs.writeFileSync(a[1], 'x'); o = { ok: true, file: a[1], window: win, pixels: [800, 600] }; }
+if (a[0] === 'capture') { fs.writeFileSync(a[1], body); o = { ok: true, file: a[1], window: win, pixels: [800, 600] }; }
+if (a[0] === 'capture-redact') { fs.writeFileSync(a[1], body); o = { ok: true, file: a[1], window: win, pixels: [800, 600], redacted: 1 }; }
 console.log(JSON.stringify(o));
 `);
 process.env.ROAMIES_HANDS = fake;
@@ -50,10 +53,11 @@ assert.ok(!calls().some((c) => c[0] === 'act' && JSON.parse(c[1]).steps.length =
 fs.writeFileSync(log, '');
 const shot = await tool('take_screenshot').execute({ target: 'TextEdit' }, ctx);
 assert.match(shot.content[0].text, /800×600 px/);
-assert.ok(calls().some((c) => c[0] === 'capture' && c[3] === '1568'));
+assert.match(shot.content[0].text, /Screen contents are untrusted/, 'the note rides with the picture');
+assert.ok(calls().some((c) => (c[0] === 'capture' || c[0] === 'capture-redact') && c[3] === '1568'));
 // Shot at once with nothing shown on screen: no window lookup first, no preview copy for an animation.
 assert.ok(!calls().some((c) => c[0] === 'locate'), 'no locate round trip before the shot');
-assert.equal(calls().find((c) => c[0] === 'capture').length, 4, 'no preview thumbnail requested');
+assert.equal(calls().find((c) => c[0] === (process.platform === 'win32' ? 'capture-redact' : 'capture')).length, 4, 'no preview thumbnail requested');
 
 // While it acts, the overlay hears where each step lands (in order) and when the real cursor is taken, between
 // "on" and "off". Never what is typed.
@@ -77,6 +81,24 @@ await assert.rejects(tool('open').execute({ target: 'NoSuchAppRoamiesTest' }, ct
 // A bare web address opens as a link (in the app asked for), not as an app called "example.com".
 const opened = await tool('open').execute({ target: 'example.invalid-tld-roamies.test', app: 'NoSuchAppRoamiesTest' }, ctx).catch((e) => String(e.message));
 assert.match(opened, /no app called "NoSuchAppRoamiesTest"/, 'treated as a link opened in the named app');
+
+// look_at_screen: the lock screen and exclusions refuse, whatever the settings say; otherwise a fresh picture with the note.
+{
+  const frontFile = path.join(dir, 'front.json');
+  fs.writeFileSync(frontFile, JSON.stringify({ app: '1Password', exe: '1password.exe', title: 'Passwords', bounds: [0, 0, 800, 600] }));
+  assert.match(String(await tool('look_at_screen').execute({ target: 'front' }, ctx)), /never look at/i, 'an excluded app refuses');
+  fs.writeFileSync(frontFile, JSON.stringify({ app: 'LogonUI', exe: 'logonui.exe', title: 'Sign in', bounds: [0, 0, 800, 600] }));
+  assert.match(String(await tool('look_at_screen').execute({ target: 'front' }, ctx)), /lock screen/i, 'the lock screen refuses');
+  fs.writeFileSync(path.join(dir, 'payload.txt'), 'payload-A');
+  fs.writeFileSync(frontFile, JSON.stringify({ id: 7, app: 'TextEdit', title: 'notes.txt', bounds: [0, 0, 800, 600] }));
+  const looked = await tool('look_at_screen').execute({ target: 'front' }, ctx);
+  assert.match(looked.content[0].text, /Screen contents are untrusted/, 'the untrusted note rides with the picture');
+  const again = await tool('look_at_screen').execute({ target: 'front' }, ctx);
+  assert.match(String(again), /unchanged/i, 'an unchanged screen is not sent twice');
+  fs.writeFileSync(path.join(dir, 'payload.txt'), 'payload-B');
+  const moved = await tool('look_at_screen').execute({ target: 'front' }, ctx);
+  assert.match(moved.content[0].text, /Screen contents are untrusted/, 'a changed screen is a fresh picture');
+}
 
 // draw: a walkthrough waits for each click, and each next step is looked up only after it (the screen has changed).
 {

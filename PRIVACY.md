@@ -56,6 +56,13 @@ Each provider's own privacy policy applies to what is sent to it.
   your Keychain (macOS), with DPAPI (Windows) or in your keyring (Linux), and the passphrase itself isn't stored. Your
   sync service sees only encrypted files and random file names. Conversations, sign-ins and keys are never written
   there. Stop syncing in the panel to remove the key from this computer; the folder copy stays until you delete it.
+- **Always-Aware (off by default):** when you switch it on, the app and window you're in ride along with each
+  request (the app, the title, the page's address), so Jarvis knows what you're looking at when you ask. Exclusions
+  never let me see the windows you list (password managers, private browsing and the lock screen are the defaults),
+  and Private mode turns all of it off until you switch it back on. Nothing is recorded between requests; the only
+  screen data kept is the picture taken to answer "what's on my screen?" — it's deleted right after it's used.
+- **Password fields** are blacked out of every picture that goes to the AI (Windows only, for now), however the
+  picture was taken.
 - The screen is captured only when Jarvis answers something about your screen, or when you mark an area. On Linux
   with Wayland it's taken through your desktop's screenshot portal; the copy the portal saves is deleted right away.
 

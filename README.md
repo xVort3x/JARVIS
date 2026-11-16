@@ -97,6 +97,22 @@ On the panel's **Listening** page you pick how you talk to me:
 Two settings shape hands-free: **Pause to send** (Short, Normal about 1.5 s, Long) and **Mic sensitivity** (Low, Normal, High).
 Esc stops a reply mid-sentence, and talking over me stops me too.
 
+## Always-Aware
+
+Optional, off by default. On the panel's **Screen** page, **Always-Aware** puts the app and window you're in on
+every request, so "what's this error?" works without you selecting an area. While it's on, a small dot in the
+corner of the screen shows it.
+
+- **What I see:** the front window (default, most private) or the whole screen.
+- **Screen exclusions:** windows I never look at — password managers, private browsing windows and the lock screen
+  are in the defaults; add your own (your bank, say) or take mine out.
+- **Private mode:** one flip and I see nothing at all until you flip it back. Same as Always-Aware off.
+
+Password fields are always blacked out of every picture that goes to the AI, from every source. No picture is
+ever kept: on a request one is taken, used and thrown away. Jarvis never says anything about your screen on its
+own — it just knows, when you ask. In the list of what leaves your computer: the AI provider you pick, and nothing
+else. [PRIVACY.md](PRIVACY.md) says exactly what.
+
 ## Get started
 
 1. Install Jarvis from the **Assets** list on the release page. The *Source code* downloads there are the code,

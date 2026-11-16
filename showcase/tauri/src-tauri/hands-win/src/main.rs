@@ -153,6 +153,41 @@ fn windows_main(cmd: &str, args: &[String]) -> ! {
             }
             out(o)
         }
+        // The picture with password fields blacked out, before it can reach the AI: the UI Automation tree says
+        // which fields hold secrets; they're painted over. If one window can't be read, the others still are.
+        "capture-redact" => {
+            let (Some(file), Some(target)) = (arg(1), arg(2)) else { fail("usage: capture-redact <out> <target> [max]") };
+            let max = arg(3).and_then(|m| m.parse().ok());
+            let password_rects = |wins: Vec<logic::Win>| -> Vec<logic::Rect> {
+                let mut rects = Vec::new();
+                for w in wins.into_iter().take(12) {
+                    rects.extend(uia::Tree::of_window(&w).walk(w.r, 400).into_iter().filter(|c| c.0.password).filter_map(|c| c.0.r));
+                }
+                rects
+            };
+            let (mut shot, mut o, origin, secrets): (capture::Shot, Value, (i64, i64), Vec<logic::Rect>) = if target == "screen" {
+                let m = win::primary();
+                let Some(s) = capture::grab_screen(m.px) else { fail("Screen capture failed.") };
+                let secrets = password_rects(windows());
+                (s, json!({ "ok": true, "file": file, "what": "screen", "bounds": m.pt().ints() }), (m.px.left as i64, m.px.top as i64), secrets)
+            } else {
+                let Some(w) = resolve(target) else { fail(&no_window(target)) };
+                let Some((s, fr)) = capture::grab_window(win::hwnd(w.id)) else { fail("Window capture failed.") };
+                let info = win_info(&w);
+                let secrets = password_rects(vec![w]);
+                (s, json!({ "ok": true, "file": file, "window": info }), (fr.left as i64, fr.top as i64), secrets)
+            };
+            for r in secrets.iter() {
+                let px = win::rect_to_px(*r);
+                capture::blacken(&mut shot, origin, px);
+            }
+            o["redacted"] = json!(secrets.len());
+            match capture::save(&shot, file, max, 85) {
+                Ok(px) => o["pixels"] = json!(px),
+                Err(e) => fail(&format!("Couldn't save the screenshot: {e}")),
+            }
+            out(o)
+        }
         "select" => {
             let Some(file) = arg(1) else { fail("usage: select <out>") };
             match select::select(file) {

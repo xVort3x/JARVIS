@@ -14,10 +14,20 @@
     /* Never selectable: a stray triple-click or Select All tints a selected canvas solid grey over its whole box. */
     -webkit-user-select: none; user-select: none; }
   canvas:active { cursor: grabbing; }
+  /* Always-Aware: the small dot, always on while it's on. */
+  #aware { position: fixed; top: 10px; right: 12px; z-index: 40; display: flex; align-items: center; gap: 7px;
+    padding: 4px 11px; background: rgba(8, 11, 16, 0.74); border: 1px solid rgba(56, 184, 255, 0.4); border-radius: 999px;
+    font: 600 11px "Inter", system-ui, sans-serif; color: #9bdcff; letter-spacing: 0.03em; pointer-events: none;
+    opacity: 0; transition: opacity .18s ease; }
+  #aware.on { opacity: 1; }
+  #aware .dot { width: 7px; height: 7px; border-radius: 50%; background: #38b8ff; box-shadow: 0 0 7px rgba(56, 184, 255, 0.85); }
+  #aware[data-state="private"] { color: #8b93a3; border-color: #313a4a; }
+  #aware[data-state="private"] .dot { background: #5a6474; box-shadow: none; }
 </style>
 </head>
 <body>
 <canvas id="stage" aria-label="Jarvis on the desktop"></canvas>
+<div id="aware" data-state="watching" aria-hidden="true"><span class="dot"></span><span class="aware-label">Watching</span></div>
 <script src="roamies/core.js"></script>
 <script src="roamies/markdown.js"></script>
 <script src="roamies/voice-out.js"></script>

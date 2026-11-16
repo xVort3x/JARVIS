@@ -110,6 +110,47 @@ pub fn pixels_of(win: Option<&Win>) -> Option<(Shot, Rect)> {
     }
 }
 
+/// Paints over a rect of the shot, for redaction: password fields never leave the machine. The rect is in physical
+/// pixels; `origin` is the top-left of the shot in those pixels.
+pub fn blacken(s: &mut Shot, origin: (i64, i64), px: windows::Win32::Foundation::RECT) {
+    let sw = s.w as i64; let sh = s.h as i64;
+    let x0 = (px.left as i64 - origin.0).clamp(0, sw) as usize;
+    let y0 = (px.top as i64 - origin.1).clamp(0, sh) as usize;
+    let x1 = (px.right as i64 - origin.0).clamp(0, sw) as usize;
+    let y1 = (px.bottom as i64 - origin.1).clamp(0, sh) as usize;
+    if x0 >= x1 || y0 >= y1 {
+        return;
+    }
+    for row in y0..y1 {
+        for col in x0..x1 {
+            let i = (row * s.w + col) * 4;
+            s.rgba[i..i + 4].copy_from_slice(&[0, 0, 0, 255]);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use windows::Win32::Foundation::RECT;
+
+    #[test]
+    fn blacken_paints_the_rect_and_clips_to_the_shot() {
+        // 4x4 all-white shot at origin (0, 0).
+        let mut s = Shot { w: 4, h: 4, rgba: vec![255; 4 * 4 * 4] };
+        blacken(&mut s, (0, 0), RECT { left: 1, top: 1, right: 3, bottom: 3 });
+        // The centre 2x2 is black, the corners stay white.
+        let px = |x: usize, y: usize| s.rgba[(y * 4 + x) * 4..(y * 4 + x) * 4 + 3].to_vec();
+        assert_eq!(px(1, 1), vec![0, 0, 0]);
+        assert_eq!(px(2, 2), vec![0, 0, 0]);
+        assert_eq!(px(0, 0), vec![255, 255, 255]);
+        // A rect that spills off the edge is clipped, never wraps round.
+        let mut s = Shot { w: 2, h: 2, rgba: vec![255; 2 * 2 * 4] };
+        blacken(&mut s, (0, 0), RECT { left: -5, top: 1, right: 10, bottom: 10 });
+        assert_eq!(s.rgba.chunks_exact(4).take(4).map(|p| p[0]).collect::<Vec<_>>(), vec![255, 255, 0, 0]);
+    }
+}
+
 /// Saves the picture shrunk to at most `max` px on its long side (never enlarged): JPEG, or PNG for a .png file.
 /// Returns its final size.
 pub fn save(s: &Shot, file: &str, max: Option<u32>, quality: u8) -> Result<[u32; 2], String> {

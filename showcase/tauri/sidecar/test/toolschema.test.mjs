@@ -30,6 +30,12 @@ assert.ok(tools.some((t) => t.name === 'draw') && !tools.some((t) => t.name === 
   for (const f of ['decision', 'options', 'values', 'lean', 'why', 'next']) assert.ok(s.properties[f], `a decision can have ${f}`);
   await assert.rejects(think.execute({ decision: 'A or B?', options: [{ name: 'A', good: 'x' }, { name: 'B', bad: 'y' }], lean: 'C', why: 'Because.' }, {}), /lean: "C" is not one of the options/, 'the lean must be one of the options');
 }
+{
+  const look = tools.find((t) => t.name === 'look_at_screen');
+  assert.ok(look, 'look_at_screen is a tool');
+  const s = resolveToolSchema(look);
+  assert.ok(s.properties.target, 'it takes a target');
+}
 const drawSchema = JSON.stringify(resolveToolSchema(tools.find((t) => t.name === 'draw')));
 assert.ok(!/"(oneOf|anyOf|allOf)"/.test(drawSchema), 'draw is one flat object schema (no unions some providers reject)');
 // Labels on a photo need a look at the picture first: see_photo is there, and draw refuses labels on an unseen one

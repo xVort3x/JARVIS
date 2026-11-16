@@ -648,6 +648,31 @@
       ],
     ];
   }
+  // The screen: Always-Aware, private mode and the exclusions list for what the eyes may see.
+  function screenPage() {
+    const a = state.aware ?? { on: false, mode: 'front', private: false, exclusions: [] };
+    const exclusions = Array.isArray(a.exclusions) ? a.exclusions : [];
+    const mode = a.mode === 'screen' ? 'screen' : 'front';
+    const exclRow = (e) => el('div', { className: 'setting excl' },
+      el('span', {}, e, el('small', { textContent: 'Excluded — never looked at' })),
+      armed('Remove', 'Confirm', `excl:${e}`, `awareexclrm:${e}`, `Remove “${e}” from screen exclusions`));
+    return [
+      group('Always-Aware', 'I know what you’re looking at while you work: the app, the page, the error. Your request carries it to me, nowhere else.', null,
+        toggle('Always-Aware', a.on ? (a.private ? 'Private mode is on' : mode === 'screen' ? 'The whole screen is in view' : 'The front window is in view') : 'I can’t see which app you’re in', a.on, () => act('aware'), 'aware'),
+        a.on ? picks('What I see', [['front', 'Front window'], ['screen', 'Whole screen']], mode, (x) => act(`awaremode:${x}`), 'awaremode',
+          { front: 'The window you’re in right now (most private).', screen: 'Everything on your main display — notifications and other open apps too.' }) : null,
+        a.on ? toggle('Private mode', a.private ? 'Seeing nothing. Switch off to see again.' : 'Switch on and I see nothing until you switch it back.', a.private, () => act('awareprivate'), 'awareprivate') : null),
+      group('Screen exclusions', 'Windows I never look at — an app, or part of a title. Password fields are always blacked out; these go further: no picture, no words.', null,
+        exclusions.length ? exclusions.map(exclRow) : el('p', { className: 'sub', textContent: 'Nothing is excluded; password fields are still blacked out. Add apps you never want seen.' }),
+        el('div', { className: 'setting excl-add' },
+          el('span', {}, 'Add an exclusion', el('small', { textContent: 'An app name or part of a title, e.g. “my bank”' })),
+          el('span', { className: 'row-btns' },
+            el('span', { className: 'px field' }, el('input', { id: 'awareexcl-add', type: 'text', placeholder: 'my bank', autocomplete: 'off', spellcheck: false, 'aria-label': 'Add an exclusion',
+              on: { keydown: (e) => { if (e.key === 'Enter') { const v = e.currentTarget.value.trim(); if (v) { act(`awareexcladd:${v}`); e.currentTarget.value = ''; } } } } })),
+            link('Add', () => { const i = $('awareexcl-add'); const v = (i?.value ?? '').trim(); if (v) { act(`awareexcladd:${v}`); i.value = ''; } }, { k: 'awareexcladd', aria: 'Add the exclusion' })))),
+      el('p', { className: 'why', textContent: 'No picture is kept anywhere: on a request one is taken, used and thrown away; password fields are blacked out in it. The dot shows this mode — it’s the mode, not a live guarantee. On the lock screen I never see or capture anything, whatever this says.' }),
+    ];
+  }
   // The keys that work from anywhere. On Wayland no app may hold its own, so it lists the commands to bind instead.
   const SHORTCUT_LABELS = { summon: 'Show or hide me', snap: 'Ask about an area', list: 'Your list' };
   function shortcutsPage() {
@@ -717,7 +742,7 @@
   }
 
   // ---------------------------------------------------------------- render
-  const PANES = { home, memory, model: modelPage, appearance: appearancePage, speaking: speakingPage, listening: listeningPage, shortcuts: shortcutsPage, routines: routinesPage, general: generalPage, about: aboutPage };
+  const PANES = { home, memory, model: modelPage, appearance: appearancePage, speaking: speakingPage, listening: listeningPage, screen: screenPage, shortcuts: shortcutsPage, routines: routinesPage, general: generalPage, about: aboutPage };
   // focusKey: what to focus after (a data-k, or an element id); otherwise whatever had focus keeps it.
   function render(focusKey, animate = false) {
     if (!state) return;
@@ -889,7 +914,7 @@
     document.title = 'Jarvis panel (preview with sample data)';
     const at = Date.now(), q = new URLSearchParams(location.search);
     const s = {
-      version: '0.2.0', os: /Win/.test(navigator.platform) ? 'win' : 'mac',
+      version: '0.3.0', os: /Win/.test(navigator.platform) ? 'win' : 'mac',
       status: { state: 'ready', text: 'Ready' }, busy: false, canNew: true,
       model: { provider: 'anthropic', id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5', providerLabel: 'Anthropic' },
       providers: [
@@ -930,7 +955,7 @@
       geminiShared: new URLSearchParams(location.search).has('shared'), geminiModel: 'gemini-3.8-flash-lite-tts',
       geminiModels: [{ id: 'gemini-3.8-flash-lite-tts', name: 'Flash Lite', per10s: 0.0015 }, { id: 'gemini-3.8-flash-tts', name: 'Flash', per10s: 0.00225 }],
       fishModels: [{ id: 'drama-3', name: 'Drama 3', perM: 50, promo: { perM: 10, until: '2026-12-01T08:00:00Z' } }, { id: 's2.1-pro', name: 'S2.1 Pro', perM: 15 }],
-      voice: { on: true, keys: 'Ctrl+Alt', ready: true, mac: false, mute: true, mics: [{ id: 'BuiltIn', name: 'MacBook Pro Microphone' }, { id: 'airpods', name: 'AirPods Pro' }], mic: '', micAuto: 'MacBook Pro Microphone', wakeWord: false, wakeName: 'Jarvis', download: null, mode: 'handsfree', vad: { pause: 1.5, sensitivity: 'normal' } }, askKeys: '⌥⌘', brief: { on: true, todoist: false, canTodoist: true }, focus: { until: null, task: '', list: ['YouTube', 'Reddit', 'X', 'Steam', 'Netflix'], custom: false }, sync: { dir: '', at: null, error: null, paused: false }, shortcuts: { talk: { value: 'control+option', pairs: [['control+option', 'Control+Option'], ['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] }, keys: [{ id: 'summon', words: 'Control+Option+S' }, { id: 'snap', words: 'Control+Option+A' }, { id: 'list', words: 'Control+Option+L' }] }, writeKeys: { value: 'option+command', pairs: [['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] },
+      voice: { on: true, keys: 'Ctrl+Alt', ready: true, mac: false, mute: true, mics: [{ id: 'BuiltIn', name: 'MacBook Pro Microphone' }, { id: 'airpods', name: 'AirPods Pro' }], mic: '', micAuto: 'MacBook Pro Microphone', wakeWord: false, wakeName: 'Jarvis', download: null, mode: 'handsfree', vad: { pause: 1.5, sensitivity: 'normal' } }, askKeys: '⌥⌘', aware: { on: true, mode: 'front', private: false, exclusions: ['1password', 'logonui', 'InPrivate', 'my bank'] }, brief: { on: true, todoist: false, canTodoist: true }, focus: { until: null, task: '', list: ['YouTube', 'Reddit', 'X', 'Steam', 'Netflix'], custom: false }, sync: { dir: '', at: null, error: null, paused: false }, shortcuts: { talk: { value: 'control+option', pairs: [['control+option', 'Control+Option'], ['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] }, keys: [{ id: 'summon', words: 'Control+Option+S' }, { id: 'snap', words: 'Control+Option+A' }, { id: 'list', words: 'Control+Option+L' }] }, writeKeys: { value: 'option+command', pairs: [['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] },
       sound: false, actions: false, login: { on: true },
       intro: false,
     };
