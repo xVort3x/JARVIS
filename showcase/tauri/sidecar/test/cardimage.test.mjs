@@ -6,10 +6,10 @@ import path from 'node:path';
 import { imageName, saveCardImage } from '../cardimage.mjs';
 
 const at = new Date(2026, 10, 12, 15, 4, 9);
-assert.equal(imageName('planets', at), 'Roamies – planets – 2026-11-12 15.04.09.png');
-assert.equal(imageName('a/b:c*?"<>|d', at), 'Roamies – a b c d – 2026-11-12 15.04.09.png', 'no path or reserved characters');
-assert.equal(imageName('..', at), 'Roamies – card – 2026-11-12 15.04.09.png');
-assert.equal(imageName('', at).startsWith('Roamies – card'), true);
+assert.equal(imageName('planets', at), 'Jarvis – planets – 2026-11-12 15.04.09.png');
+assert.equal(imageName('a/b:c*?"<>|d', at), 'Jarvis – a b c d – 2026-11-12 15.04.09.png', 'no path or reserved characters');
+assert.equal(imageName('..', at), 'Jarvis – card – 2026-11-12 15.04.09.png');
+assert.equal(imageName('', at).startsWith('Jarvis – card'), true);
 assert.ok(imageName('x'.repeat(200), at).length < 80, 'kept short');
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roamies-img-'));

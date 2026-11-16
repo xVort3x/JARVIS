@@ -4,7 +4,7 @@
   const R = window.Roamie;
   if (!R || typeof document === 'undefined') return;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const ACC = '#e8b469', HOT = '#ffd9a6', MID = '#c98f43', DEEP = '#5c3a0e', EDGE = 'rgba(60,38,8,0.65)';
+  const ACC = '#38b8ff', HOT = '#9bdcff', MID = '#1f86c9', DEEP = '#0b3a5c', EDGE = 'rgba(4,18,34,0.65)';
   const GLASS = 'rgba(13,16,22,0.94)', TEXT = '#eef1f7', DIM = '#8b93a3', CORAL = '#ef5b52', NOTE = '#e9a196';
   const MONO = '"Inter", ui-sans-serif, system-ui, sans-serif';
   const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));

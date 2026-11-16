@@ -1,6 +1,6 @@
 // One place that words every error a person sees. explain() turns whatever went wrong into one short line that says
 // what happened and what to do. The raw error never reaches the screen: it goes to the activity log and to Copy
-// details. Causes Roamies doesn't recognise keep their area's code in the line, so a report can be traced.
+// details. Causes Jarvis doesn't recognise keep their area's code in the line, so a report can be traced.
 import { redact } from './diagnostics.mjs';
 
 /** The longest a line may be. */
@@ -61,22 +61,11 @@ const AREAS = {
       ['E36', NET, () => "Can't check the key. Check your internet."],
     ],
   },
-  update: {
-    code: 'E40',
-    unknown: () => "The update didn't work (E40). Try again later.",
-    known: [
-      ['E41', /signature|minisign/i, () => "The update didn't pass its safety check. Try again later.", true],
-      ['E42', DISK_FULL, () => 'Not enough disk space for the update. Free some up.'],
-      ['E43', NO_ACCESS, () => "I couldn't replace the app. Reinstall it from GitHub.", true],
-      ['E44', /valid release JSON|platform .{0,40}not found|\b404\b/i, () => "Couldn't check for updates. Check your internet."],
-      ['E45', NET, () => "The update didn't download. Check your internet."],
-    ],
-  },
   hearing: {
     code: 'E50',
     unknown: () => "I couldn't hear that (E50). Try again.",
     known: [
-      ['E51', /onnx|parakeet|voice model|model (?:file|load|missing|not found)/i, () => "My voice model didn't load. Restart Roamies.", true],
+      ['E51', /onnx|parakeet|voice model|model (?:file|load|missing|not found)/i, () => "My voice model didn't load. Restart Jarvis.", true],
       ['E52', NET, () => 'Speech recognition needs the internet. Try again.'],
     ],
   },
@@ -155,7 +144,7 @@ export function everyLine(ctx = {}) {
 export function detailsText(problem, { version = '0.0.0', os = '' } = {}, scrub = {}) {
   const at = new Date(problem?.at ?? Date.now()).toISOString();
   return redact([
-    `Roamies error ${problem?.code ?? '?'} (${problem?.area ?? '?'})`,
+    `Jarvis error ${problem?.code ?? '?'} (${problem?.area ?? '?'})`,
     `Version: ${version}`,
     `OS: ${os}`,
     `Time: ${at}`,

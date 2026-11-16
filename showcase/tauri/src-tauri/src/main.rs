@@ -740,7 +740,7 @@ fn show_panel(app: &AppHandle, rect: Option<tauri::Rect>, toggle: bool) {
         Some(w) => w,
         None => {
             let b = WebviewWindowBuilder::new(app, PANEL_LABEL, WebviewUrl::App("panel/index.html".into()))
-                .title("Roamies")
+                .title("Jarvis")
                 .inner_size(PANEL_W, PANEL_H)
                 .resizable(false)
                 .maximizable(false)
@@ -898,7 +898,7 @@ fn open_onboarding(app: &AppHandle, mode: Option<&str>) {
     }
     let url = if chat { "onboarding/index.html?mode=chat" } else { "onboarding/index.html" };
     let mut b = WebviewWindowBuilder::new(app, ONBOARDING_LABEL, WebviewUrl::App(url.into()))
-        .title(if chat { "Get to know you" } else { "Welcome to Roamies" })
+        .title(if chat { "Get to know you" } else { "Welcome to Jarvis" })
         .inner_size(780.0, 540.0)
         .resizable(false)
         .maximizable(false)
@@ -1073,7 +1073,7 @@ fn build_overlays(app: &AppHandle) -> tauri::Result<()> {
         let scale = mon.scale_factor();
         let pos = mon.position().to_logical::<f64>(scale);
         let size = mon.size().to_logical::<f64>(scale);
-        let init = format!("window.ROAMIE_ONLY=[{}];window.ROAMIE_AUTOSOUND=true;window.ROAMIE_UNIT=400;", mine.join(","));
+        let init = format!("window.ROAMIE_ONLY=[{}];window.ROAMIE_UNIT=400;", mine.join(","));
         // Linux: the page reports its click areas (host.js), and the window stops a pixel short of the screen:
         // window managers take an undecorated window of exactly the screen's size for a fullscreen app (GNOME
         // then hides its top bar).
@@ -1089,7 +1089,7 @@ fn build_overlays(app: &AppHandle) -> tauri::Result<()> {
         #[cfg(not(target_os = "linux"))]
         let unmanaged = false;
         let w = WebviewWindowBuilder::new(app, label, WebviewUrl::App("desktop.html".into()))
-            .title("Roamies")
+            .title("Jarvis")
             .visible(!unmanaged)
             .transparent(true)
             .decorations(false)
@@ -1392,8 +1392,8 @@ fn fallback_menu(app: &AppHandle, status: &str) {
     set_menu(app, &[
         json!({ "id": "status", "label": status, "enabled": false }),
         json!({ "sep": true }),
-        json!({ "id": "restart", "label": "Restart Roamies" }),
-        json!({ "id": "quit", "label": "Quit Roamies" }),
+        json!({ "id": "restart", "label": "Restart Jarvis" }),
+        json!({ "id": "quit", "label": "Quit Jarvis" }),
     ]);
 }
 
@@ -1440,7 +1440,7 @@ fn login_item(app: &AppHandle, set: Option<bool>) {
     #[cfg(target_os = "macos")]
     let (supported, on, approval) = {
         use objc2_service_management::{SMAppService, SMAppServiceStatus};
-        let in_apps = exe_s.starts_with("/Applications/") || exe_s.contains("/Applications/Roamies.app/");
+        let in_apps = exe_s.starts_with("/Applications/") || exe_s.contains("/Applications/Jarvis.app/") || exe_s.contains("/Applications/Roamies.app/");
         if !objc2::available!(macos = 13.0) || !installed || !in_apps {
             (false, false, false)
         } else {
@@ -1467,11 +1467,21 @@ fn login_item(app: &AppHandle, set: Option<bool>) {
             (false, false, false)
         } else {
             match set {
-                Some(true) => { let v = format!("\"{}\"", exe.display()); reg(&["add", KEY, "/v", "Roamies", "/t", "REG_SZ", "/d", &v, "/f"]); }
-                Some(false) => { reg(&["delete", KEY, "/v", "Roamies", "/f"]); }
+                // "Jarvis" is the value Task Manager's Startup apps shows; "Roamies" is deleted if an older
+                // install left it behind, so upgrading never registers the app twice.
+                Some(true) => {
+                    let v = format!("\"{}\"", exe.display());
+                    reg(&["add", KEY, "/v", "Jarvis", "/t", "REG_SZ", "/d", &v, "/f"]);
+                    reg(&["delete", KEY, "/v", "Roamies", "/f"]);
+                }
+                Some(false) => {
+                    reg(&["delete", KEY, "/v", "Jarvis", "/f"]);
+                    reg(&["delete", KEY, "/v", "Roamies", "/f"]);
+                }
                 None => {}
             }
-            (true, reg(&["query", KEY, "/v", "Roamies"]), false)
+            let on = reg(&["query", KEY, "/v", "Jarvis"]) || reg(&["query", KEY, "/v", "Roamies"]);
+            (true, on, false)
         }
     };
     #[cfg(target_os = "linux")]
@@ -1484,60 +1494,8 @@ fn login_item(app: &AppHandle, set: Option<bool>) {
     to_sidecar(app, &json!({ "type": "login_item_status", "supported": supported, "on": on, "approval": approval }));
 }
 
-/// Checks the signed update feed (latest.json on the newest GitHub release). With `install`, downloads,
-/// verifies the signature, swaps the app in place and restarts. Progress goes to the sidecar as update_status.
-fn update(app: &AppHandle, install: bool) {
-    use tauri_plugin_updater::UpdaterExt;
-    let app = app.clone();
-    // Linux: only an AppImage can swap itself in place. A copy from a .deb or .rpm is told about the new version
-    // (page: true) and "install" opens the releases page instead.
-    #[cfg(target_os = "linux")]
-    let by_page = linux::appimage().is_none();
-    #[cfg(not(target_os = "linux"))]
-    let by_page = false;
-    tauri::async_runtime::spawn(async move {
-        let status = |state: &str, extra: Value| {
-            let mut m = json!({ "type": "update_status", "state": state });
-            if let (Some(m), Some(e)) = (m.as_object_mut(), extra.as_object()) {
-                m.extend(e.clone());
-            }
-            to_sidecar(&app, &m);
-        };
-        let found = match app.updater() {
-            Ok(u) => u.check().await,
-            Err(e) => Err(e),
-        };
-        match found {
-            Ok(None) => status("none", json!({})),
-            Ok(Some(u)) if !install => status("available", json!({ "version": u.version, "page": by_page })),
-            #[cfg(target_os = "linux")]
-            Ok(Some(u)) if by_page => {
-                linux::open_releases_page();
-                status("page", json!({ "version": u.version }));
-            }
-            Ok(Some(u)) => {
-                status("downloading", json!({ "version": u.version }));
-                match u.download_and_install(|_, _| {}, || {}).await {
-                    Ok(()) => {
-                        status("installed", json!({ "version": u.version }));
-                        tokio_sleep(Duration::from_millis(1500)).await;
-                        app.restart();
-                    }
-                    Err(e) => status("error", json!({ "error": e.to_string() })),
-                }
-            }
-            Err(e) => status("error", json!({ "error": e.to_string() })),
-        }
-    });
-}
-
-async fn tokio_sleep(d: Duration) {
-    let _ = tauri::async_runtime::spawn_blocking(move || thread::sleep(d)).await;
-}
-
 fn handle_sidecar(app: &AppHandle, msg: Value) {
     match msg.get("type").and_then(Value::as_str) {
-        Some("update") => update(app, msg.get("install").and_then(Value::as_bool) == Some(true)),
         Some("login_item") => login_item(app, msg.get("on").and_then(Value::as_bool)),
         Some("menu") => {
             if let Some(items) = msg.get("items").and_then(Value::as_array) {
@@ -1701,7 +1659,6 @@ fn main() {
             let app2 = app.clone();
             let _ = app.run_on_main_thread(move || second_launch(&app2, &args));
         }))
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Sidecar(Mutex::new(None)))
         .manage(Roster(Mutex::new(vec!["sidekick".into()])))
         .manage(Voice(Mutex::new(None), AtomicUsize::new(0)))
@@ -1722,12 +1679,12 @@ fn main() {
                 app.set_menu(Menu::default(app.handle())?)?;
             }
 
-            let starting = MenuItem::with_id(app, "status", "Starting Roamies…", false, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit Roamies", true, None::<&str>)?;
+            let starting = MenuItem::with_id(app, "status", "Starting Jarvis…", false, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "Quit Jarvis", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&starting, &quit])?;
             // Left click opens the panel; right click shows the short menu.
             let mut tray = TrayIconBuilder::with_id("roamies")
-                .tooltip("Roamies")
+                .tooltip("Jarvis")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, e| {
@@ -1763,7 +1720,7 @@ fn main() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("failed to run Roamies")
+        .expect("failed to run Jarvis")
         .run(|_, e| {
             if matches!(e, tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit) {
                 sidecar::QUITTING.store(true, Ordering::SeqCst);
@@ -1805,13 +1762,13 @@ mod tests {
         assert!(overlays_stale(&one, &[s(0, 2560)], 1, 1).is_some(), "resolution changed");
         assert!(overlays_stale(&one, &[s(100, 1920)], 1, 1).is_some(), "moved in the arrangement");
         assert!(overlays_stale(&one, &[Screen { scale: 1.0, ..s(0, 1920) }], 1, 1).is_some(), "scale changed");
-        assert_eq!(overlays_stale(&two, &two, 1, 1), None, "two screens and one Roamie: one overlay is all there is");
-        assert!(overlays_stale(&two, &two, 1, 2).is_some(), "two Roamies on two screens and one overlay: build");
-        // build_overlays puts every Roamie on one screen's overlay when there's one screen: counting one overlay per
-        // Roamie there would rebuild every 3 s, forever.
-        assert_eq!(overlays_stale(&one, &one, 1, 2), None, "two Roamies on one screen: one overlay holds both");
-        assert!(overlays_stale(&one, &one, 0, 2).is_some(), "two Roamies on one screen and no overlay: build");
-        assert_eq!(overlays_stale(&one, &one, 0, 0), None, "no Roamies: no overlay is missing");
+        assert_eq!(overlays_stale(&two, &two, 1, 1), None, "two screens and one Jarvis: one overlay is all there is");
+        assert!(overlays_stale(&two, &two, 1, 2).is_some(), "Jarvis on two screens and one overlay: build");
+        // build_overlays puts every Jarvis on one screen's overlay when there's one screen: counting one overlay per
+        // Jarvis there would rebuild every 3 s, forever.
+        assert_eq!(overlays_stale(&one, &one, 1, 2), None, "Jarvis twice on one screen: one overlay holds both");
+        assert!(overlays_stale(&one, &one, 0, 2).is_some(), "Jarvis on one screen and no overlay: build");
+        assert_eq!(overlays_stale(&one, &one, 0, 0), None, "no Jarvis: no overlay is missing");
     }
 
     #[test]

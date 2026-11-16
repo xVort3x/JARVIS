@@ -28,8 +28,8 @@ assert.match(side, /Moods: \$\{VOICE_CUES\.emotions\.filter\(\(e\) => !EMOTES\.i
 assert.match(side, /start your reply with one body tag[^\n]*Most replies need no body tag\./, 'body tags are named as such');
 assert.match(side, /Most replies want a voice cue somewhere/, 'voice cues are named as such');
 // The app's manual is read on demand, not sent with every request.
-assert.match(side, /call about_roamies and answer from what it says\. Don't invent features or settings it doesn't list\./, 'the prompt sends app questions to about_roamies');
-assert.match(side, /name: 'about_roamies',[^]*?execute: async \(\) => aboutRoamies\(/, 'about_roamies is a tool');
+assert.match(side, /call about_jarvis and answer from what it says\. Don't invent features or settings it doesn't list\./, 'the prompt sends app questions to about_jarvis');
+assert.match(side, /name: 'about_jarvis',[^]*?execute: async \(\) => aboutJarvis\(/, 'about_jarvis is a tool');
 assert.ok(!side.includes('it saves one .log file in Downloads'), 'the manual is no longer in the system prompt');
 // One home per rule: how act_in_app pages and forms work is in its description, not repeated in the prompt.
 assert.ok(!/Long pages, feeds and lists:/.test(side) && !/a field that opens a calendar is clicked/.test(side), 'act_in_app details live in act_in_app');
@@ -88,7 +88,7 @@ assert.match(side, /When news from your agents reaches you, pass it on in your o
 // The news never cuts in: it waits for a quiet moment, or rides along with their next message.
 assert.match(side, /setInterval\(\(\) => desk\.tick\(\), 1000\)/, 'the news desk checks every second');
 assert.match(side, /const along = desk\.along\(text, \{ intro: !!intro, news: !!news, agentish \}\);/, 'their message carries untold news');
-assert.match(side, /desk\.started\(news\);\r?\n  if \(notReady\)/, 'a news turn counts as told before anything can fail');
+assert.match(side, /if \(!retried\) desk\.started\(news\);\r?\n  if \(notReady\)/, 'a news turn counts as told before anything can fail');
 assert.match(side, /const agentish = !intro && !news && wantsAgent\(text\);/, 'a news turn never hatches an agent');
 console.log('prompt tests: passed');
 // The chat's web tools are GG Coder's: it names both, and never the old fetch_url.

@@ -1,16 +1,16 @@
 #!/bin/bash
 # Syncs the shared web files into dist/, then bundles with the Tauri CLI.
-# ./build.sh        release bundle (Roamies.app on macOS, the installer on Windows, .AppImage/.deb/.rpm on Linux)
+# ./build.sh        release bundle (Jarvis.app on macOS, the installer on Windows, .AppImage/.deb/.rpm on Linux)
 # ./build.sh dev    debug binary only, faster
 set -euo pipefail
 cd "$(dirname "$0")"
 rm -rf dist && mkdir -p dist
 cp ../desktop.html dist/
 cp -R ../roamies ../onboarding ../panel dist/
-../tauri/sidecar/scripts/bundle.mjs
+(cd ../tauri/sidecar && node scripts/bundle.mjs)
 # Ship a Node.js runtime with the app, for the target being built (--target <triple>, else this machine).
 TARGET=""; prev=""; for a in "$@"; do [ "$prev" = "--target" ] && TARGET="$a"; prev="$a"; done
-../tauri/sidecar/fetch-node.sh ${TARGET:+"$TARGET"}
+bash ../tauri/sidecar/fetch-node.sh ${TARGET:+"$TARGET"}
 # Windows helpers: voice (Parakeet speech on the PC) and hands (windows, capture, UI Automation, OCR); macOS
 # builds its Swift twins in build.rs. Linux has the voice helper only (the same Rust one as Windows).
 # Always optimised: a debug voice build is far too slow at reading speech.

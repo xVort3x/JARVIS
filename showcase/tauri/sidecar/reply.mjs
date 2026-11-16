@@ -11,9 +11,9 @@ const norm = (s) => s.replace(/\s+/g, ' ').trim().toLowerCase();
 // A tool call written out as text ("[called read_window {…}]", "Tool use: …"): models copy it from a conversation
 // handed over as a transcript. It's never something to show or say (in brackets the voice took it as a cue and read
 // it out). Dropped from the stream, also when it comes split across chunks or mid-line.
-const ECHO_STARTS = ['[called ', 'Tool use: ', 'Tool result: '];
-const ECHO_LINE = /^[ \t]*(?:\[called [\w.-]+(?: [^\n]*)?\]|Tool (?:use|result): [^\n]*)[ \t]*$/;
-export class EchoFilter {
+const TOOL_TEXT_STARTS = ['[called ', 'Tool use: ', 'Tool result: '];
+const TOOL_TEXT_LINE = /^[ \t]*(?:\[called [\w.-]+(?: [^\n]*)?\]|Tool (?:use|result): [^\n]*)[ \t]*$/;
+export class ToolCallFilter {
   constructor() { this.buf = ''; }
   push(text) {
     this.buf += text;
@@ -21,29 +21,29 @@ export class EchoFilter {
     for (;;) {
       const nl = this.buf.indexOf('\n');
       const line = nl < 0 ? this.buf : this.buf.slice(0, nl);
-      // Where an echo might begin in this line: at its start for "Tool …", anywhere for "[called ".
-      let at = this.#echoAt(line, nl < 0);
-      // Spaces at the end of an unfinished line are held too: they belong to an echo if one follows.
+      // Where copied tool text might begin in this line: at its start for "Tool …", anywhere for "[called ".
+      let at = this.#toolTextAt(line, nl < 0);
+      // Spaces at the end of an unfinished line are held too: they belong to tool text if it follows.
       if (at < 0 && nl < 0) at = line.replace(/[ \t]+$/, '').length;
       if (at < 0) { out += line + '\n'; this.buf = this.buf.slice(nl + 1); continue; }
       const from = line.slice(0, at).replace(/[ \t]+$/, '').length; // the spaces before it go with it
       out += line.slice(0, from);
       if (nl < 0) { this.buf = line.slice(from); return out; } // held until the line ends
       const held = line.slice(from);
-      if (!ECHO_LINE.test(held.slice(at - from))) out += held + '\n';
+      if (!TOOL_TEXT_LINE.test(held.slice(at - from))) out += held + '\n';
       else if (from) out += '\n';
       this.buf = this.buf.slice(nl + 1);
     }
   }
-  /** At the end of a turn: what's held goes out, unless it's an echo. */
-  flush() { const b = this.buf; this.buf = ''; return ECHO_LINE.test(b) ? '' : b; }
-  #echoAt(line, open) {
+  /** At the end of a turn: what's held goes out, unless it's copied tool text. */
+  flush() { const b = this.buf; this.buf = ''; return TOOL_TEXT_LINE.test(b) ? '' : b; }
+  #toolTextAt(line, open) {
     const i = line.indexOf('[called ');
     if (i >= 0) return i;
     const t = line.replace(/^[ \t]+/, '');
-    if (ECHO_STARTS.some((s) => s !== '[called ' && t.startsWith(s))) return line.length - t.length;
+    if (TOOL_TEXT_STARTS.some((s) => s !== '[called ' && t.startsWith(s))) return line.length - t.length;
     // An unfinished line that could still become one: hold its tail.
-    if (open) for (const s of ECHO_STARTS) for (let k = Math.min(s.length - 1, line.length); k > 0; k--) {
+    if (open) for (const s of TOOL_TEXT_STARTS) for (let k = Math.min(s.length - 1, line.length); k > 0; k--) {
       const tail = line.slice(line.length - k);
       if (s.startsWith(tail) && (s === '[called ' || !line.slice(0, line.length - k).trim())) return line.length - k;
     }

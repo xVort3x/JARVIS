@@ -76,9 +76,8 @@
   // and key repeat all just work. Type to ask (m.bar) shows its own field beside the cursor instead (ask-bar.js).
   const field = document.createElement('input');
   Object.assign(field.style, { position: 'fixed', left: '0', top: '0', width: '1px', height: '1px', opacity: '0', pointerEvents: 'none' });
-  // Its name is its look's (the sidecar's LOOKS).
-  const NAMES = { classic: 'Roamie', jarvis: 'JARVIS', anime: 'Anime Girl', sarah: 'Sarah', adrian: 'Adrian', rita: 'Rita X', echo: 'Echo' };
-  field.setAttribute('aria-label', 'Message for Roamie');
+  // One look: Jarvis.
+  field.setAttribute('aria-label', 'Message for Jarvis');
   field.autocomplete = 'off'; field.spellcheck = false;
   document.addEventListener('DOMContentLoaded', () => document.body.appendChild(field));
   if (document.body) document.body.appendChild(field);
@@ -194,7 +193,7 @@
     autoListen = me;
   }
 
-  // Wake word: once a reply has been typed out and said, the sidecar may listen for "Hey Echo" again.
+  // Wake word: once a reply has been typed out and said, the sidecar may listen for "Hey Jarvis" again.
   let saidWatch = null;
   function reportSaid(rid) {
     clearInterval(saidWatch);
@@ -438,7 +437,7 @@
     if (m.kind === 'size') { for (const t of Roamie.tiles ?? []) t.creature.setForm?.(m.size); return; }
     if (m.kind === 'look') {
       for (const t of Roamie.tiles ?? []) t.creature.setLook?.(m.look);
-      field.setAttribute('aria-label', `Message for ${NAMES[m.look] ?? NAMES.classic}`);
+      field.setAttribute('aria-label', 'Message for Jarvis');
       return;
     }
     if (!getAgent()) return;

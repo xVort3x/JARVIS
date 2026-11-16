@@ -2,9 +2,8 @@
 # Builds a signed + notarized macOS DMG (Apple silicon and Intel), a Windows installer and the Linux beta (AppImage,
 # .deb and .rpm), then attaches them to a draft GitHub release for you to review and publish. The Linux leg is allowed
 # to fail: the release goes out for macOS and Windows either way, just without Linux files. CI (ci.yml) builds and tests on Linux,
-# macOS and Windows for every push and pull request, without signing.
-# Each build also uploads a signed update bundle; the manifest job writes latest.json, the feed the
-# in-app updater reads from the newest published release.
+# macOS and Windows for every push and pull request, without signing. There is no in-app updater: people install a
+# new version themselves.
 name: Release
 
 on:
@@ -143,9 +142,6 @@ jobs:
           TAURI_BUNDLES: ${{ matrix.bundles }}
           # Tauri skips the Finder layout step (background, icon spots) when CI=true; Actions runners can run it.
           TAURI_BUNDLER_DMG_IGNORE_CI: 'true'
-          # Signs the update bundles (minisign); the public half is plugins.updater.pubkey in tauri.conf.json.
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -161,7 +157,7 @@ jobs:
           if (-not $setup) { throw 'No installer was built' }
           $p = Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait -PassThru
           if ($p.ExitCode) { throw "The installer failed (exit code $($p.ExitCode))" }
-          $app = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Roamies'), (Join-Path $env:ProgramFiles 'Roamies') -Filter roamies.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          $app = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Jarvis'), (Join-Path $env:ProgramFiles 'Jarvis') -Filter roamies.exe -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $app) { throw 'roamies.exe is not where the installer puts it' }
           $dir = $app.DirectoryName
           "Installed in $dir"
@@ -188,9 +184,9 @@ jobs:
           if ($alive) { taskkill /PID $run.Id /T /F | Out-Null }
           if (-not ($started -and $alive)) {
             Get-Content (Join-Path $env:USERPROFILE '.gg/sidekick.log') -ErrorAction SilentlyContinue | Select-Object -Last 40
-            throw "The installed Roamies didn't start its sidecar (started: $started, still running: $alive)"
+            throw "The installed Jarvis didn't start its sidecar (started: $started, still running: $alive)"
           }
-          "The installed Roamies started its sidecar (pid $($run.Id))"
+          "The installed Jarvis started its sidecar (pid $($run.Id))"
 
       # Tauri notarizes the app inside; the DMG around it is a download of its own that macOS checks too.
       - name: Notarize the DMG
@@ -233,64 +229,9 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           [[ "$TAG" == v* ]] || TAG="v$(node -p "require('./src-tauri/tauri.conf.json').version")"
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --draft --title "Roamies $TAG" --generate-notes || true
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --draft --title "Jarvis $TAG" --generate-notes || true
           shopt -s nullglob
           B=src-tauri/target/${{ matrix.target }}/release/bundle
           files=($B/dmg/*.dmg $B/nsis/*-setup.exe $B/appimage/*.AppImage $B/deb/*.deb $B/rpm/*.rpm)
           [ ${#files[@]} -gt 0 ] || { echo "No installers were built"; exit 1; }
-          # Update bundles: both Macs produce Roamies.app.tar.gz, so name them per architecture.
-          VER=$(node -p "require('./src-tauri/tauri.conf.json').version")
-          if [ "$RUNNER_OS" = macOS ]; then
-            ARCH=$([ "${{ matrix.target }}" = aarch64-apple-darwin ] && echo aarch64 || echo x64)
-            [ -f $B/macos/Roamies.app.tar.gz.sig ] || { echo "::error::No signed update bundle was built"; exit 1; }
-            cp $B/macos/Roamies.app.tar.gz "Roamies_${VER}_${ARCH}.app.tar.gz"
-            cp $B/macos/Roamies.app.tar.gz.sig "Roamies_${VER}_${ARCH}.app.tar.gz.sig"
-            files+=("Roamies_${VER}_${ARCH}.app.tar.gz" "Roamies_${VER}_${ARCH}.app.tar.gz.sig")
-          elif [ "$RUNNER_OS" = Linux ]; then
-            # In-app updates on Linux replace the AppImage; .deb and .rpm copies are pointed to the release page.
-            sigs=($B/appimage/*.AppImage.sig)
-            [ ${#sigs[@]} -gt 0 ] || { echo "::error::No signed update AppImage was built"; exit 1; }
-            files+=("${sigs[@]}")
-          else
-            sigs=($B/nsis/*-setup.exe.sig)
-            [ ${#sigs[@]} -gt 0 ] || { echo "::error::No signed update installer was built"; exit 1; }
-            files+=("${sigs[@]}")
-          fi
           gh release upload "$TAG" "${files[@]}" --clobber
-
-  manifest:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-      - name: Write latest.json for the in-app updater
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VER=$(node -p "require('./showcase/tauri/src-tauri/tauri.conf.json').version")
-          TAG="${GITHUB_REF_NAME}"; [[ "$TAG" == v* ]] || TAG="v$VER"
-          mkdir -p sigs && gh release download "$TAG" -p '*.sig' -D sigs
-          # Download links go through the API (the updater asks for the file itself): GitHub's public release links
-          # (github.com/…/releases/download/…) have timed out (504) for hours while the API kept working.
-          gh release view "$TAG" --json assets > assets.json
-          VER="$VER" node -e '
-            const fs = require("fs"), { VER } = process.env;
-            const sig = (f) => fs.readFileSync("sigs/" + f, "utf8").trim();
-            const api = Object.fromEntries(JSON.parse(fs.readFileSync("assets.json", "utf8")).assets.map((a) => [a.name, a.apiUrl]));
-            const link = (f) => { if (!api[f]) throw new Error(`${f} is not on the release`); return api[f]; };
-            const platforms = {
-              "darwin-aarch64": `Roamies_${VER}_aarch64.app.tar.gz`,
-              "darwin-x86_64": `Roamies_${VER}_x64.app.tar.gz`,
-              "windows-x86_64": `Roamies_${VER}_x64-setup.exe`,
-            };
-            // The Linux beta leg may have failed: its AppImage is listed only when it and its signature are there.
-            const linux = `Roamies_${VER}_amd64.AppImage`;
-            if (api[linux] && fs.existsSync("sigs/" + linux + ".sig")) platforms["linux-x86_64"] = linux;
-            else console.log("No Linux AppImage on this release: latest.json leaves Linux out.");
-            const out = { version: VER, notes: `Roamies ${VER}`, pub_date: new Date().toISOString(), platforms: {} };
-            for (const [k, f] of Object.entries(platforms)) out.platforms[k] = { signature: sig(f + ".sig"), url: link(f) };
-            fs.writeFileSync("latest.json", JSON.stringify(out, null, 2));
-          '
-          cat latest.json
-          gh release upload "$TAG" latest.json --clobber

@@ -1,4 +1,4 @@
-// Hands helper for Roamies on Windows, the twin of hands/main.swift: lets the agent see one window or app, read its
+// Hands helper for Jarvis on Windows, the twin of hands/main.swift: lets the agent see one window or app, read its
 // controls and work them. Same commands, same JSON: one command per run, one JSON object on stdout, live progress as
 // "@"-prefixed JSON lines on stderr.
 //
@@ -299,7 +299,7 @@ mod smoke {
             println!("{} {name}{}", if ok { "ok" } else { "FAIL" }, if ok || detail.is_empty() { String::new() } else { format!(" ({detail})") });
             bad += usize::from(!ok);
         };
-        let phrase = "Roamies smoke 4711 Grüße \u{1F600}";
+        let phrase = "Jarvis smoke 4711 Grüße \u{1F600}";
         let _ = Command::new("notepad.exe").spawn();
         let is_notepad = |w: &Value| app_matches(w["app"].as_str().unwrap_or(""), "", "notepad") || w["title"].as_str().unwrap_or("").contains("Notepad");
         let Some(win) = wait_window(is_notepad) else {
@@ -343,8 +343,8 @@ mod smoke {
         }
 
         // A terminal is never typed in.
-        let mut term = Command::new("cmd.exe").args(["/k", "title RoamiesSmoke"]).spawn().ok();
-        match wait_window(|w| w["title"].as_str().unwrap_or("").contains("RoamiesSmoke")) {
+        let mut term = Command::new("cmd.exe").args(["/k", "title JarvisSmoke"]).spawn().ok();
+        match wait_window(|w| w["title"].as_str().unwrap_or("").contains("JarvisSmoke")) {
             Some(t) => {
                 let plan = json!({ "window": t["id"], "steps": [{ "do": "type", "text": "echo hi" }] }).to_string();
                 let r = hands(&["act", &plan]);

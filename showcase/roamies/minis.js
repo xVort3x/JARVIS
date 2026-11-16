@@ -24,7 +24,7 @@
   };
 
   // ---------- pixel-art file icons: 12x12 grids in the warm amber family ----------
-  const INK = { k: '#0b0e13', d: '#5c3a0e', m: '#c98f43', a: '#e8b469', h: '#ffd9a6' };
+  const INK = { k: '#070b12', d: '#0b3a5c', m: '#1f86c9', a: '#38b8ff', h: '#9bdcff' };
   const blank = () => Array.from({ length: 12 }, () => Array(12).fill('.'));
   const put = (g, cells, ch) => { for (const [r, c] of cells) if (g[r]?.[c] != null) g[r][c] = ch; };
   const row = (g, r, c0, c1, ch) => { for (let c = c0; c <= c1; c++) g[r][c] = ch; };
@@ -72,7 +72,7 @@
   };
 
   // ---------- the mini agent ----------
-  const PAL = [[24, 20, 16], [120, 74, 28], [212, 138, 56], [232, 180, 105], [255, 233, 214]].map((c) => `rgb(${c.join(',')})`);
+  const PAL = [[8, 12, 24], [12, 36, 74], [30, 110, 180], [56, 184, 255], [206, 246, 255]].map((c) => `rgb(${c.join(',')})`);
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const ease = (u) => 1 - Math.pow(1 - clamp(u, 0, 1), 3);
@@ -152,7 +152,7 @@
     if (pose === 'work') {
       cy += Math.sin(T * 2.4 + seed) * 1.2 * dpr; sy = 1 + Math.sin(T * 4.8 + seed) * 0.03; sx = 2 - sy;
       blob(ctx, cx, cy, r, sx, sy, 0, cell); eyes(ctx, cx, cy, r, sx, sy, cell, open, [0.3, 0]);
-      if (glyph && GLYPHS[glyph]) bits(ctx, GLYPHS[glyph], S - 7 * dpr, 0, Math.max(1, Math.round(dpr)), G?.HOT ?? '#ffd9a6');
+      if (glyph && GLYPHS[glyph]) bits(ctx, GLYPHS[glyph], S - 7 * dpr, 0, Math.max(1, Math.round(dpr)), G?.HOT ?? '#9bdcff');
       return;
     }
     if (pose === 'wait') {
@@ -162,7 +162,7 @@
       // A pixel "?" in a small bubble, top right.
       const px = Math.max(1, Math.round(dpr)), bx = S - 8 * dpr, by = 0;
       ctx.fillStyle = 'rgba(13,16,22,0.95)'; ctx.fillRect(bx - px, by, 7 * px, 9 * px);
-      bits(ctx, ASK, bx, by + px, px, G?.ACC ?? '#e8b469');
+      bits(ctx, ASK, bx, by + px, px, G?.ACC ?? '#38b8ff');
       return;
     }
     if (pose === 'done') {
@@ -173,7 +173,7 @@
       // Sparkles, then the pen's tick (agent-cards.js draws the same mark).
       if (!reduce && t < 1.2) for (let i = 0; i < 4; i++) {
         const a = -Math.PI / 2 + (i - 1.5) * 0.9, d = 6 + t * 8, f = clamp(1 - Math.abs(t - 0.5) / 0.6, 0, 1);
-        ctx.globalAlpha = f; ctx.fillStyle = i % 2 ? (G?.ACC ?? '#e8b469') : (G?.HOT ?? '#ffd9a6');
+        ctx.globalAlpha = f; ctx.fillStyle = i % 2 ? (G?.ACC ?? '#38b8ff') : (G?.HOT ?? '#9bdcff');
         const x = size / 2 + Math.cos(a) * (size * 0.3 + d) - 1, y = size / 2 - 4 + Math.sin(a) * (size * 0.3 + d) - 1;
         ctx.fillRect(x, y - 1, 1, 3); ctx.fillRect(x - 1, y, 3, 1);
       }

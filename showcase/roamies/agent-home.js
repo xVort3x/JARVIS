@@ -22,12 +22,12 @@
 
   const css = `
 .ah-col { position: fixed; left: 0; top: 0; z-index: 5; width: 300px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; will-change: transform; }
-.ah, .ahs { --ink: #eef1f7; --ink-2: #c6ccd8; --ink-3: #8b93a3; --accent: #e8b469; --line-hi: #313a4a; --note: #ef5b52;
+.ah, .ahs { --ink: #eef1f7; --ink-2: #c6ccd8; --ink-3: #8b93a3; --accent: #38b8ff; --line-hi: #313a4a; --note: #ef5b52;
   --ease: cubic-bezier(.2, .8, .2, 1); --r: 16px;
   pointer-events: auto; cursor: default; box-sizing: border-box; padding: 2px; background: var(--line-hi); border-radius: var(--r);
   color: var(--ink);
   font: 400 12px/1.45 "Inter", ui-sans-serif, system-ui, sans-serif;
-  filter: drop-shadow(0 0 10px rgba(232, 180, 105, 0.14)) drop-shadow(0 8px 22px rgba(0, 0, 0, 0.45)); }
+  filter: drop-shadow(0 0 10px rgba(56, 184, 255, 0.14)) drop-shadow(0 8px 22px rgba(0, 0, 0, 0.45)); }
 .ah-in, .ahs-in { background: rgba(13, 16, 22, 0.92); color: var(--ink); border-radius: calc(var(--r) - 2px); }
 /* Panels unfold on the way in and only dissolve on the way out: the entrance is a one-way keyframe, the exit
    is just the opacity transition (260 ms). */
@@ -62,11 +62,11 @@
 /* Stop asks first, in the same spot (like the panel's X buttons): pressed, it turns into Confirm for 4 s. */
 .ah-x { min-width: 26px; width: auto; }
 .ah-x > .yes { display: none; }
-.ah-x[aria-pressed="true"] { padding: 0 8px; background: var(--accent); color: #1b1204; font: 700 11px/1.25 "Inter", ui-sans-serif, system-ui, sans-serif; animation: ah-arm 600ms steps(2, end) 2; }
-.ah-x[aria-pressed="true"]:hover { background: var(--accent-hi, #ffd9a6); color: #1b1204; }
+.ah-x[aria-pressed="true"] { padding: 0 8px; background: var(--accent); color: #03121c; font: 700 11px/1.25 "Inter", ui-sans-serif, system-ui, sans-serif; animation: ah-arm 600ms steps(2, end) 2; }
+.ah-x[aria-pressed="true"]:hover { background: var(--accent-hi, #9bdcff); color: #03121c; }
 .ah-x[aria-pressed="true"] > .no { display: none; }
 .ah-x[aria-pressed="true"] > .yes { display: inline; }
-@keyframes ah-arm { 50% { background: var(--accent-hi, #ffd9a6); } }
+@keyframes ah-arm { 50% { background: var(--accent-hi, #9bdcff); } }
 /* Waiting for a yes: the question and two buttons, under the row's text. */
 /* The question opens like a row (height, then the words fade in) and closes the other way round. */
 .ah-ask { display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden;
@@ -82,10 +82,10 @@
   --c: 9px; border-radius: 9px; background: rgba(255, 255, 255, 0.05); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--accent); transition: background-color .12s var(--ease), color .12s var(--ease); }
 .ah-chip:hover, .ahs-chip:hover { background: rgba(255, 255, 255, 0.09); color: var(--ink); }
 .ah-chip:active, .ahs-chip:active { background: rgba(255, 255, 255, 0.12); color: var(--ink); }
-.ah-chip.yes { background: var(--accent); color: #1b1204; box-shadow: none; }
-.ah-chip.yes:hover { background: var(--accent-hi, #ffd9a6); color: #1b1204; }
-.ah-chip.yes:active { background: var(--accent-lo, #c98f43); color: #1b1204; }
-.ah-chip:focus-visible, .ahs-chip:focus-visible { outline: 2px solid var(--accent-hi, #ffd9a6); outline-offset: 2px; }
+.ah-chip.yes { background: var(--accent); color: #03121c; box-shadow: none; }
+.ah-chip.yes:hover { background: var(--accent-hi, #9bdcff); color: #03121c; }
+.ah-chip.yes:active { background: var(--accent-lo, #1f86c9); color: #03121c; }
+.ah-chip:focus-visible, .ahs-chip:focus-visible { outline: 2px solid var(--accent-hi, #9bdcff); outline-offset: 2px; }
 .ah-chip:disabled, .ahs-chip:disabled { background: rgba(255, 255, 255, 0.04); color: var(--ink-3); box-shadow: inset 0 0 0 1.5px var(--line-hi); cursor: default; }
 /* The made shelf: what one agent made, until it's closed. */
 .ahs { opacity: 0; transition: opacity .26s ease-out; }

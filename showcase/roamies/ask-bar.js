@@ -21,13 +21,13 @@
 
   const LINE = 18, LINES = 5;
   const css = `
-.ab { --ink: #eef1f7; --ink-2: #c6ccd8; --ink-3: #8b93a3; --accent: #e8b469; --line-hi: #313a4a; --fill: rgba(8, 11, 16, 0.92);
+.ab { --ink: #eef1f7; --ink-2: #c6ccd8; --ink-3: #8b93a3; --accent: #38b8ff; --line-hi: #313a4a; --fill: rgba(8, 11, 16, 0.92);
   position: fixed; left: 0; top: 0; z-index: 6; width: 320px; max-width: calc(100vw - 16px); box-sizing: border-box; padding: 2px;
   background: var(--line-hi); border-radius: 14px; cursor: text; will-change: transform;
   opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .14s cubic-bezier(.2, .8, .2, 1), visibility 0s .14s; }
 .ab.on { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .14s cubic-bezier(.2, .8, .2, 1); }
 .ab-in { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; background: var(--fill); color: var(--ink); border-radius: 11px; }
-.ab-mark { flex: none; width: 6px; height: 6px; margin-top: 7px; background: var(--accent); box-shadow: 0 0 6px rgba(232, 180, 105, 0.8); border-radius: 50%; }
+.ab-mark { flex: none; width: 6px; height: 6px; margin-top: 7px; background: var(--accent); box-shadow: 0 0 6px rgba(56, 184, 255, 0.8); border-radius: 50%; }
 .ab-in .ab-text { display: block; flex: 1; min-width: 0; height: 18px; box-sizing: border-box; margin: 0; padding: 0; border: 0; border-radius: 0;
   resize: none; overflow-x: hidden; overflow-y: hidden; overflow-wrap: anywhere; overscroll-behavior: contain;
   scrollbar-width: thin; scrollbar-color: var(--line-hi) transparent; appearance: none; -webkit-appearance: none;
@@ -37,7 +37,7 @@
    outline is the ring forced-colours modes draw instead. */
 .ab-in .ab-text:focus-visible { outline: 2px solid transparent; outline-offset: 0; }
 .ab-in .ab-text::placeholder { color: var(--ink-3); opacity: 1; }
-.ab-in .ab-text::selection { background: rgba(232, 180, 105, 0.32); color: var(--accent-hi, #ffd9a6); }
+.ab-in .ab-text::selection { background: rgba(56, 184, 255, 0.32); color: var(--accent-hi, #9bdcff); }
 /* Waiting with something typed while you're in another app. */
 .ab.away { background: var(--line-hi); color: var(--ink); }
 .ab.away .ab-in .ab-text { color: var(--ink-2); }

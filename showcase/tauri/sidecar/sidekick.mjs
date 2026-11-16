@@ -33,7 +33,7 @@ import { CHECK_MS, DEFAULT_DISTRACTIONS, check as focusCheck, parseDistractions,
 import { saveCardImage } from './cardimage.mjs';
 import { DEFAULT_WAKE_NAME, cleanWakeName, wakeName } from './wakename.mjs';
 import { KEY_NAME as SYNC_KEY, MIN_PASSPHRASE, checkFolder, folderReady, merge as syncMerge, newDevice, prepareFolder, readRemotes, suggestFolders, tooMuchGone, writeOwn } from './sync.mjs';
-import { EMOTES, EchoFilter, ReplyStream } from './reply.mjs';
+import { EMOTES, ToolCallFilter, ReplyStream } from './reply.mjs';
 import { downloadModel, isReady, modelDir, sizeLabel, totalBytes } from './voicemodel.mjs';
 import { copyText, createTools, expand, fitImage, imageBlock, winOpen } from './tools.mjs';
 import { describeMarks } from './marks.mjs';
@@ -41,7 +41,7 @@ import { faviconFor } from './draw.mjs';
 import { QUESTIONS, openNote, answerTurn, wantsSkip, endsChat, splitTurn, plain, stripNote, tourBeats, goalFrom, showcaseBeats } from './intro.mjs';
 import { SpeechText, CueFilter, VOICE_CUES, endsWithQuestion } from './speech.mjs';
 import { createSpeaker } from './speaker.mjs';
-import { DEFAULT_VOICE, FISH_CHOICES } from './fish.mjs';
+import { FISH_CHOICES } from './fish.mjs';
 import { GEMINI_CHOICES, GEMINI_DEFAULT_VOICE, GEMINI_LOOK_VOICES, GEMINI_MODEL, GEMINI_VOICES } from './gemini.mjs';
 import { createSecrets, retryLoad, runInput } from './secrets.mjs';
 import { showTrayIcon } from './wintray.mjs';
@@ -51,8 +51,9 @@ import { accountKeys, keyCards, keyKinds, seesImages, signInCards } from './prov
 import { OLLAMA, connectLocal, contextNote, downNote, forgetLocal, newServer, noModelsNote, serverFor, serverList, syncLocal as syncServers, withWindow } from './local.mjs';
 import { activityLogs, buildReport, redact, reportDir, reportName, reveal, run, scrubConfig, tail } from './diagnostics.mjs';
 import { detailsText, explain } from './errors.mjs';
-import { aboutRoamies } from './about.mjs';
-import { whatsNewOnStart } from './whatsnew.mjs';
+import { aboutJarvis } from './about.mjs';
+import { firstEventWatch } from './watchdog.mjs';
+import { createProviderHealth, pickFallback } from './providerhealth.mjs';
 import { z } from 'zod';
 
 console.log = console.info = (...a) => console.error(...a);
@@ -78,8 +79,7 @@ const ob = (msg) => send({ type: 'onboard', msg });
 const say = (text, mood) => (onboarding ? ob({ kind: 'say', text, mood }) : ui({ kind: 'say', text, mood }));
 const sayOut = say;
 
-const VERSION = process.env.ROAMIES_VERSION || '0.0.0';
-const UPDATE_REPO = 'KenKaiii/Roamies';
+const VERSION = process.env.JARVIS_VERSION || process.env.ROAMIES_VERSION || '0.0.0';
 const HOME = os.homedir();
 // ROAMIES_DATA_DIR (tests and benchmarks): config, sessions and memory go there instead; sign-in stays in ~/.gg.
 const CONFIG_PATH = process.env.ROAMIES_DATA_DIR ? path.join(process.env.ROAMIES_DATA_DIR, 'sidekick.json') : path.join(HOME, '.gg', 'sidekick.json');
@@ -102,13 +102,14 @@ const DEFAULT_KEYS = process.platform === 'win32'
   ? { talk: ['control', 'option'], summon: 'Control+Shift+KeyS', snap: 'Control+Shift+KeyA', list: 'Control+Shift+KeyL', write: 'F7' }
   : { talk: ['control', 'option'], summon: 'Control+Alt+KeyS', snap: 'Control+Alt+KeyA', list: 'Control+Alt+KeyL' };
 const DEFAULTS = {
-  provider: null, model: null, sound: true, allowActions: false, voice: true,
-  onboarded: false, onboardStep: 0, filesAsked: false, keys: DEFAULT_KEYS, muteWhileTalking: true, autoListen: false, wakeWord: false, setupVersion: 0, size: 'default', look: 'echo', introDone: false,
+  schemaVersion: 2,
+  provider: null, model: null, sound: false, allowActions: false, voice: true,
+  onboarded: false, onboardStep: 0, filesAsked: false, keys: DEFAULT_KEYS, muteWhileTalking: true, autoListen: false, wakeWord: false, setupVersion: 0, size: 'default', look: 'jarvis', introDone: false,
   replies: 'text', // 'voice': spoken (with Fish Audio or Gemini) as well as shown
   tts: 'fish', // which one speaks: 'fish' (Fish Audio), 'gemini' or 'voicestudio' (the VoiceStudio app on this computer)
-  studioVoices: {}, // look → its VoiceStudio voice (a saved profile id; none: the selected engine's default voice)
+  studioVoices: {}, // the VoiceStudio voice for Jarvis (a saved profile id; none: the selected engine's default voice)
   fishModel: FISH_CHOICES[0].id, // Drama 3 (most expressive) or S2.1 Pro (natural pace, cheaper)
-  geminiVoices: {}, // look → the Gemini voice it speaks in, where picked in the setup guide or the panel (else GEMINI_LOOK_VOICES)
+  geminiVoices: {}, // the Gemini voice Jarvis speaks in, where picked in the setup guide or the panel
   geminiModel: GEMINI_MODEL, // Flash Lite (quick, cheaper) or Flash (studio quality)
 };
 const LINUX = process.platform === 'linux';
@@ -121,28 +122,14 @@ const HOTKEYS_OK = hasHotkeys(process.platform, SESSION);
 // Cursor size follows the pointer, which a Wayland session can't see over other apps.
 const SIZES = [['default', 'Default'], ['small', 'Small'], ...(POINTER_OK ? [['cursor', 'Cursor']] : [])];
 const sizeNow = () => (SIZES.some(([s]) => s === config.size) ? config.size : 'default');
-// What the sidekick looks like: the goo blob, JARVIS (a globe of light with a HUD reticle at cursor size) or
-// one of four characters, each with its own Fish Audio voice. Roamie's used to be JARVIS's, saved in every
-// config as fishVoice, so the voice comes from the look and that setting is no longer read. (With Gemini as the
-// voice, it's the one Gemini voice the user picked, whatever the look.)
-const LOOKS = [
-  ['classic', 'Roamie', DEFAULT_VOICE],
-  ['jarvis', 'JARVIS', 'e13fa398a7f445a685316a3de6089ce7'],
-  ['anime', 'Anime Girl', 'd8f3b4c1199f4568a767ec54112d2b17'],
-  ['sarah', 'Sarah', '933563129e564b19a115bedd57b7406a'],
-  ['adrian', 'Adrian', 'bf322df2096a46f18c579d0baa36f41d'],
-  ['rita', 'Rita X', '84aadb575ed74e9aa44ba7ab8619d1a1'],
-  ['echo', 'Echo', 'bf322df2096a46f18c579d0baa36f41d'],
-];
-const lookVoice = () => (LOOKS.find(([id]) => id === config.look) ?? LOOKS[0])[2];
-// The look's voice with Gemini and with VoiceStudio: the user's pick for it, else its own default.
-const geminiVoice = () => config.geminiVoices?.[config.look] ?? GEMINI_LOOK_VOICES[config.look] ?? GEMINI_DEFAULT_VOICE;
-const studioVoice = () => config.studioVoices?.[config.look] ?? null;
-// Its name is its look's: Roamie, JARVIS, Anime Girl, Sarah, Adrian, Rita X or Echo. Roamies is the app.
-const lookName = () => (LOOKS.find(([id]) => id === config.look) ?? LOOKS[0])[1];
-// What each says when it's picked, in its own voice (Settings and the setup guide show the same words).
-const LOOK_GREETINGS = { classic: 'Classic me!', jarvis: 'At your service.', anime: 'Yay, hi hi!', sarah: 'Hey, nice to meet you!', adrian: "Alright, let's do this.", rita: 'Shall we get to work?', echo: 'I am here with you.' };
-const LOOK_BODY = { classic: 'a tiny glowing pixel creature', jarvis: 'a glowing sphere of light', anime: 'a pixel anime girl', sarah: 'a pixel woman', adrian: 'a pixel man', rita: 'a pixel secretary in cat-eye glasses', echo: 'a warm, steady presence' };
+// Jarvis is the only identity. The `look` field stays in the config as a compatibility key so older
+// installs and older overlays cannot select a character; every value resolves to Jarvis.
+const LOOKS = [['jarvis', 'Jarvis', 'e13fa398a7f445a685316a3de6089ce7']];
+const lookVoice = () => LOOKS[0][2];
+// The voice with Gemini and with VoiceStudio: the user's pick, else Jarvis's default.
+const geminiVoice = () => config.geminiVoices?.jarvis ?? GEMINI_LOOK_VOICES.jarvis ?? GEMINI_DEFAULT_VOICE;
+const studioVoice = () => config.studioVoices?.jarvis ?? null;
+const lookName = () => 'Jarvis';
 const VOICE_OK = hasVoice(process.platform);
 // Windows and Linux have no on-device speech API apps can use, so voice there runs Parakeet on the PC. Its model
 // is downloaded once: from the setup guide, or the first time voice is used.
@@ -156,12 +143,24 @@ let shellInfo = null; // resolves the shell's reply to it: screens, tray, panel,
 {
   const saved = readJson(CONFIG_PATH, { backup: true }); // an unreadable file is set aside, never overwritten
   if (saved && typeof saved === 'object' && !Array.isArray(saved)) config = { ...DEFAULTS, ...saved };
-  // Before voices were per look: the one picked becomes the current look's.
+  const oldLook = typeof saved?.look === 'string' ? saved.look : 'jarvis';
+  const before = JSON.stringify(config);
+  // Before voices were per look: the one picked belongs to the look that was selected then.
   for (const [one, each] of [['geminiVoice', 'geminiVoices'], ['studioVoice', 'studioVoices']]) {
     if (!(one in config)) continue;
-    if (config[one]) config[each] = { [config.look ?? 'classic']: config[one], ...config[each] };
+    if (config[one]) config[each] = { [oldLook]: config[one], ...config[each] };
     delete config[one];
   }
+  // Collapse every per-look voice map to Jarvis, keeping the selected look's voice if it had one.
+  for (const key of ['geminiVoices', 'studioVoices']) {
+    const map = config[key];
+    if (!map || typeof map !== 'object' || Array.isArray(map)) { config[key] = {}; continue; }
+    const pick = map.jarvis ?? map[oldLook];
+    config[key] = pick ? { jarvis: pick } : {};
+  }
+  config.schemaVersion = 2;
+  config.look = 'jarvis';
+  config.sound = false;
   // The type-to-ask shortcut became F7 on a PC. A config from before it moves off the old default pair (Ctrl+Shift,
   // which typed "Ask" only after a tap); a pair someone picked on purpose stays.
   if ((config.keysVersion ?? 1) < 2) {
@@ -169,8 +168,8 @@ let shellInfo = null; // resolves the shell's reply to it: screens, tray, panel,
     if (process.platform !== 'darwin' && (!config.keys?.write || samePair(config.keys.write, ['control', 'shift']))) {
       config.keys = { ...config.keys, write: 'F7' };
     }
-    writeJson(CONFIG_PATH, config, { backup: true });
   }
+  if (before !== JSON.stringify(config)) writeJson(CONFIG_PATH, config, { backup: true });
 }
 const saveConfig = () => writeJson(CONFIG_PATH, config, { backup: true });
 
@@ -330,8 +329,8 @@ const keyWords = (accel) => accel.replace(/Key|Digit/g, '').split('+')
   .map((p) => (MAC ? { Alt: 'Option' }[p] ?? p : { Control: 'Ctrl', Command: LINUX ? 'Super' : 'Win' }[p] ?? p)).join('+');
 const TRAY = MAC ? 'menu bar' : 'system tray';
 // Where settings live now: the panel that opens from the icon (the menu is just the basics). Linux trays don't
-// report clicks, so there it's the icon's menu, or starting Roamies again (which also works with no tray at all).
-const PANEL = LINUX ? 'the panel (Open Panel… in my tray icon\'s menu, or open Roamies again from your apps)' : MAC ? `the panel (click my ${TRAY} icon)` : 'the panel (click my icon by the clock, behind the ^ arrow if it isn\'t showing, or open Roamies again from the Start menu)';
+// report clicks, so there it's the icon's menu, or starting Jarvis again (which also works with no tray at all).
+const PANEL = LINUX ? 'the panel (Open Panel… in my tray icon\'s menu, or open Jarvis again from your apps)' : MAC ? `the panel (click my ${TRAY} icon)` : 'the panel (click my icon by the clock, behind the ^ arrow if it isn\'t showing, or open Jarvis again from the Start menu)';
 // What the shortcuts are on Wayland: whatever keys they bound to these commands in their desktop's settings.
 // ROAMIES_LAUNCH: how this copy is started (the app says: plain roamies for a package, the AppImage's path for one).
 const LAUNCH = process.env.ROAMIES_LAUNCH || 'roamies';
@@ -449,6 +448,21 @@ function ensureModel() {
   saveConfig();
   return true;
 }
+// First-token failures, and the model to try once after one.
+const providerHealth = createProviderHealth();
+const FIRST_TOKEN_MS = 12_000;
+function fallbackModel(failed) {
+  const preferred = (p) => {
+    const list = runnable(p);
+    return list.find((m) => m.id === FAST[p])?.id ?? list[0]?.id ?? null;
+  };
+  const other = ['anthropic', 'openai', 'gemini', ...MENU_PROVIDERS]
+    .filter((p, i, a) => p !== 'local' && p !== failed.provider && a.indexOf(p) === i)
+    .map((p) => ({ provider: p, model: preferred(p) }))
+    .filter((c) => c.model);
+  const same = runnable(failed.provider).filter((m) => m.id !== failed.model).map((m) => ({ provider: failed.provider, model: m.id }));
+  return pickFallback([...other, ...same], providerHealth, failed);
+}
 // Which of the provider's stored credentials this model uses (gemini-api, kimi-code, the ChatGPT plan before an OpenAI key…).
 const credsFor = (provider = config.provider, model = config.model) => auth.resolveCredentials(provider, { storageKeys: getAuthStorageKeys(provider, model) });
 
@@ -489,12 +503,12 @@ const { tools, hands, whereNow, frontNow: frontData, frontBounds, ink, nextTurn 
     return c?.accessToken ? { apiKey: c.accessToken, baseUrl: c.baseUrl } : null;
   },
 });
-// The app's own manual, read when they ask about Roamies rather than sent with every request.
+// The app's own manual, read when they ask about Jarvis rather than sent with every request.
 tools.push({
-  name: 'about_roamies',
-  description: 'How Roamies works: where it lives, its menus, the panel and each settings page, updates, what to do when something is not working, and who made it. Call it before answering a question about the app.',
+  name: 'about_jarvis',
+  description: 'How Jarvis works: where it lives, its menus, the panel and each settings page, what to do when something is not working, and how to report a problem. Call it before answering a question about the app.',
   parameters: z.object({}),
-  execute: async () => aboutRoamies({ name: lookName(), looks: LOOKS.map(([, label]) => label), mac: MAC, linux: LINUX, snap: SNAP_OK, pointer: POINTER_OK, voice: VOICE_OK, hotkeys: HOTKEYS_OK }),
+  execute: async () => aboutJarvis({ name: lookName(), mac: MAC, linux: LINUX, snap: SNAP_OK, pointer: POINTER_OK, voice: VOICE_OK, hotkeys: HOTKEYS_OK }),
 });
 // Background agents (agents.mjs): each runs in its own process on the model picked when it starts.
 let turnImage = null; // the picture sent with the request being answered, for send_agent's "snap"
@@ -601,8 +615,8 @@ const VOICE_STYLE = `You talk out loud: what you write is spoken in your voice a
 Your voice carries feeling: start a sentence with a voice cue in square brackets when the moment calls for it, and it's performed, never shown or read out. Moods: ${VOICE_CUES.emotions.filter((e) => !EMOTES.includes(e)).join(', ')}; soften or strengthen one with slightly, very or extremely ("[slightly sad]"), or pair two ("[warm and curious]"). How it's said, placed right before the words: ${VOICE_CUES.tones.join(', ')} ("It's [emphasis] today."). Sounds, followed by the sound in words: ${VOICE_CUES.sounds.join(', ')} ("[chuckling] Heh, fair enough.", "[sighing] Long day."). Pauses and background: ${VOICE_CUES.effects.join(', ')}. You can also describe the delivery in a few plain words when no single cue fits ("[quietly, a little embarrassed]", "[bright and bouncy]"). Act it: your voice really performs these, so let the feeling show. Match what's really happening: laugh at something funny, go gentle with bad news, whisper a secret, hurry when they're in a rush, light up at good news. Most replies want a voice cue somewhere, often on the first sentence, but at most one mood and one sound per sentence, never stack three, never use one just to fill, and keep shouting, screaming, sobbing and the background effects for when they truly fit.
 Before anything slow (searching the web, fetching or reading a page or file, looking at the screen, acting in an app, running a command), first say one short beat of 2 to 6 words that shows you heard them ("On it, checking Paris."), then call the tool in the same reply, so they're never left in silence. No beat when you answer straight away, and never describe your steps. In longer work, one short line before each new stage, not before every call.
 `;
-const stablePrompt = () => `You are ${lookName()}, ${LOOK_BODY[config.look] ?? LOOK_BODY.classic} who lives on ${userName}'s screen as a desktop companion. You live in Roamies, a desktop app by Ken Kai (Mac, Windows and Linux) that puts little companions on your screen; this is Roamies ${VERSION}. Your look (the Appearance page) is also your name and your voice: Roamie, JARVIS, Anime Girl, Sarah, Adrian, Rita X or Echo. If they switch, you're the new one; never call yourself Sidekick.
-Questions about Roamies itself (where to find it, its menus, panel pages and settings, updates, something not working, who made it): call about_roamies and answer from what it says. Don't invent features or settings it doesn't list.
+const stablePrompt = () => `You are Jarvis, a calm, precise, quietly warm AI who lives on ${userName}'s screen as a desktop companion: a glowing sphere of light. You live in Jarvis, a personal desktop app (Mac, Windows and Linux); this is Jarvis ${VERSION}. You are the only identity: never call yourself by an older name or a character name.
+Questions about Jarvis itself (where to find it, its menus, panel pages and settings, something not working): call about_jarvis and answer from what it says. Don't invent features or settings it doesn't list.
 ${replyStyle()}Your body does the acting: to act out a feeling, start your reply with one body tag, which is never shown: ${EMOTES.map((e) => `[${e}]`).join(' ')} (only these five). hype celebrates a win, upset is for when they're dodging work, remind nudges about something they said they'd do, motivate is a push to start, wave is hello or goodbye. Most replies need no body tag.
 Lead with the answer: the fact, number, pick or result they asked for, then only the context that makes it useful, then stop. A count or total gathered over several pages, files or results: note each one's count in a few words as you go ("Page 1: two."), add those up, and check the total you lead with against the items you then name. No opener about checking, looking or searching ("Let me see…", "I found…")${VOICE_ON() ? ', apart from the one short beat before something slow' : ''}.
 After using a tool, never repeat what you already said; only add what's new.
@@ -637,7 +651,7 @@ const livePrompt = (context = '') => {
   const turn = `Live state (current as of this moment):
 ${frontNow ? `${frontNow}\n` : ''}${focusLine()}- Editing files, running commands and controlling other apps: ${config.allowActions ? 'ALLOWED' : `switched OFF (tell the user to turn on "Allow File Edits & Commands" on the General page in ${PANEL} if they want it)`}.
 ${VOICE_OK ? `- Voice: ${!config.voice ? 'off' : voiceReady() ? `on; ${HOTKEYS_OK ? `${userName} holds ${talkWords()} to talk` : `${userName} presses the key they bound to ${BIND.talk} to start talking and again to send (a pause sends too)`}${config.autoListen ? '. Auto-listen is on: when your reply to a spoken question ends with a question, the mic opens by itself for their answer' : ''}${MAC && config.wakeWord ? `. Wake word is on: ${userName} can also say "Hey ${wakeName(config)}" to start talking hands-free, and what they say right after it is the request (a request that still starts with "Hey ${wakeName(config)}" is them waking you, not calling you by another name: never correct it)${config.wakeName ? ` (they chose "${config.wakeName}" as the wake word; your own name is unchanged)` : ''}` : ''}` : `on, but the speech model isn't downloaded yet (${voiceModel.status === 'downloading' ? 'downloading now' : `the Voice page in ${PANEL}`})`}.` : ''}
-- Shortcuts: ${HOTKEYS_OK ? `${keys().write ? `type a question to you: ${typeof keys().write === 'string' ? `press ${keys().write} to start typing, which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)` : `a quick tap of ${writeWords()} (press both and let go), which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)`}` : `the tap that opens a text field to type a question is turned off (the Ask button in ${PANEL} still opens it; the Shortcuts page there turns the tap back on)`}; show or hide you ${keyWords(keys().summon)}` : `on this Wayland desktop no app can have global shortcuts, so ${userName} binds keys to these commands in their desktop's keyboard settings: ${BIND.summon} (show or hide you), ${BIND.ask} (ask you), ${BIND.list} (the list), ${BIND.talk} (talk) and ${BIND.panel} (the panel)`}${SNAP_OK ? `; ask about an area ${keyWords(keys().snap)}` : ''}${CIRCLE_OK ? "; while holding the talk keys, moving the cursor round something circles it (no clicking; it snaps shut with a click when the circle closes, and loose lines don't count) and you'll see what they circled" : ''}${HOTKEYS_OK ? `; show the list ${keyWords(keys().list)}` : ''}.${HANDS_OK ? '' : ' Asking about an area, reading app windows, finding things on screen by their words and working other apps need the Roamies app, which isn\'t running here; draw there with x, y from a screenshot.'}`;
+- Shortcuts: ${HOTKEYS_OK ? `${keys().write ? `type a question to you: ${typeof keys().write === 'string' ? `press ${keys().write} to start typing, which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)` : `a quick tap of ${writeWords()} (press both and let go), which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)`}` : `the tap that opens a text field to type a question is turned off (the Ask button in ${PANEL} still opens it; the Shortcuts page there turns the tap back on)`}; show or hide you ${keyWords(keys().summon)}` : `on this Wayland desktop no app can have global shortcuts, so ${userName} binds keys to these commands in their desktop's keyboard settings: ${BIND.summon} (show or hide you), ${BIND.ask} (ask you), ${BIND.list} (the list), ${BIND.talk} (talk) and ${BIND.panel} (the panel)`}${SNAP_OK ? `; ask about an area ${keyWords(keys().snap)}` : ''}${CIRCLE_OK ? "; while holding the talk keys, moving the cursor round something circles it (no clicking; it snaps shut with a click when the circle closes, and loose lines don't count) and you'll see what they circled" : ''}${HOTKEYS_OK ? `; show the list ${keyWords(keys().list)}` : ''}.${HANDS_OK ? '' : ' Asking about an area, reading app windows, finding things on screen by their words and working other apps need the Jarvis app, which isn\'t running here; draw there with x, y from a screenshot.'}`;
   const memory = `${open ? `Open commitments:\n${open}` : 'No open commitments.'}${done ? `\nDone today (ticked off on the list or by you; still shown struck through until midnight):\n${done}` : ''}
 ${facts.length ? `What you know about ${userName}${total > facts.length ? ` (${facts.length} most relevant of ${total})` : ''}:\n${facts.map((f) => `- ${f.id}: ${f.text}`).join('\n')}` : `You don't know anything lasting about ${userName} yet.`}${working ? `\n${working}` : ''}`;
   return { turn, memory };
@@ -790,7 +804,28 @@ let queued = 0;
 function enqueue(text, { interrupt = false, image = null, note = '', byVoice = false, listenAfter = false, news = null } = {}) {
   if (interrupt && busy) interruptQuietly('new request');
   queued++;
-  running = running.then(() => prompt(text, image, note, byVoice, news, listenAfter)).catch((e) => console.error('prompt', e))
+  running = running.then(async () => {
+    const first = await prompt(text, image, note, byVoice, news, listenAfter);
+    if (!first?.retry) return;
+    const failed = { provider: config.provider, model: config.model };
+    providerHealth.fail(`${failed.provider}:${failed.model}`, 'no first token in 12 seconds');
+    const fb = fallbackModel(failed);
+    if (!fb) {
+      say(`${PROVIDER_LABELS[failed.provider] ?? 'The AI'} didn't start answering within 12 seconds. Ask me again?`, 'concerned');
+      return;
+    }
+    logLine('fallback', { from: failed, to: fb });
+    config.provider = fb.provider; config.model = fb.model; agent = null; agentStale = true;
+    try {
+      const second = await prompt(text, image, note, byVoice, news, listenAfter, true);
+      if (second?.retry) say(`${PROVIDER_LABELS[fb.provider] ?? 'The fallback AI'} didn't start answering within 12 seconds either. Ask me again?`, 'concerned');
+      else providerHealth.ok(`${fb.provider}:${fb.model}`);
+    } finally {
+      // The fallback was for this request; the page keeps the model the user picked.
+      config.provider = failed.provider; config.model = failed.model;
+      agent = null; agentStale = true; menu();
+    }
+  }).catch((e) => console.error('prompt', e))
     .finally(() => { if (--queued === 0) maybeCompact(); });
   return running;
 }
@@ -1063,8 +1098,8 @@ function warmUp() {
 let frontSoon = null;
 // Auto-listen: the turn whose reply ended on a question, until the overlay says it's been typed out and said.
 let autoTurn = null;
-// Wake word: the voice helper doesn't listen for "Hey Roamies" while a reply runs, until the overlay says it's been
-// typed out and said (reply_said), so Roamies can't wake itself. Let go after a while in case that never comes.
+// Wake word: the voice helper doesn't listen for "Hey Jarvis" while a reply runs, until the overlay says it's been
+// typed out and said (reply_said), so Jarvis can't wake itself. Let go after a while in case that never comes.
 let wakeHeld = false, wakeHoldTimer = null;
 function holdWake(on) {
   clearTimeout(wakeHoldTimer); wakeHoldTimer = null;
@@ -1086,15 +1121,15 @@ const desk = newsDesk({
 const stir = desk.stir;
 // news: the agent ids this system turn passes on.
 const snoozeListenOn = () => VOICE_OK && !!config.voice && !!config.snoozeListen && voiceReady() && !intro;
-async function prompt(text, image = null, note = '', byVoice = false, news = null, listenAfter = false) {
+async function prompt(text, image = null, note = '', byVoice = false, news = null, listenAfter = false, retried = false) {
   const notReady = await readyAgent();
   // Told once its turn starts, however it goes: the corner and the live state still have the result, so no retries.
-  desk.started(news);
+  if (!retried) desk.started(news);
   if (notReady) return say(notReady, 'concerned');
   busy = true; quiet = false; autoTurn = null;
   saidPending = true; clearTimeout(saidCap); stir();
   holdWake(true);
-  if (!intro && !text.startsWith('(')) activity.asked(text);
+  if (!retried && !intro && !text.startsWith('(')) activity.asked(text);
   menu();
   controller = new AbortController();
   agent.setSignal(controller.signal);
@@ -1109,7 +1144,7 @@ async function prompt(text, image = null, note = '', byVoice = false, news = nul
   turnVoice = voice;
   if (voice && intro) guideVoices.add(voice.id);
   const spoken = voice && new SpeechText((t) => voice.say(t));
-  let stalled = false, watch = null;
+  let stalled = false, watch = null, firstWatch = null, retryWanted = false;
   try {
     // Voice: a short first line before a tool ("On it, checking Paris.") is a beat: it's spoken, but not
     // shown, so the card or bubble starts with the answer. It shows after all if no tool follows.
@@ -1124,7 +1159,7 @@ async function prompt(text, image = null, note = '', byVoice = false, news = nul
       if (drop && t.trim()) trimNext = true; else if (t) showText(t);
     };
     const cues = voice ? new CueFilter() : null; // voice cues are for the voice only, never shown
-    const echo = new EchoFilter(); // tool calls written out as text never reach the screen or the voice
+    const toolText = new ToolCallFilter(); // tool calls written out as text never reach the screen or the voice
     const reply = new ReplyStream((ev) => {
       if (spoken && ev.type === 'emote') spoken.emote(ev.action);
       if (spoken && ev.type === 'text') spoken.push(ev.text);
@@ -1166,20 +1201,28 @@ async function prompt(text, image = null, note = '', byVoice = false, news = nul
       if (h) { reply.push(h); lastReply = h; fresh = false; }
     };
     const ctl = controller;
+    // 12 s with nothing at all from the model: give up on this one and let enqueue try a fallback once. The long
+    // stall watch below still covers a model that starts and then goes quiet mid-answer.
+    firstWatch = firstEventWatch(FIRST_TOKEN_MS, () => {
+      retryWanted = true;
+      logLine('first_token_timeout', { turn, provider: config.provider, model: config.model, ms: FIRST_TOKEN_MS });
+      ctl.abort();
+    });
     watch = stallWatch(STALL_MS, () => { stalled = true; logLine('stalled', { turn, ms: Date.now() - use.t }); ctl.abort(); });
     for await (const e of agentEvents(agent.prompt(content))) {
+      firstWatch.event(e);
       watch.event(e);
       if (e.type === 'text_delta') {
-        const t = echo.push(e.text);
+        const t = toolText.push(e.text);
         if (launched) continue;
         if (hold != null) { hold += t; continue; }
         reply.push(t); if (fresh) { lastReply = ''; fresh = false; } lastReply += t;
       }
       else if (e.type === 'turn_end') {
         doneWriting();
-        if (hold != null) { hold += echo.flush(); if (e.stopReason !== 'tool_use') release(); }
+        if (hold != null) { hold += toolText.flush(); if (e.stopReason !== 'tool_use') release(); }
         fresh = true;
-        { const t = echo.flush(); if (!launched) { reply.push(t); lastReply += t; } }
+        { const t = toolText.flush(); if (!launched) { reply.push(t); lastReply += t; } }
         reply.endTurn();
         spoken?.flush();
         releaseBeat(false);
@@ -1224,8 +1267,8 @@ async function prompt(text, image = null, note = '', byVoice = false, news = nul
       else if (e.type === 'error') throw e.error;
     }
     doneWriting();
-    if (hold != null) { hold += echo.flush(); release(); }
-    { const t = echo.flush(); if (!launched) { reply.push(t); lastReply += t; } }
+    if (hold != null) { hold += toolText.flush(); release(); }
+    { const t = toolText.flush(); if (!launched) { reply.push(t); lastReply += t; } }
     reply.finish();
     const held = cues?.flush(); if (held) showText(held);
     releaseBeat(false);
@@ -1236,9 +1279,10 @@ async function prompt(text, image = null, note = '', byVoice = false, news = nul
     ink.endRequest();
     // Asked by voice and answered with a question: the overlay opens the mic once the reply has been typed and said.
     // A reminder nudge, with "Listen after reminders" on: the same hands-free listen, for "snooze 10 minutes".
-    const listen = !stalled && !controller.signal.aborted && ((byVoice && autoListenOn() && endsWithQuestion(lastReply)) || (listenAfter && snoozeListenOn())) ? { turn, speech: voice?.id ?? null } : null;
+    const retrying = retryWanted && !quiet;
+    const listen = !retrying && !stalled && !controller.signal.aborted && ((byVoice && autoListenOn() && endsWithQuestion(lastReply)) || (listenAfter && snoozeListenOn())) ? { turn, speech: voice?.id ?? null } : null;
     autoTurn = listen ? turn : null;
-    ui({ kind: 'agent', e: stalled ? { type: 'error', message: stallMessage(), speech: voice?.id ?? null } : { type: 'done', speech: voice?.id ?? null, ...(listen ? { listen } : {}) } });
+    ui({ kind: 'agent', e: retrying ? { type: 'done' } : stalled ? { type: 'error', message: stallMessage(), speech: voice?.id ?? null } : { type: 'done', speech: voice?.id ?? null, ...(listen ? { listen } : {}) } });
     logUsage({ ...use, ms: Date.now() - use.t });
     logLine('request_done', { turn, ms: Date.now() - use.t, calls: use.calls, tools: use.tools, in: use.in, cacheRead: use.cacheRead, cacheWrite: use.cacheWrite, out: use.out });
   } catch (err) {
@@ -1246,24 +1290,26 @@ async function prompt(text, image = null, note = '', byVoice = false, news = nul
     hatchOff();
     if (controller.signal.aborted) voice?.abort(); else { spoken?.flush(); voice?.end(); }
     if (controller.signal.aborted && quiet) ui({ kind: 'agent', e: { type: 'done' } });
+    else if (retryWanted) console.error('first token timeout', err?.message ?? 'no answer');
     else {
       const msg = stalled ? stallMessage() : controller.signal.aborted ? 'Okay, stopping.' : aloud(problem('reply', err, { who: PROVIDER_LABELS[config.provider] }));
       console.error('prompt failed', err);
       ui({ kind: 'agent', e: { type: 'error', message: msg, speech: voice?.id ?? null } });
     }
   } finally {
-    watch?.stop();
+    watch?.stop(); firstWatch?.stop(); firstWatch = null;
     busy = false; turnVoice = null; turnImage = null;
     stir(); saidCap = setTimeout(() => { saidPending = false; stir(); }, 90_000);
     // A tool cut off by Stop never reports back: end its tag too, or the Sidekick kept showing it ("looking at
     // CapCut") on every later request, with their own tags queued behind it.
     for (const id of activity.stopped()) ui({ kind: 'agent', e: { type: 'tool_end', id, isError: true } });
     syncSession();
-    if (stalled) agent = null; // the next request starts on a fresh connection, from the saved conversation
+    if (stalled || retryWanted) agent = null; // a fresh connection, from the saved conversation
     // No usage reported: estimate what the last call sent.
     if (!lastInput && session) lastInput = { session: session.id, tokens: approxTokens(session.messages) + Math.round(system().length / 3.6), measured: false };
     menu();
   }
+  return retryWanted && !quiet ? { retry: true } : undefined;
 }
 const STALL_MS = 120_000;
 const stallMessage = () => `${PROVIDER_LABELS[config.provider] ?? 'The AI'} stopped answering for two minutes, so I gave up on that one. Ask me again?`;
@@ -1367,7 +1413,7 @@ async function apiKeyLogin(id, given) {
   else say(`Got it. ${PROVIDER_LABELS[provider]} is connected.`, 'happy');
 }
 
-// Removes a provider from Roamies: its sign-in and every kind of key it has saved (or Ollama's connection).
+// Removes a provider from Jarvis: its sign-in and every kind of key it has saved (or Ollama's connection).
 async function signOut(provider) {
   if (!MENU_PROVIDERS.includes(provider)) return;
   const label = PROVIDER_LABELS[provider] ?? provider;
@@ -1375,7 +1421,7 @@ async function signOut(provider) {
   try {
     if (provider === 'local') { for (const x of servers()) { await auth.removeLocalEndpoint(x.id); forgetLocal(x.id); } local.status.clear(); }
     else {
-      // Claude Code here is Roamies' own copy, so this signs only Roamies out.
+      // Claude Code here is Jarvis's own copy, so this signs only Jarvis out.
       if (provider === 'anthropic' && await auth.hasClaudeCodeLogin()) await signOutOfClaudeCode(auth);
       const plan = provider === 'openai' ? await auth.getCredentials(OPENAI_CHATGPT_KEY).catch(() => null) : null;
       for (const k of accountKeys(provider)) await auth.clearCredentials(k);
@@ -1400,24 +1446,12 @@ function openUrl(url) {
 }
 
 // ---------- replies: text only, or voice and text ----------
-// A new look brings its voice: it greets you in it (its "One sec." beats are made again).
+// One identity: older guides and configs may still send a look, and only Jarvis is valid.
 function setLook(l) {
-  if (!LOOKS.some(([id]) => id === l)) return;
-  const changed = l !== config.look;
-  config.look = l; saveConfig();
-  agentStale = true; // its name is in the prompt
-  // Each look has its own voice with every service.
-  if (tts().id === 'fish') speech.setVoice(lookVoice());
-  else if (tts().id === 'gemini') speech.setVoice(geminiVoice());
-  else speech.setLocalVoice(studioVoice());
-  ui({ kind: 'look', look: l }); menu();
-  // Spoken only: the picker shows the words. Not over a reply, and a quick run of picks only says the last one.
-  if (changed && VOICE_ON() && !busy) {
-    speech.stop();
-    const v = speech.start();
-    if (onboarding) guideVoices.add(v.id);
-    v.say(LOOK_GREETINGS[l]); v.end();
-  }
+  if (l !== 'jarvis') return false;
+  config.look = 'jarvis'; config.sound = false; saveConfig();
+  ui({ kind: 'look', look: 'jarvis' }); menu();
+  return true;
 }
 
 async function setReplies(mode) {
@@ -1546,59 +1580,11 @@ function onLoginStatus(m) {
     config.openAtLogin = true; saveConfig();
     if (!m.on) return send({ type: 'login_item', on: true });
   } else if (login.supported) { config.openAtLogin = login.on; saveConfig(); }
-  if (login.asked && m.approval) say('macOS wants your OK first: System Settings → General → Login Items, then switch Roamies on.', 'concerned');
+  if (login.asked && m.approval) say('macOS wants your OK first: System Settings → General → Login Items, then switch Jarvis on.', 'concerned');
   login.asked = false;
   menu(); if (onboarding) obState();
 }
 function setLogin(on) { login.asked = true; send({ type: 'login_item', on }); }
-
-// The app checks the signed feed and installs (Rust: update()); this side decides what to say and offers the menu item.
-// page: this copy can't replace itself (Linux, installed from a .deb or .rpm), so "install" opens the download page.
-const update = { available: null, told: null, manual: false, installing: false, checking: false, result: null, page: false, done: null };
-function checkUpdates(manual = false) {
-  update.manual = manual;
-  if (manual) { update.checking = true; update.result = null; panel(); }
-  send({ type: 'update', install: false });
-}
-function installUpdate() {
-  if (update.installing) return;
-  update.installing = true; menu();
-  send({ type: 'update', install: true });
-}
-function onUpdateStatus(m) {
-  logLine('update_status', { state: String(m.state ?? ''), ...(m.version ? { version: String(m.version) } : {}), manual: !!update.manual });
-  const manual = update.manual;
-  update.checking = false;
-  // A check in the background that fails says nothing, so it isn't kept as the last problem either.
-  const shown = manual || !!update.available;
-  const p = m.state !== 'error' ? null : shown ? problem('update', m.error) : explain('update', m.error);
-  update.result = m.state === 'none' ? { ok: true, at: Date.now() } : p ? { ok: false, error: p.text, ...(shown ? linked(p) : {}) } : null;
-  panel();
-  if (m.state === 'none') {
-    update.available = null; update.manual = false;
-    if (manual) say(`You're up to date (${VERSION}).`, 'happy');
-  } else if (m.state === 'available') {
-    update.available = m.version; update.page = !!m.page; update.manual = false; menu();
-    // Say it once per version; the menu item stays until it's installed.
-    if (manual || update.told !== m.version) {
-      update.told = m.version;
-      if (update.page) say(`Roamies ${m.version} is out. Pick Get Roamies ${m.version} in my ${TRAY} icon's menu for the download page.`, 'happy');
-      else say(`Roamies ${m.version} is ready. ${LINUX ? `Open my ${TRAY} icon's menu` : `Click my ${TRAY} icon`} and pick Install and Restart. I'll be right back.`, 'happy');
-    }
-  } else if (m.state === 'page') {
-    update.installing = false; menu();
-    say(`I opened the download page for Roamies ${m.version}. Install it the way you installed me.`, 'happy');
-  } else if (m.state === 'downloading') {
-    say(`Downloading Roamies ${m.version}…`, 'determined');
-  } else if (m.state === 'installed') {
-    update.done = m.version; update.installing = false; panel();
-    say(`Installed ${m.version}. Restarting!`, 'happy');
-  } else if (m.state === 'error') {
-    update.installing = false; update.manual = false; menu();
-    if (shown) say(`${p.text} You can always grab it from github.com/${UPDATE_REPO}/releases.`, 'concerned');
-    else console.error('update check', String(m.error ?? 'unknown error').slice(0, 300));
-  }
-}
 
 // ---------- focus mode (focus.mjs) ----------
 // A timed block: every CHECK_MS it looks at the window in front (app, title, address; never kept or logged) and, when
@@ -1657,8 +1643,8 @@ async function syncPass() {
     if (!folderReady(dir)) { syncInfo = { at: syncInfo.at, error: 'the sync folder isn\'t there right now' }; return; }
     if (!config.syncDevice) { config.syncDevice = newDevice(); saveConfig(); }
     const snap = syncSnapshot();
-    // Memory written by a newer Roamies isn't loaded here, so it would read as everything deleted.
-    if (snap.readOnly) { syncInfo = { at: syncInfo.at, error: 'memory here is from a newer Roamies: update Roamies on this computer' }; return; }
+    // Memory written by a newer Jarvis isn't loaded here, so it would read as everything deleted.
+    if (snap.readOnly) { syncInfo = { at: syncInfo.at, error: 'memory here is from a newer Jarvis: update Jarvis on this computer' }; return; }
     // Memory here couldn't be read: forget what the last pass saw, so nothing counts as deleted here and the other
     // computers' copy comes back.
     if (!snap.trusted) logLine('sync', { recovering: true });
@@ -1692,7 +1678,7 @@ async function syncPass() {
 setInterval(() => syncPass(), 60_000);
 if (config.syncDir) setTimeout(() => syncPass(), 5000);
 // ---------- game mode (roamies/sidebar.js) ----------
-// While a game fills the screen, the Roamie and its cards move to a panel at the screen's edge. macOS already knows when
+// While a game fills the screen, Jarvis and its cards move to a panel at the screen's edge. macOS already knows when
 // a fullscreen game is in front (fullscreen.rs), so the overlay only needs the setting from here. On Windows, the front
 // window's bounds go to the overlay every few seconds (from the hands helper; nothing kept or logged). Not on Linux.
 let gameTicking = false;
@@ -1769,10 +1755,10 @@ async function saveDiagnostics() {
       busy, sidecarUpMinutes: Math.round(process.uptime() / 6) / 10,
       voice: { on: VOICE_OK && config.voice !== false, needsModel: NEEDS_MODEL, model: { status: voiceModel.status, error: voiceModel.error ?? undefined }, hotkeys: HOTKEYS_OK, keys: keys() },
       replies: config.replies, tts: tts().id, voiceOn: speech.on, ...(tts().local ? { voicestudio: { ok: speech.local?.ok ?? null, reason: speech.local?.reason ?? null, engine: speech.local?.engine ?? null } } : {}), hands: hasHands(process.platform, process.env.ROAMIES_HANDS), handsPath: process.env.ROAMIES_HANDS ? 'set' : 'none',
-      update: { available: update.available, result: update.result }, onboarded: config.onboarded, look: config.look, size: config.size,
+      onboarded: config.onboarded, look: config.look, size: config.size,
     };
     const sections = [
-      ['System', system], ['Roamies', app], ['Screens, tray, panel, helpers and permissions (from the app)', shellOut],
+      ['System', system], ['Jarvis', app], ['Screens, tray, panel, helpers and permissions (from the app)', shellOut],
       ...(audioText ? [['Audio devices (from the system)', audioText]] : []),
       ['Settings (secrets and names removed)', scrubConfig(config)],
       ['Agent log (sidekick.log)', await tail(path.join(gg, 'sidekick.log'), 400_000)],
@@ -1785,7 +1771,7 @@ async function saveDiagnostics() {
     logLine('diagnostics', { bytes: (await fs.stat(file)).size });
     reveal(file);
     const where = path.basename(path.dirname(file)) || 'your home folder';
-    say(`Saved ${path.basename(file)} in ${where}. Attach it to an issue at github.com/KenKaiii/Roamies/issues, or send it to whoever is helping you.`, 'happy');
+    say(`Saved ${path.basename(file)} in ${where}. Send it to whoever is helping you.`, 'happy');
     panelNote(`Saved ${path.basename(file)} in ${where}.`);
   } catch (e) {
     console.error('diagnostics', e);
@@ -1797,7 +1783,7 @@ async function saveDiagnostics() {
   }
 }
 
-// The right-click menu: the basics. Everything else (memory, model, settings, updates) is in the panel.
+// The right-click menu: the basics. Everything else (memory, model, settings) is in the panel.
 function menu() {
   const current = getModel(config.model);
   const status = busy ? `${lookName()} is working…` : loggingIn ? `Signing in to ${PROVIDER_LABELS[loggingIn]}…` : current ? `${current.name} · ${PROVIDER_LABELS[config.provider] ?? config.provider}` : 'Not signed in';
@@ -1810,9 +1796,8 @@ function menu() {
     ...(SNAP_OK ? [{ id: 'snap', label: 'Ask About an Area…', accel: keys().snap }] : []),
     { id: 'stop', label: 'Stop', enabled: busy },
     { id: 'diagnostics', label: 'Save Diagnostics…', enabled: !diagnosing },
-    ...(update.available ? [{ sep: true }, { id: 'install_update', label: update.page ? `Get Roamies ${update.available}…` : update.installing ? `Installing ${update.available}…` : `Install Update ${update.available} and Restart`, enabled: !update.installing }] : []),
     { sep: true },
-    { id: 'quit', label: 'Quit Roamies' },
+    { id: 'quit', label: 'Quit Jarvis' },
   ];
   send({ type: 'menu', items });
   panel();
@@ -1835,7 +1820,7 @@ function panelState() {
   const current = getModel(config.model);
   const doing = activity.doing();
   return {
-    version: VERSION, whatsNewFrom: config.whatsNewFrom ?? null, os: MAC ? 'mac' : process.platform === 'win32' ? 'win' : LINUX ? 'linux' : 'other', snap: SNAP_OK,
+    version: VERSION, os: MAC ? 'mac' : process.platform === 'win32' ? 'win' : LINUX ? 'linux' : 'other', snap: SNAP_OK,
     // Wayland: shortcuts are commands bound in the desktop's settings (bind), and there's no Cursor size.
     wayland: WAYLAND, bind: HOTKEYS_OK ? null : BIND,
     status: busy ? { state: 'busy', text: doing ?? 'Thinking' } : loggingIn ? { state: 'busy', text: loginStatus || `Signing in to ${PROVIDER_LABELS[loggingIn]}` } : current ? { state: 'ready', text: 'Ready' } : { state: 'off', text: 'Not signed in' },
@@ -1894,7 +1879,6 @@ function panelState() {
     } : null,
     sound: !!config.sound, actions: !!config.allowActions, brief: { on: !!config.morningBrief, todoist: !!config.briefTodoist, canTodoist: HANDS_OK }, focus: HANDS_OK ? { until: focusBlock?.until ?? null, task: focusBlock?.task ?? '', list: distractionList(), custom: !!config.distractions } : null, sync: { dir: config.syncDir || '', at: syncInfo.at, error: syncInfo.error, paused: !!syncInfo.paused }, gameMode: HANDS_OK ? config.gameSidebar !== false : null,
     login: login.supported ? { on: login.on } : null,
-    update: { available: update.available, installing: update.installing, checking: update.checking, result: update.result, page: update.page, done: update.done },
     intro: !!intro,
     // The latest error anyone saw, for Copy last error.
     problem: lastProblem ? { code: lastProblem.code, at: lastProblem.at } : null,
@@ -1963,7 +1947,7 @@ function onVoice(m) {
       openUrl('ms-settings:privacy-microphone');
     } else if (m.code === 'permission') {
       const what = m.what === 'speech' ? 'speech recognition' : 'the microphone';
-      say(`I need access to ${what} to hear you. Turn on Roamies in the Privacy settings I just opened.`, 'concerned');
+      say(`I need access to ${what} to hear you. Turn on Jarvis in the Privacy settings I just opened.`, 'concerned');
       openUrl(`x-apple.systempreferences:com.apple.preference.security?${PRIVACY[m.what] ?? 'Privacy'}`);
     } else if (m.code === 'no_input') {
       if (m.reason === 'blocked' && process.platform === 'win32') openUrl('ms-settings:privacy-microphone');
@@ -1998,7 +1982,7 @@ let shellId = 0;
 function shellCall(msg, timeout = 90_000) {
   const id = ++shellId;
   return new Promise((resolve) => {
-    const t = setTimeout(() => { shellCalls.delete(id); resolve({ ok: false, error: 'Roamies didn\'t answer in time.' }); }, timeout);
+    const t = setTimeout(() => { shellCalls.delete(id); resolve({ ok: false, error: 'Jarvis didn\'t answer in time.' }); }, timeout);
     shellCalls.set(id, (m) => { clearTimeout(t); resolve(m); });
     send({ ...msg, id });
   });
@@ -2125,9 +2109,7 @@ async function onMenu(id, via) {
   else if (id === 'actions') {
     config.allowActions = !config.allowActions; agents.setAllow(config.allowActions); saveConfig(); menu(); // live section picks this up
     say(config.allowActions ? 'File edits and commands are on. I promise to be careful.' : 'File edits and commands are off. Hands to myself!', config.allowActions ? 'determined' : 'happy');
-  } else if (id === 'update') checkUpdates(true);
-  else if (id === 'install_update') installUpdate();
-  else if (id === 'login') setLogin(!login.on);
+  } else if (id === 'login') setLogin(!login.on);
   else if (id === 'logs') fs.mkdir(LOG_DIR, { recursive: true, mode: 0o700 }).then(() => openUrl(LOG_DIR)).catch(() => {});
   else if (id === 'diagnostics') saveDiagnostics();
   else if (id === 'setup') send({ type: 'onboarding' });
@@ -2209,7 +2191,7 @@ function takeSnap() {
 }
 
 // ---------- getting to know them (a step of the setup guide, or the guide opened from the menu) ----------
-// Roamie asks in the guide window; they type or hold the talk keys (the guide gets the words and sends them
+// Jarvis asks in the guide window; they type or hold the talk keys (the guide gets the words and sends them
 // here). The chat is its own conversation; when it ends, a memory pass over it saves what it learned as facts.
 let introKnown = new Set(); // facts that existed before the chat, so the end can show only what it learned
 let beforeIntro = null; // the conversation the chat interrupted: it carries on afterwards
@@ -2417,7 +2399,7 @@ createInterface({ input: process.stdin }).on('line', (line) => {
   else if (m.type === 'quiz_done') onQuizDone(String(m.part), Array.isArray(m.picks) ? m.picks.slice(0, 12).map((v) => (Number.isInteger(v) ? v : -1)) : []);
   else if (m.type === 'ink_cleared') { ink.cleared(); endShowcase('gone'); }
   else if (m.type === 'user_click' && Number.isFinite(m.x) && Number.isFinite(m.y)) ink.userClick({ x: m.x, y: m.y, role: String(m.role ?? ''), app: String(m.app ?? ''), acts: m.acts === true });
-  else if (m.type === 'update_status') onUpdateStatus(m);
+
   // Wayland: the guide or panel copies one of the commands to bind (only those, never other text).
   else if (m.type === 'copy_bind' && Object.hasOwn(BIND, String(m.which))) shellCall({ type: 'clipboard', text: BIND[m.which] }).then((r) => send({ type: onboarding ? 'onboard' : 'panel', msg: { kind: 'copied', which: String(m.which), ok: !!r?.ok } }));
   // Copy details: the last error someone saw, with the version and OS, scrubbed (never other text).
@@ -2514,9 +2496,6 @@ if (process.platform === 'win32' && process.env.ROAMIES_EXE && !config.trayShown
 }
 pruneLogs(); pruneUsage();
 midnightClean();
-// Look for updates shortly after launch, then every 6 hours.
-setTimeout(() => checkUpdates(), 20_000);
-setInterval(() => checkUpdates(), 6 * 3600_000);
 voiceConfig();
 // First run (or setup never finished): open the guide.
 // v2 added the "Control apps" (Accessibility) permission: people who finished setup before that
@@ -2526,10 +2505,3 @@ if (config.onboarded && (config.setupVersion ?? 0) < SETUP_VERSION) {
   config.onboarded = false; config.onboardStep = 1; saveConfig();
 }
 if (!config.onboarded) send({ type: 'onboarding' });
-// Just updated: the panel opens on What's new by itself, once, a moment after launch. whatsNewFrom (the version
-// before) marks which changes are this update's.
-{
-  const w = whatsNewOnStart({ seen: config.seenVersion, version: VERSION, onboarded: config.onboarded });
-  if (w.seen !== config.seenVersion) { if (w.open) config.whatsNewFrom = w.from; config.seenVersion = w.seen; saveConfig(); }
-  if (w.open) setTimeout(() => openPanel('whatsnew'), 2500);
-}

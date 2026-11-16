@@ -47,7 +47,6 @@ const FIRST = [
   'agents.test.mjs',
   'agentrun.test.mjs',
   'agenthome.test.mjs',
-  'whatsnew.test.mjs',
 ];
 const all = readdirSync(dir).filter((f) => f.endsWith('.test.mjs'));
 const order = [...FIRST.filter((f) => all.includes(f)), ...all.filter((f) => !FIRST.includes(f)).sort()];

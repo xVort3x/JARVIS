@@ -9,10 +9,10 @@
 
   // ---------------------------------------------------------------- look
   const P = 4, MONO = '"Inter", ui-sans-serif, system-ui, sans-serif', DOTO = '"Doto", "Inter", ui-sans-serif, sans-serif';
-  const ACC = '#e8b469', HOT = '#ffd9a6', MID = '#c98f43', DEEP = '#5c3a0e', EDGE = 'rgba(60,38,8,0.65)';
+  const ACC = '#38b8ff', HOT = '#9bdcff', MID = '#1f86c9', DEEP = '#0b3a5c', EDGE = 'rgba(4,18,34,0.65)';
   const GLASS = 'rgba(13,16,22,0.94)', TEXT = '#eef1f7', DIM = '#8b93a3', INKDARK = '#1b1204';
   const TONES = { accent: ACC, amber: ACC, coral: '#ef5b52', lilac: '#b9a4ff', sky: '#7cc8ff', lime: '#b6f36b', red: '#ff6b6b', white: '#eef1f7' };
-  const LED = ['#0b0e13', '#5c3a0e', '#c98f43', '#e8b469', '#ffd9a6'];
+  const LED = ['#070b12', '#0b3a5c', '#1f86c9', '#38b8ff', '#9bdcff'];
   const B4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
   const tone = (t) => TONES[t] || ACC;
   const now = () => performance.now() / 1000;
@@ -649,7 +649,7 @@
         chrome(b, x, y, this.cw, this.ch, { edge: o.edge ? colorOf(this, this.color) : ACC });
         if (this.p < 1) return;
         if (bar) {
-          b.fillStyle = 'rgba(255,179,71,0.06)'; b.fillRect(x + 2, y + 2, w - 4, bar - 2);
+          b.fillStyle = 'rgba(56,184,255,0.06)'; b.fillRect(x + 2, y + 2, w - 4, bar - 2);
           b.fillStyle = DEEP; b.fillRect(x + 2, y + bar, w - 4, 1);
           [0, 1].forEach((k) => { b.fillStyle = k ? DEEP : ACC; b.fillRect(x + 12 + k * 12, y + 11, 5, 5); });
           if (o.title) typed(b, ellipsize(String(o.title).toLowerCase(), w - 206, `500 10px ${MONO}`), x + w / 2, y + 17, `500 10px ${MONO}`, DIM, (t - this.done) / 0.4, { anchor: 'middle' });
@@ -2084,7 +2084,7 @@
     if (cw < 4) return;
     chrome(b, x, y, cw, ch);
     if (!this.ready) return;
-    b.fillStyle = 'rgba(255,179,71,0.06)'; b.fillRect(x + 2, y + 2, w - 4, 24);
+    b.fillStyle = 'rgba(56,184,255,0.06)'; b.fillRect(x + 2, y + 2, w - 4, 24);
     b.fillStyle = DEEP; b.fillRect(x + 2, y + 26, w - 4, 1);
     [0, 1].forEach((k) => { b.fillStyle = k ? DEEP : ACC; b.fillRect(x + 12 + k * 12, y + 11, 5, 5); });
     typed(b, 'reminders', x + w / 2, y + 17, `500 10px ${MONO}`, DIM, (t - this.opened) / 0.4, { anchor: 'middle' });

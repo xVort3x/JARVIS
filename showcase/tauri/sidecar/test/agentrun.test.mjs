@@ -40,7 +40,7 @@ const log = fs.readFileSync(process.env.FAKE_LOG, 'utf8').trim().split('\n').map
 
 assert.equal(end.type, 'done', `${end.agent.reason}\n${JSON.stringify(log, null, 1)}`);
 assert.deepEqual(log.filter((l) => l.isError), [], 'every tool call worked');
-assert.equal(a.dir, path.join(tmp, 'data', 'Roamies', 'Agents', a.folder), 'its folder is under ROAMIES_DATA_DIR');
+assert.equal(a.dir, path.join(tmp, 'data', 'Jarvis', 'Agents', a.folder), 'its folder is under ROAMIES_DATA_DIR');
 // What the model was given: its brief, only its tools, a prompt about its folder.
 assert.match(log[0].prompt, /Brief from Ken:\nMake a landing page for Woof Co\./);
 assert.deepEqual([...log[0].tools].sort(), ['finish', 'list_files', 'plan', 'read_file', 'run_command', 'search_files', 'web_fetch', 'web_search', 'write_file']);

@@ -1,5 +1,5 @@
 // The panel that opens from the menu bar or tray icon: a sidebar of pages. Home (what's going on) and Memory,
-// then a page per group of settings: Model, Appearance, Voice, Behavior and About, and What's new.
+// then a page per group of settings: Model, Appearance, Voice, Behavior and About.
 // The sidecar owns every value: it sends the whole state when the panel opens and after each change, and the
 // panel sends back the same actions the menu used ({type:'menu', id}). Opened in a plain browser it shows a
 // labelled preview with sample data instead.
@@ -195,41 +195,17 @@
     now.replaceChildren(el('b', { textContent: s.text }), state.model ? ` · ${state.model.name}` : s.state === 'off' ? ' · Sign in on the Model page' : '');
     now.title = now.textContent;
     $('ver').textContent = `v${state.version}`;
-    updateButton();
     react();
     // The sidebar marks a page that needs you: no account to answer with.
     mark('model', s.state === 'off' ? 'not signed in' : null);
   }
-  // One button for updates, updated in place (not rebuilt) so it keeps focus: Check for updates, then Update to x
-  // (it downloads, installs and restarts), then Done. "Up to date" shows for a few seconds after a check.
-  const FRESH = 6000;
-  let freshTimer = 0;
-  function updateButton() {
-    const u = state.update, b = $('head-update'), v = u.available;
-    const fresh = u.result?.ok && Date.now() - (u.result.at ?? 0) < FRESH;
-    const [label, aria, kind, off] =
-      u.done ? ['Done', `Roamies ${u.done} is installed. Restarting`, 'ghost', true]
-      : u.installing ? ['Updating…', `Installing Roamies ${v}`, 'ghost', true]
-      : v ? (u.page ? [`Get ${v}`, `Open the download page for Roamies ${v}`, 'primary', false] : [`Update to ${v}`, `Install Roamies ${v} and restart`, 'primary', false])
-      : u.checking ? ['Checking…', 'Checking for updates', 'ghost', true]
-      : fresh ? ['Up to date', `Roamies ${state.version} is up to date`, 'ghost', true]
-      : u.result ? ['Check again', "Couldn't check for updates. Check again", 'ghost', false]
-      : ['Check for updates', 'Check for updates', 'ghost', false];
-    b.hidden = false; b.textContent = label; b.disabled = off;
-    b.className = `px btn mini ${kind}`;
-    b.setAttribute('aria-label', aria);
-    b.title = u.result && !u.result.ok && !v && !u.checking ? u.result.error ?? "Couldn't check for updates." : '';
-    clearTimeout(freshTimer);
-    if (fresh) freshTimer = setTimeout(() => state && updateButton(), FRESH - (Date.now() - u.result.at) + 50);
-  }
-  $('head-update').addEventListener('click', () => act(state?.update?.available ? 'install_update' : 'update'));
   // Quit asks first: the first press turns it into Confirm for 4 s, the second quits.
   const quitB = $('head-quit');
   let quitTimer = 0;
-  const unarmQuit = () => { clearTimeout(quitTimer); quitB.setAttribute('aria-pressed', 'false'); quitB.setAttribute('aria-label', 'Quit Roamies'); };
+  const unarmQuit = () => { clearTimeout(quitTimer); quitB.setAttribute('aria-pressed', 'false'); quitB.setAttribute('aria-label', 'Quit Jarvis'); };
   quitB.addEventListener('click', () => {
     if (quitB.getAttribute('aria-pressed') === 'true') { unarmQuit(); act('quit'); return; }
-    quitB.setAttribute('aria-pressed', 'true'); quitB.setAttribute('aria-label', 'Confirm: quit Roamies');
+    quitB.setAttribute('aria-pressed', 'true'); quitB.setAttribute('aria-label', 'Confirm: quit Jarvis');
     quitTimer = setTimeout(unarmQuit, 4000);
   });
   function mark(page, why) {
@@ -240,11 +216,10 @@
     if (sr) { if (why) sr.textContent = ` (${why})`; else sr.remove(); }
   }
 
-  // ---------------------------------------------------------------- live Roamies
-  // The same LED renderer as on the desktop and in the setup guide, drawn small: one in the header (the Roamie
-  // you have, reacting to what's going on) and one per look on the Appearance page. One loop draws them all,
-  // only while the panel is up and each canvas is on screen.
-  const LED = [[20, 12, 4], [92, 58, 14], [196, 120, 40], [255, 179, 71], [255, 230, 200]];
+  // ---------------------------------------------------------------- live Jarvis
+  // The same LED renderer as on the desktop and in the setup guide, drawn small: the header one reacts to what's
+  // going on. One loop draws it, only while the panel is up and the canvas is on screen.
+  const LED = [[6, 12, 28], [12, 36, 74], [22, 88, 148], [56, 184, 255], [206, 246, 255]];
   const live = new Set();
   let pointer = null; // the cursor in page px, for their eyes
   addEventListener('pointermove', (e) => { pointer = [e.clientX, e.clientY]; }, { passive: true });
@@ -254,10 +229,10 @@
     think: (t) => ({ arms: 1, tl: [-0.08, 0.5 + Math.sin(t * 2) * 0.03], tr: [0.98, 0.34], mouth: Math.sin(t * 0.9) > 0.6 ? 'o' : 'flat', brow: 'raised' }),
     concerned: () => ({ arms: 0.7, tl: [-0.45, 0.95], tr: [0.45, 0.95], mouth: 'frown', brow: 'raised' }),
   };
-  // A Roamie on a canvas of w×h CSS px: the one on screen at half scale (the app's unit, every dot half size), so
-  // each size shows its own art (the full face, the small one, the pointer) at its real size next to the others.
+  // Jarvis on a canvas of w×h CSS px: the one on screen at half scale (the app's unit, every dot half size), so
+  // each size shows its own art at its real size.
   const ZOOM = 0.5, UNIT = 340;
-  function liveRoamie(canvas, w, h, { look = 'classic', y = 0.56, form = 'default' } = {}) {
+  function liveJarvis(canvas, w, h, { y = 0.56, form = 'default' } = {}) {
     if (!window.Roamie?.ditherKit) return null;
     const dpr = Math.min(2, devicePixelRatio || 1);
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
@@ -271,14 +246,13 @@
     };
     let K = null, clock = 0, actUntil = 0;
     const me = {
-      pose: null, look, form,
+      pose: null, form,
       kit: Roamie.ditherKit({
         id: 'panel', label: 'Panel', matrix: true, pixel: 1.3, glow: 0.55, speed: 80, pal: LED,
         // busy: no acts of its own; pose: whatever's going on, except while it's acting something out.
         plugin: (kit) => { K = kit; return { busy: () => true, pose: () => (clock < actUntil ? null : POSES[me.pose]?.(clock) ?? null) }; },
       }).create(env),
       act(name) { if (!K || REDUCED.matches) return; K.startAct(name); actUntil = clock + (ACT_SECS[name] ?? 3); },
-      setLook(l) { if (l === me.look) return; me.look = l; me.kit.setLook(l); },
       setForm(f) { if (f === me.form) return; me.form = f; me.kit.setForm(f); },
       appear(v = 'materialize') { me.kit.appear(REDUCED.matches ? 'crt' : v, w / 2, h * y); },
       step(dt) {
@@ -293,7 +267,7 @@
         ctx.save(); me.kit.draw(ctx, env); ctx.restore();
       },
     };
-    me.kit.setLook(look); me.kit.setForm(form); me.kit.resize(env);
+    me.kit.setLook('jarvis'); me.kit.setForm(form); me.kit.resize(env);
     me.kit.mover.anchor = { x: w / 2, y: h * y, r: 1.5 };
     me.kit.vanish(null, true);
     live.add({ me, canvas });
@@ -308,11 +282,9 @@
   }
   requestAnimationFrame(loop);
 
-  // The header's Roamie: your look, reacting to what's going on. A short line beside it when something changes.
-  // The same size and detail as the look tiles (fewer dots than that and the faces turn to noise).
-  const avatar = liveRoamie($('avatar'), 100, 74, { y: 0.55 });
-  const QUIPS = { classic: 'Classic me!', jarvis: 'At your service.', anime: 'Yay, hi hi!', sarah: 'Hey, nice to meet you!', adrian: "Alright, let's do this.", rita: 'Shall we get to work?', echo: 'I am here with you.' };
-  let quipTimer = 0, seen = { look: null, update: null, opened: 0 };
+  // The header's Jarvis, reacting to what's going on. A short line beside it when something changes.
+  const avatar = liveJarvis($('avatar'), 100, 74, { y: 0.55 });
+  let quipTimer = 0, seen = { opened: 0 };
   function quip(text, secs = 2.6) {
     const q = $('saying'), n = $('by');
     clearTimeout(quipTimer);
@@ -322,23 +294,19 @@
   function react() {
     if (!avatar) return;
     avatar.pose = state.busy ? 'think' : state.status.state === 'off' ? 'concerned' : null;
-    if (seen.look && state.look !== seen.look) { avatar.setLook(state.look); avatar.act('wave'); quip(QUIPS[state.look] ?? 'Hi!'); }
-    else avatar.setLook(state.look);
     avatar.setForm(state.size);
-    if (state.update.available && state.update.available !== seen.update && seen.look) { avatar.act('hype'); quip(`Roamies ${state.update.available} is here!`); }
-    seen.look = state.look; seen.update = state.update.available;
+  }
   }
 
   // ---------------------------------------------------------------- Home
   function home() {
-    const u = state.update;
     const mac = state.os === 'mac';
     return [
       el('div', { className: 'group' },
         el('h2', { className: 'sr-only', textContent: 'Actions' }),
         el('div', { className: 'actions' },
           // askKeys: the type-to-ask shortcut (F7 on a PC, a pair tapped on a Mac), so it can be learnt from the button.
-          btn('Ask', () => act('ask', true), { kind: u.available ? 'ghost' : 'primary', k: 'ask', disabled: state.busy,
+          btn('Ask', () => act('ask', true), { kind: 'primary', k: 'ask', disabled: state.busy,
             aria: state.askKeys ? `Ask ${state.name}, or press ${state.askKeys} anywhere` : `Ask ${state.name}`, title: state.askKeys ? `Or press ${state.askKeys} anywhere` : null }),
           btn('Show list', () => act('list', true), { k: 'list' }),
           state.snap ?? mac ? btn('Ask about an area', () => act('snap', true), { k: 'snap' }) : null,
@@ -504,7 +472,7 @@
         el('span', { className: 'acct-name' }, p.label, p.on ? el('span', { className: 'led on', role: 'img', 'aria-label': p.method === 'local' ? 'Connected' : 'Signed in', 'data-tip': p.method === 'local' ? 'Connected' : 'Signed in' }) : null),
         p.on ? el('span', { className: 'row-btns' },
           p.key ? changeKey(p) : null,
-          ui.key === p.id ? null : armed(p.signedIn && !p.keySaved ? 'Sign out' : 'Remove', 'Confirm', `signout:${p.id}`, `signout:${p.id}`, `Remove ${p.label} from Roamies`))
+          ui.key === p.id ? null : armed(p.signedIn && !p.keySaved ? 'Sign out' : 'Remove', 'Confirm', `signout:${p.id}`, `signout:${p.id}`, `Remove ${p.label} from Jarvis`))
           : state.loggingIn === p.id ? el('span', { className: 'waiting', textContent: 'Signing in…' })
           : p.method === 'oauth' ? (p.key ? el('span', { className: 'links' }, signIn(p), addKey(p)) : signIn(p))
           : addKey(p)),
@@ -555,37 +523,8 @@
   }
   function appearancePage() {
     return [
-      group('Look', 'Each look has its own name and voice.', null, lookTiles()),
       group('Size', 'How big I am on your screen.', null, picks('Size', state.sizes, state.size, (x) => act(`size:${x}`), 'size', SIZE_TIPS)),
     ];
-  }
-  // The looks as live tiles: each one's character, playing, at the size picked below. Kept between renders (a state update mustn't restart
-  // them); hovering or focusing one makes it wave; picking it makes it cheer.
-  const tiles = new Map();
-  function lookTiles() {
-    const g = tiles.get('_group') ?? el('div', { className: 'looks', role: 'radiogroup', 'aria-label': 'Look' });
-    tiles.set('_group', g);
-    g.replaceChildren(...state.looks.map(([id, name]) => {
-      let t = tiles.get(id);
-      if (!t) {
-        const cv = el('canvas', { 'aria-hidden': 'true' });
-        const b = el('button', { className: 'px looktile', type: 'button', role: 'radio', 'data-k': `look:${id}` }, cv, el('span', { className: 'name', textContent: name }));
-        const r = liveRoamie(cv, 104, 76, { look: id, y: 0.55, form: state.size });
-        t = { b, r, waved: 0 };
-        const wave = () => { if (r && Date.now() - t.waved > 3500) { t.waved = Date.now(); r.act('wave'); } };
-        b.addEventListener('pointerenter', wave);
-        b.addEventListener('focus', () => b.matches(':focus-visible') && wave());
-        b.addEventListener('click', () => { if (state.look !== id) { r?.act('hype'); act(`look:${id}`); } });
-        tiles.set(id, t);
-        r?.appear('crt');
-      }
-      t.r?.setForm(state.size);
-      const on = state.look === id;
-      t.b.setAttribute('aria-checked', String(on)); t.b.tabIndex = on ? 0 : -1;
-      t.b.dataset.tip = on ? `I'm ${name} now.` : `Switch me to ${name}, with ${name}'s own voice.`;
-      return t.b;
-    }));
-    return g;
   }
   // VoiceStudio on this computer: whether it's ready (or exactly why not), its engine, the voice, and Check again.
   function studioRows() {
@@ -623,7 +562,7 @@
         picks('Voice provider', Object.entries(TTS_NAMES), tts, (x) => {
           if (x !== 'voicestudio' && !state[`${x}Key`]) { ui.key = x; note(`Add a ${TTS_NAMES[x]} key to hear me talk.`); } // its key field opens with it
           act(`tts:${x}`);
-        }, 'tts', { fish: 'A voice for each look, acted out with feeling. Billed to your Fish Audio account.', gemini: "Google's voices: pick one of 30. Billed to your Google AI Studio account.", voicestudio: 'The free VoiceStudio app on this computer, in the engine and voices you set up there. Nothing leaves your computer.' }),
+        }, 'tts', { fish: "Jarvis's voice, acted out with feeling. Billed to your Fish Audio account.", gemini: "Google's voices: pick one of 30. Billed to your Google AI Studio account.", voicestudio: 'The free VoiceStudio app on this computer, in the engine and voices you set up there. Nothing leaves your computer.' }),
         local ? el('div', { className: 'reveal', 'data-anim': 'studio' }, studioRows()) : null,
         tts === 'gemini' && hasKey && state.geminiVoices?.length ? el('div', { className: 'reveal', 'data-anim': 'gemini-voice' },
           el('p', { className: 'sub', textContent: `Voice for ${state.name}` }),
@@ -683,8 +622,8 @@
       group('Hands-free', 'When the mic opens without a key.', null,
         toggle('Auto-listen', needs('Mic opens when I ask you something.'), v.autoListen, () => act('autolisten'), 'autolisten'),
         toggle('Listen after reminders', needs('Mic opens after a reminder, so you can say “snooze 10 minutes”.'), v.snoozeListen, () => act('snoozelisten'), 'snoozelisten'),
-        v.mac ? toggle('Wake word', needs(`Say “Hey ${v.wakeName || 'Echo'}” to talk. Mic stays on.`), v.wakeWord, () => act('wakeword'), 'wakeword') : null,
-        v.mac ? el('div', { className: 'setting' }, el('span', {}, 'Wake word name', el('small', { textContent: `Hey ${v.wakeName || 'Echo'}` })),
+        v.mac ? toggle('Wake word', needs(`Say “Hey ${v.wakeName || 'Jarvis'}” to talk. Mic stays on.`), v.wakeWord, () => act('wakeword'), 'wakeword') : null,
+        v.mac ? el('div', { className: 'setting' }, el('span', {}, 'Wake word name', el('small', { textContent: `Hey ${v.wakeName || 'Jarvis'}` })),
           link('Change', () => act('wakename'), { k: 'wakename', aria: 'Change the wake word name' })) : null),
     ];
   }
@@ -734,7 +673,6 @@
   function generalPage() {
     return [
       group('General', 'What I may do, and when I start.', null,
-        toggle('Sound effects', null, state.sound, () => act('sound'), 'sound'),
         state.gameMode != null ? toggle('Game mode', 'In a fullscreen game, I move to a panel at the edge of the screen.', state.gameMode, () => act('gamemode'), 'gamemode') : null,
         toggle('Allow file edits and commands', 'Change files and run commands', state.actions, () => act('actions'), 'actions'),
         state.login ? toggle('Open at login', null, state.login.on, () => act('login'), 'login') : null,
@@ -744,32 +682,9 @@
             link('Stop', () => act('syncstop'), { k: 'syncstop', aria: 'Stop syncing memory' })] : link('Set up', () => act('syncsetup'), { k: 'syncsetup', aria: 'Set up memory sync' })) : null),
     ];
   }
-  // Who made Roamies: Ken, live (he's drawn like the looks but isn't one), and where to find him.
-  const KEN = [
-    ['Skool', 'Learn with Ken, or support him', 'https://www.skool.com/kenkai', "Open Ken Kai's Skool community"],
-    ['YouTube', '@kenkaidoesai', 'https://www.youtube.com/@kenkaidoesai', "Open Ken Kai's YouTube channel"],
-    ['TikTok', '@ggkenkai', 'https://www.tiktok.com/@ggkenkai', "Open Ken Kai's TikTok"],
-    ['Source code', 'Open source under AGPL-3.0', 'https://github.com/KenKaiii/Roamies', 'Open the Roamies source code on GitHub'],
-  ];
-  let ken = null;
-  function maker() {
-    if (!ken) {
-      const cv = el('canvas', { 'aria-hidden': 'true' });
-      const r = liveRoamie(cv, 100, 74, { look: 'ken', y: 0.55 });
-      const card = el('div', { className: 'maker' }, cv, el('span', {}, 'Ken Kai', el('small', { textContent: 'Creator of Roamies' })));
-      let waved = 0;
-      card.addEventListener('pointerenter', () => { if (r && Date.now() - waved > 3500) { waved = Date.now(); r.act('wave'); } });
-      r?.appear('crt');
-      ken = card;
-    }
-    return ken;
-  }
+  // The manual and the housekeeping, no maker cards and no in-app updater.
   function aboutPage() {
     return [
-      group('Made by', null, null, maker(),
-        KEN.map(([label, hint, url, aria]) => el('div', { className: 'setting' },
-          el('span', {}, label, el('small', { textContent: hint })),
-          link('Open', () => send({ type: 'open_link', url }), { k: `ken-${label.toLowerCase()}`, aria })))),
       group('Help', null, null,
         el('div', { className: 'links' },
           link('Setup guide', () => act('setup', true), { k: 'setup' }),
@@ -780,44 +695,8 @@
     ];
   }
 
-  // ---------------------------------------------------------------- What's new
-  // One change per row, from whatsnew.json (written with each commit): this update's first, lit, then the rest.
-  // This update: everything since the version they updated from (whatsNewFrom), else this version's own.
-  let news = null;
-  fetch('whatsnew.json').then((r) => r.json()).then((d) => { news = Array.isArray(d?.updates) ? d.updates : []; })
-    .catch(() => { news = []; }).finally(() => { if (state && tab === 'whatsnew') render(); });
-  const KIND = { new: 'New', improved: 'Improved', fixed: 'Fixed', removed: 'Removed' };
-  const later = (a, b) => {
-    const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
-    for (let i = 0; i < 3; i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0);
-    return false;
-  };
-  function whatsNewPage() {
-    if (!news) return [];
-    const from = state.whatsNewFrom, now = state.version;
-    const fresh = (u) => u.version == null || (from ? later(u.version, from) && !later(u.version, now) : u.version === now);
-    const all = news.flatMap((u) => (u.items ?? []).map((it) => ({ ...it, version: u.version, date: u.date, fresh: fresh(u) })));
-    all.sort((a, b) => b.fresh - a.fresh);
-    const lit = all.filter((r) => r.fresh).length;
-    const day = (d) => new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-    const { box, nav } = paged('whatsnew', all, (r) => el('li', { className: `item wn${r.fresh ? ' fresh' : ''}` },
-        el('div', { className: 'wn-top' },
-          el('span', { className: 'wn-title', textContent: r.title }),
-          el('span', { className: `wn-kind k-${r.kind}`, textContent: KIND[r.kind] ?? r.kind })),
-        el('span', { className: 'wn-date', textContent: `${day(r.date)} · ${r.version ? `v${r.version}` : 'Not out yet'}` }),
-        el('p', { className: 'wn-text', textContent: r.text }),
-        r.fresh ? el('span', { className: 'sr-only', textContent: 'In this update.' }) : null),
-    { label: "What's new", empty: 'Nothing here yet.' });
-    return [
-      el('div', { className: 'group paged' }, el('div', { className: 'ghead' },
-        el('h2', {}, "What's new", el('span', { className: 'n', textContent: `v${now}` })),
-        el('p', { textContent: lit ? `The lit ${lit === 1 ? 'one is' : `${lit} are`} what's new in this update.` : 'Everything I changed lately, newest first.' })), box),
-      foot(null, nav),
-    ];
-  }
-
   // ---------------------------------------------------------------- render
-  const PANES = { home, memory, model: modelPage, appearance: appearancePage, speaking: speakingPage, listening: listeningPage, shortcuts: shortcutsPage, routines: routinesPage, general: generalPage, about: aboutPage, whatsnew: whatsNewPage };
+  const PANES = { home, memory, model: modelPage, appearance: appearancePage, speaking: speakingPage, listening: listeningPage, shortcuts: shortcutsPage, routines: routinesPage, general: generalPage, about: aboutPage };
   // focusKey: what to focus after (a data-k, or an element id); otherwise whatever had focus keeps it.
   function render(focusKey, animate = false) {
     if (!state) return;
@@ -942,7 +821,7 @@
   });
   window.__panelOpen = (fromBottom = false) => {
     body.classList.remove('shut', 'shutting', 'opening');
-    // The Roamie switches on with the panel, and waves if it's been a while.
+    // Jarvis switches on with the panel, and waves if it's been a while.
     if (avatar) { avatar.kit.vanish(null, true); setTimeout(() => { avatar.appear(); if (Date.now() - seen.opened > 10 * 60e3) setTimeout(() => avatar.act('wave'), 500); seen.opened = Date.now(); }, REDUCED.matches ? 0 : 120); }
     body.classList.toggle('from-bottom', !!fromBottom);
     if (REDUCED.matches) return render(null, false);
@@ -986,10 +865,10 @@
 
   // ---------------------------------------------------------------- browser preview
   function preview() {
-    document.title = 'Roamies panel (preview with sample data)';
+    document.title = 'Jarvis panel (preview with sample data)';
     const at = Date.now(), q = new URLSearchParams(location.search);
     const s = {
-      version: '0.9.0', os: /Win/.test(navigator.platform) ? 'win' : 'mac',
+      version: '0.1.41', os: /Win/.test(navigator.platform) ? 'win' : 'mac',
       status: { state: 'ready', text: 'Ready' }, busy: false, canNew: true,
       model: { provider: 'anthropic', id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5', providerLabel: 'Anthropic' },
       providers: [
@@ -1018,9 +897,9 @@
         { at: at - 9.4 * 60e3, kind: 'ask', text: 'what does this error mean' },
       ],
       usage: { requests: 14, tokens: 31240 },
-      facts: [{ id: 'f1', text: 'Prefers short answers in the morning' }, { id: 'f2', text: 'Working on the Roamies 1.0 launch, due end of month' }, { id: 'f3', text: 'Has a cat called Miso' }],
+      facts: [{ id: 'f1', text: 'Prefers short answers in the morning' }, { id: 'f2', text: 'Working on the Jarvis launch, due end of month' }, { id: 'f3', text: 'Has a cat called Miso' }],
       commitments: [{ id: 'c1', text: 'Send the launch email', when: 'Fri 7 Nov, 10:00', overdue: false }, { id: 'c2', text: 'Book the dentist', when: 'Mon 3 Nov, 09:00', overdue: true }],
-      name: 'Echo', look: 'echo', looks: [['classic', 'Roamie'], ['jarvis', 'JARVIS'], ['anime', 'Anime Girl'], ['sarah', 'Sarah'], ['adrian', 'Adrian'], ['rita', 'Rita X'], ['echo', 'Echo']],
+      name: 'Jarvis', look: 'jarvis', looks: [['jarvis', 'Jarvis']],
       size: 'default', sizes: [['default', 'Default'], ['small', 'Small'], ['cursor', 'Cursor']],
       replies: 'voice', fishKey: true, fishModel: 'drama-3', fishFree: false,
       // ?tts=gemini: Gemini as the voice, its key saved.
@@ -1030,9 +909,8 @@
       geminiShared: new URLSearchParams(location.search).has('shared'), geminiModel: 'gemini-3.8-flash-lite-tts',
       geminiModels: [{ id: 'gemini-3.8-flash-lite-tts', name: 'Flash Lite', per10s: 0.0015 }, { id: 'gemini-3.8-flash-tts', name: 'Flash', per10s: 0.00225 }],
       fishModels: [{ id: 'drama-3', name: 'Drama 3', perM: 50, promo: { perM: 10, until: '2026-12-01T08:00:00Z' } }, { id: 's2.1-pro', name: 'S2.1 Pro', perM: 15 }],
-      voice: { on: true, keys: '⌃⌥', ready: true, mac: true, mute: true, mics: [{ id: 'BuiltIn', name: 'MacBook Pro Microphone' }, { id: 'airpods', name: 'AirPods Pro' }], mic: '', micAuto: 'MacBook Pro Microphone', wakeWord: false, wakeName: 'Echo', download: null }, askKeys: '⌥⌘', brief: { on: true, todoist: false, canTodoist: true }, focus: { until: null, task: '', list: ['YouTube', 'Reddit', 'X', 'Steam', 'Netflix'], custom: false }, sync: { dir: '', at: null, error: null, paused: false }, shortcuts: { talk: { value: 'control+option', pairs: [['control+option', 'Control+Option'], ['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] }, keys: [{ id: 'summon', words: 'Control+Option+S' }, { id: 'snap', words: 'Control+Option+A' }, { id: 'list', words: 'Control+Option+L' }] }, writeKeys: { value: 'option+command', pairs: [['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] },
-      sound: true, actions: false, login: { on: true },
-      update: { available: new URLSearchParams(location.search).has('update') && new URLSearchParams(location.search).get('update') !== 'failed' ? '0.9.1' : null, installing: false, checking: false, result: null },
+      voice: { on: true, keys: '⌃⌥', ready: true, mac: true, mute: true, mics: [{ id: 'BuiltIn', name: 'MacBook Pro Microphone' }, { id: 'airpods', name: 'AirPods Pro' }], mic: '', micAuto: 'MacBook Pro Microphone', wakeWord: false, wakeName: 'Jarvis', download: null }, askKeys: '⌥⌘', brief: { on: true, todoist: false, canTodoist: true }, focus: { until: null, task: '', list: ['YouTube', 'Reddit', 'X', 'Steam', 'Netflix'], custom: false }, sync: { dir: '', at: null, error: null, paused: false }, shortcuts: { talk: { value: 'control+option', pairs: [['control+option', 'Control+Option'], ['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] }, keys: [{ id: 'summon', words: 'Control+Option+S' }, { id: 'snap', words: 'Control+Option+A' }, { id: 'list', words: 'Control+Option+L' }] }, writeKeys: { value: 'option+command', pairs: [['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] },
+      sound: false, actions: false, login: { on: true },
       intro: false,
     };
     if (q.has('busy')) Object.assign(s, { busy: true, status: { state: 'busy', text: 'Reading notes.md' } });
@@ -1044,11 +922,8 @@
       s.recent = Array.from({ length: 30 }, (_, i) => ({ ...s.recent[i % s.recent.length], at: at - i * 70e3 }));
     }
     // ?problem: an error was shown earlier (About gets Copy last error). ?note=bad: a failed save, with Copy details.
-    // ?update=failed: the last check for updates failed (the button's tooltip says why).
     if (q.has('problem') || q.get('note') === 'bad') s.problem = { code: 'E30', at };
     if (q.get('note') === 'bad') setTimeout(() => window.__panel({ kind: 'note', text: "That key didn't save (E30). Try again.", bad: true, copy: true }), 400);
-    if (q.get('update') === 'failed') s.update.result = { ok: false, error: "Couldn't check for updates. Check your internet." };
-    if (q.has('checking')) s.update.checking = true;
     // ?studio: VoiceStudio is the voice provider (?studio=off: it isn't running; ?studio=engine: its engine isn't ready; ?studio=empty: no saved voices).
     const STUDIO = {
       on: { ok: true, engine: 'OmniVoice', voices: [{ id: 'a642d572', name: 'Ben' }, { id: 'fa08aff1', name: 'British · Female · Young Adult · High' }], voice: 'fa08aff1' },
@@ -1057,22 +932,16 @@
       engine: { ok: false, reason: 'engine', message: "VoiceStudio's voice engine isn't ready (CosyVoice): not installed. Pick or install an engine in VoiceStudio, then press Check again." },
     };
     if (q.has('studio')) Object.assign(s, { tts: 'voicestudio', studio: STUDIO[q.get('studio')] ?? STUDIO.on });
-    if (q.has('uptodate')) s.update.result = { ok: true, at: Date.now() + 60e3 };
-    // ?v=0.1.36&from=0.1.35: What's new as it looks just after updating from one version to the other.
-    if (q.get('v')) s.version = q.get('v');
-    if (q.get('from')) s.whatsNewFrom = q.get('from');
     if (q.get('tab')) setTimeout(() => { if (q.get('mtab')) ui.mtab = q.get('mtab'); show(q.get('tab')); }, 0);
     setTimeout(() => window.__panel({ kind: 'state', state: s }), 0);
     return async (cmd, args) => {
       if (cmd !== 'sidecar_send') return null;
       console.log('[preview] would send', JSON.stringify(args.msg));
-      // A look change comes back as new state, as from the sidecar, so the Roamie's reaction can be seen.
       if (args.msg?.type === 'copy_problem') setTimeout(() => window.__panel({ kind: 'copied', which: 'problem', ok: q.get('copy') !== 'fail' }), 150);
       const id = args.msg?.id ?? '';
       if (id.startsWith('size:')) { s.size = id.slice(5); setTimeout(() => window.__panel({ kind: 'state', state: s }), 120); }
       if (id.startsWith('tts:')) { s.tts = id.slice(4); s.studio = s.tts === 'voicestudio' ? STUDIO[q.get('studio')] ?? STUDIO.on : null; setTimeout(() => window.__panel({ kind: 'state', state: s }), 120); }
       if (id.startsWith('studiovoice:') && s.studio) { s.studio.voice = id.slice(12) === 'default' ? null : id.slice(12); setTimeout(() => window.__panel({ kind: 'state', state: s }), 120); }
-      if (id.startsWith('look:')) { s.look = id.slice(5); s.name = s.looks.find(([v]) => v === s.look)?.[1] ?? s.name; setTimeout(() => window.__panel({ kind: 'state', state: s }), 120); }
       return null;
     };
   }

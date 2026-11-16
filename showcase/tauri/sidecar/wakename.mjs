@@ -1,12 +1,12 @@
 // The wake word's name, chosen by the user ("Hey Jarvis"). The voice helper (voice/main.swift, WakeWord.setName) applies
 // the same rule; this one turns a typed name into one to save, or says why not, before it gets that far.
-export const DEFAULT_WAKE_NAME = 'Echo';
-// Words people say all the time: as a wake name, "Hey there"-style chatter would wake Roamies.
+export const DEFAULT_WAKE_NAME = 'Jarvis';
+// Words people say all the time: as a wake name, "Hey there"-style chatter would wake Jarvis.
 const COMMON = new Set(['hello', 'there', 'okay', 'yeah', 'thanks', 'sorry', 'right', 'what', 'this', 'that', 'with', 'have',
   'just', 'like', 'about', 'would', 'could', 'really', 'maybe', 'guys', 'everyone', 'everybody', 'buddy', 'listen', 'look',
   'siri', 'alexa', 'google']);
 
-/** Typed text → { ok: true, name } (name '' means back to the default, Echo) or { ok: false, why }. */
+/** Typed text → { ok: true, name } (name '' means back to the default, Jarvis) or { ok: false, why }. */
 export function cleanWakeName(raw) {
   const t = String(raw ?? '').trim().replace(/^(hey|hi)[\s,]+/i, '');
   if (!t || t.toLowerCase() === DEFAULT_WAKE_NAME.toLowerCase()) return { ok: true, name: '' };

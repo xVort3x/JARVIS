@@ -1,5 +1,5 @@
 /* Setup guide. A flat, dark, blue-tinted glass panel like the launcher: Inter for everything, quiet hairlines,
-   rounded corners and a warm amber accent (Echo's own light). Fonts are SIL OFL 1.1; licences sit in fonts/. */
+   rounded corners and a cool blue accent (Jarvis's light). Fonts are SIL OFL 1.1; licences sit in fonts/. */
 @font-face {
   font-family: "Inter";
   src: url("fonts/InterVariable.ttf") format("truetype");
@@ -25,10 +25,10 @@
   --ink: #eef1f7;
   --ink-2: #c6ccd8;
   --ink-3: #8b93a3;
-  --accent: #e8b469;
-  --accent-hi: #ffd9a6;
-  --accent-lo: #c98f43;
-  --accent-ink: #1b1204;
+  --accent: #38b8ff;
+  --accent-hi: #9bdcff;
+  --accent-lo: #1f86c9;
+  --accent-ink: #03121c;
   --line: #202633;
   --line-hi: #313a4a;
   --line-hot: #4b576d;
@@ -42,8 +42,8 @@
 html, body { margin: 0; height: 100%; }
 body {
   background:
-    radial-gradient(620px 460px at 16% 12%, rgba(232, 180, 105, 0.12), transparent 70%),
-    radial-gradient(520px 400px at 88% 82%, rgba(232, 180, 105, 0.10), transparent 72%),
+    radial-gradient(620px 460px at 16% 12%, rgba(56, 184, 255, 0.12), transparent 70%),
+    radial-gradient(520px 400px at 88% 82%, rgba(56, 184, 255, 0.10), transparent 72%),
     var(--bg);
   color: var(--ink);
   font: 400 13px/1.55 var(--display);
@@ -79,7 +79,7 @@ body {
 
 /* A status light: a small round dot with a soft glow when it's lit. */
 .led { display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 50%; background: #353c49; }
-.led.on { background: var(--accent); box-shadow: 0 0 7px rgba(232, 180, 105, 0.85), 0 0 16px rgba(232, 180, 105, 0.3); }
+.led.on { background: var(--accent); box-shadow: 0 0 7px rgba(56, 184, 255, 0.85), 0 0 16px rgba(56, 184, 255, 0.3); }
 .led.busy { background: var(--accent); animation: led-blink 0.9s steps(2) infinite; }
 @keyframes led-blink { 50% { background: #353c49; box-shadow: none; } }
 
@@ -91,7 +91,7 @@ body {
 /* The pad the Sidekick stands on: a quiet ring of light. */
 .pad {
   position: absolute; left: 70px; top: 368px; width: 160px; height: 34px;
-  border: 1px dashed rgba(232, 180, 105, 0.22); border-radius: 50%;
+  border: 1px dashed rgba(56, 184, 255, 0.22); border-radius: 50%;
 }
 .panel { display: flex; flex-direction: column; padding: 46px 30px 22px 10px; min-width: 0; }
 
@@ -99,8 +99,8 @@ body {
 .top { display: flex; align-items: center; margin-bottom: 22px; }
 .progress { display: flex; gap: 5px; margin: 0; padding: 0; list-style: none; }
 .progress li { width: 24px; height: 4px; border-radius: 2px; background: #1e2532; transition: background-color .3s var(--ease), box-shadow .3s var(--ease); }
-.progress li.done { background: rgba(232, 180, 105, 0.42); }
-.progress li[aria-current="step"] { background: var(--accent); box-shadow: 0 0 10px rgba(232, 180, 105, 0.45); }
+.progress li.done { background: rgba(56, 184, 255, 0.42); }
+.progress li[aria-current="step"] { background: var(--accent); box-shadow: 0 0 10px rgba(56, 184, 255, 0.45); }
 
 /* ---------- steps ---------- */
 /* The right padding keeps the scrollbar, when there is one, clear of the text. */
@@ -139,7 +139,7 @@ h2 { margin: 0; font: 600 13px/1.35 var(--mono); font-stretch: 100; color: var(-
 .error > span { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .error > .link { flex: none; }
 .error[hidden] { display: none; }
-.glyph { color: var(--accent); filter: drop-shadow(0 0 4px rgba(232, 180, 105, 0.7)); }
+.glyph { color: var(--accent); filter: drop-shadow(0 0 4px rgba(56, 184, 255, 0.7)); }
 .trayicon { display: inline-block; width: 15px; height: 15px; vertical-align: -2px; }
 .cap .trayicon { width: 14px; height: 14px; vertical-align: 0; }
 
@@ -193,7 +193,7 @@ h2 { margin: 0; font: 600 13px/1.35 var(--mono); font-stretch: 100; color: var(-
 .dl-wrap { display: inline-flex; align-items: center; gap: 10px; }
 .dl { display: inline-flex; gap: 2px; }
 .dl i { width: 8px; height: 6px; border-radius: 2px; background: #232936; transition: background-color .3s var(--ease), box-shadow .3s var(--ease); }
-.dl i.on { background: var(--accent); box-shadow: 0 0 6px rgba(232, 180, 105, 0.6); }
+.dl i.on { background: var(--accent); box-shadow: 0 0 6px rgba(56, 184, 255, 0.6); }
 .dl-pct { min-width: 4ch; text-align: right; }
 
 /* The toggle: a soft pill track with a round knob. */
@@ -203,8 +203,8 @@ h2 { margin: 0; font: 600 13px/1.35 var(--mono); font-stretch: 100; color: var(-
   border-radius: 50%; background: var(--ink-3);
   transition: transform .18s var(--ease), background-color .18s var(--ease);
 }
-.switch[aria-checked="true"] { --bc: var(--accent); --fill: rgba(232, 180, 105, 0.30); }
-.switch[aria-checked="true"]::after { transform: translateX(18px); background: var(--accent); box-shadow: 0 0 8px rgba(232, 180, 105, 0.8); }
+.switch[aria-checked="true"] { --bc: var(--accent); --fill: rgba(56, 184, 255, 0.30); }
+.switch[aria-checked="true"]::after { transform: translateX(18px); background: var(--accent); box-shadow: 0 0 8px rgba(56, 184, 255, 0.8); }
 
 /* ---------- providers ---------- */
 .providers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
@@ -228,7 +228,7 @@ h2 { margin: 0; font: 600 13px/1.35 var(--mono); font-stretch: 100; color: var(-
 .prov:active { --fill: rgba(255, 255, 255, 0.08); }
 .prov:disabled { cursor: default; opacity: 0.5; }
 .prov.busy { --bc: var(--accent); opacity: 1; }
-.prov.on { --bc: var(--accent); --fill: rgba(232, 180, 105, 0.08); }
+.prov.on { --bc: var(--accent); --fill: rgba(56, 184, 255, 0.08); }
 .prov.on small { color: var(--accent); }
 /* Picked (an API-key provider whose field is open, or a reply choice): a lit frame on the plain fill. */
 .prov[aria-pressed="true"], .prov[aria-checked="true"] { --bc: var(--accent); }
@@ -284,7 +284,7 @@ input::placeholder { color: var(--ink-3); }
 .chords { display: flex; flex-wrap: wrap; gap: 6px; }
 .chord { appearance: none; display: inline-flex; padding: 5px; border: 0; cursor: pointer; --bc: rgba(255, 255, 255, 0.09); --fill: transparent; border-radius: 8px; }
 .chord:hover { --bc: rgba(255, 255, 255, 0.18); }
-.chord[aria-checked="true"] { --bc: var(--accent); --fill: rgba(232, 180, 105, 0.08); }
+.chord[aria-checked="true"] { --bc: var(--accent); --fill: rgba(56, 184, 255, 0.08); }
 .chord[aria-checked="true"] .cap { --bc: var(--accent); color: var(--accent); }
 .try { display: flex; align-items: center; gap: 10px; min-height: 28px; margin-top: 10px; font-size: 12px; color: var(--ink-2); }
 .try-label { flex: none; display: inline-flex; align-items: center; gap: 6px; }
@@ -326,10 +326,10 @@ input::placeholder { color: var(--ink-3); }
 .mb-item.short { width: 10px; }
 .mb-me {
   display: grid; place-items: center; width: 26px; height: 22px;
-  color: var(--accent); background: rgba(232, 180, 105, 0.12);
-  border-radius: 7px; filter: drop-shadow(0 0 3px rgba(232, 180, 105, 0.7)); animation: ping 1.6s steps(2) infinite;
+  color: var(--accent); background: rgba(56, 184, 255, 0.12);
+  border-radius: 7px; filter: drop-shadow(0 0 3px rgba(56, 184, 255, 0.7)); animation: ping 1.6s steps(2) infinite;
 }
-@keyframes ping { 50% { background: rgba(232, 180, 105, 0.28); } }
+@keyframes ping { 50% { background: rgba(56, 184, 255, 0.28); } }
 .mb-clock { font: 600 12px/1 var(--display); font-stretch: 100%; color: var(--ink-2); }
 .mb-more { display: none; font: 600 12px/1 var(--display); color: var(--ink-2); }
 /* Windows: the taskbar, with the tray's ^ overflow arrow before the icons. */
@@ -407,23 +407,23 @@ input::placeholder { color: var(--ink-3); }
 .quip:empty, .quip:empty + .quip-tail { display: none; }
 
 /* ---------- drawing demo (shortcuts step, Mac) ----------
-   The real pen (voice/ink.swift): amber, a dark rim, a soft glow, dimmer until the loop snaps shut. */
+   The real pen (voice/ink.swift): blue, a dark rim, a soft glow, dimmer until the loop snaps shut. */
 .pen-demo { position: fixed; left: 0; top: 0; z-index: 5; pointer-events: none; }
 .pen-demo[hidden] { display: none; }
 .pen-demo svg { position: absolute; left: 0; top: 0; overflow: visible; }
 .pen-demo .rim, .pen-demo .ink { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .pen-demo .rim { stroke: rgba(60, 38, 8, 0.6); stroke-width: 8.5; }
-.pen-demo .ink { stroke: var(--accent); stroke-width: 5.5; filter: drop-shadow(0 0 4px rgba(232, 180, 105, 0.75)); }
+.pen-demo .ink { stroke: var(--accent); stroke-width: 5.5; filter: drop-shadow(0 0 4px rgba(56, 184, 255, 0.75)); }
 .pen-demo .stroke { opacity: 0.55; }
 .pen-demo .stroke.snapped { opacity: 1; }
 .pen-demo .stroke.snapped .ink { animation: pen-snap .32s var(--ease); }
-@keyframes pen-snap { 50% { filter: drop-shadow(0 0 12px rgba(232, 180, 105)); } }
+@keyframes pen-snap { 50% { filter: drop-shadow(0 0 12px rgba(56, 184, 255)); } }
 .pen-demo .arrow { fill: var(--ink); stroke: #000000; stroke-width: 1.1; stroke-linejoin: round; }
 /* The talk keys, held down while the cursor moves: they ride along beside it. */
 .pen-keys { position: absolute; left: 0; top: 0; display: inline-flex; gap: 3px; }
 .pen-keys .cap { --bc: rgba(255, 255, 255, 0.14); --fill: rgba(255, 255, 255, 0.06); min-width: 24px; height: 22px; padding: 0 5px; font-size: 11px; transition: transform .08s steps(2); }
 /* Held down: it sinks and lights up, like the real keys while drawing. */
-.pen-keys.down .cap { --bc: var(--accent); --fill: rgba(232, 180, 105, 0.18); --bw: 1px; transform: translateY(2px); color: var(--accent); filter: drop-shadow(0 0 5px rgba(232, 180, 105, 0.55)); }
+.pen-keys.down .cap { --bc: var(--accent); --fill: rgba(56, 184, 255, 0.18); --bw: 1px; transform: translateY(2px); color: var(--accent); filter: drop-shadow(0 0 5px rgba(56, 184, 255, 0.55)); }
 
 @media (prefers-reduced-motion: reduce) {
   .pen-demo .stroke.snapped .ink { animation: none; }

@@ -47,12 +47,11 @@
       // Size: 'default', 'small' (half the body) or 'cursor' (a pixel arrow pointer). Text keeps its size either way.
       let form = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('form')) || 'default', lastEnv = null;
       let userForm = form;
-      // Look: 'classic' (the goo blob, and the arrow at cursor size), 'jarvis' (roamies/jarvis.js: a globe of
-      // points with a lit heart, and a HUD reticle at cursor size) or a character from roamies/people.js
-      // ('anime', 'sarah', 'adrian', 'rita', 'echo'). Moves, sizes and everything else are shared.
-      const drawn = (l) => (l === 'jarvis' ? Roamie.jarvis : Roamie.people?.[l]);
-      const pickLook = (l) => (drawn(l) ? l : 'classic');
-      let look = pickLook(typeof location !== 'undefined' ? new URLSearchParams(location.search).get('look') : null);
+      // One look: Jarvis (roamies/jarvis.js), a globe of points with a lit heart, and a HUD reticle at cursor size.
+      // Moves, sizes and everything else are shared.
+      const drawn = () => Roamie.jarvis;
+      const pickLook = () => 'jarvis';
+      let look = 'jarvis';
       const jst = { spin: 0, dt: 0.016 };
       // Each hand springs to its pose in the body's own space (o: its offset from the body), so it moves with the body
       // however fast that goes, and only eases between poses. x, y: where that puts it now.
@@ -589,7 +588,7 @@
         ghost: () => !!plug?.ghost?.(),
         morph,
         get look() { return look; },
-        setLook(l) { look = pickLook(l); jst.spin = 0; jst.tail = null; },
+        setLook() { look = 'jarvis'; jst.spin = 0; jst.tail = null; },
         resize(env) {
           lastEnv = env;
           const S = Roamie.unit(env);

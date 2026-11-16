@@ -1,4 +1,4 @@
-// Echo's think_it_through tool: checks a decision the model brings, then turns it into the cards Echo draws.
+// Jarvis's think_it_through tool: checks a decision the model brings, then turns it into the cards Jarvis draws.
 // A decision is only as good as the options it names, so each one has to say what it gives and what it asks,
 // the lean has to be one of them, and the reason has to stand on its own. Pure data in, cards out: no screen here.
 
@@ -43,9 +43,9 @@ export function thinkProblems({ decision, options = [], values = [], lean, why, 
   return out;
 }
 
-/** The beats think_it_through draws: what matters, the options side by side, then Echo's lean and why.
+/** The beats think_it_through draws: what matters, the options side by side, then Jarvis's lean and why.
  *  The quote is a recommendation, not a verdict: it says "I'd lean", so the user keeps the last word. */
-export function thinkBeats({ decision, options = [], values = [], lean, why, next } = {}, author = 'Echo') {
+export function thinkBeats({ decision, options = [], values = [], lean, why, next } = {}, author = 'Jarvis') {
   const d = clean(decision), whyText = clean(why), step = clean(next);
   const opts = Array.isArray(options) ? options : [];
   // The option's own spelling, whatever case the lean came in as ("stay" → "Stay").
@@ -68,7 +68,7 @@ export function thinkBeats({ decision, options = [], values = [], lean, why, nex
     marks: [{
       kind: 'quote',
       text: `I'd lean toward ${pick}. ${whyText}${step ? ` First step: ${step}.` : ''}`,
-      author: clean(author) || 'Echo',
+      author: clean(author) || 'Jarvis',
     }],
   });
   return beats;

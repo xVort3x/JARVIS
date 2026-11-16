@@ -38,8 +38,8 @@ assert.equal(r.text, 'Your video is due at 2pm.'); assert.deepEqual(r.emotes, ['
 // lines into a reply ("Reading the page now. [called read_window {…}]"): the voice read them out. They're dropped,
 // whatever the chunking, mid-line too; ordinary brackets and text around them stay.
 {
-  const { EchoFilter } = await import('../reply.mjs');
-  const filter = (text, n) => { const f = new EchoFilter(); let out = ''; for (let k = 0; k < text.length; k += n) out += f.push(text.slice(k, k + n)); return out + f.flush(); };
+  const { ToolCallFilter } = await import('../reply.mjs');
+  const filter = (text, n) => { const f = new ToolCallFilter(); let out = ''; for (let k = 0; k < text.length; k += n) out += f.push(text.slice(k, k + n)); return out + f.flush(); };
   for (const n of [1, 2, 3, 7, 1000]) {
     assert.equal(filter('Reading the page now.\n[called read_window {"target":"browser"}]\nIt says hi.', n), 'Reading the page now.\nIt says hi.', `own line, chunk ${n}`);
     assert.equal(filter('Reading the page now. [called read_window {"target":"browser"}]', n), 'Reading the page now.', `end of a line, chunk ${n}`);

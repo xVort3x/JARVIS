@@ -1,6 +1,6 @@
 /* The panel that opens from the menu bar or tray icon. Built on the setup guide's stylesheet (fonts, colours,
    pixel frames, buttons, switches, fields), so it's the same LED-panel world; this file only lays it out.
-   One accent fill per view: the header's update button when there is one, otherwise Ask. */
+   One accent fill per view: the header's Ask button. */
 :root {
   --gut: 16px;      /* the one inline gutter: header, pages and note */
   --step: 10px;     /* gap inside a group */
@@ -18,7 +18,7 @@ html, body { height: 100%; background: transparent; }
   height: 100%; display: flex; flex-direction: column; overflow: hidden;
   background:
     radial-gradient(760px 480px at 50% -10%, rgba(111, 143, 220, 0.10), transparent 70%),
-    radial-gradient(520px 380px at 12% 112%, rgba(232, 180, 105, 0.05), transparent 70%),
+    radial-gradient(520px 380px at 12% 112%, rgba(56, 184, 255, 0.05), transparent 70%),
     linear-gradient(180deg, #151a23 0%, #10141b 55%, #0b0e13 100%);
   background-color: #0b0e13;
   color: var(--ink);
@@ -74,7 +74,7 @@ html, body { height: 100%; background: transparent; }
 .head { display: flex; align-items: center; gap: 8px; padding: 6px var(--gut) 6px 4px; }
 .head-text { min-width: 0; flex: 1; display: grid; }
 /* The Roamie stands on a small LED pad, like the setup guide's. */
-.avatar { flex: none; width: 100px; height: 74px; margin-inline-end: -10px; background: radial-gradient(closest-side, rgba(232, 180, 105, 0.10), transparent) 50% 92% / 70% 22% no-repeat; }
+.avatar { flex: none; width: 100px; height: 74px; margin-inline-end: -10px; background: radial-gradient(closest-side, rgba(56, 184, 255, 0.10), transparent) 50% 92% / 70% 22% no-repeat; }
 /* Something it says (a new look, an update; not the setup guide's .quip bubble): in the status line's place for a moment, typed in its own font. */
 .head-text .by, .head-text .saying { grid-area: 2 / 1; }
 .saying {
@@ -88,31 +88,11 @@ html, body { height: 100%; background: transparent; }
   margin: 0; font: 800 20px/1.1 var(--display); letter-spacing: -0.01em; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-/* The version and the one update button beside the name: Check for updates, then Update to x (the one accent
-   fill while it's there), then Done. */
+/* The version, beside the name. */
 .ver { flex: none; font: 500 var(--t-small)/1.25 var(--display); color: var(--ink-3); }
-#head-update { flex: none; margin-inline-start: 2px; }
-#head-update[hidden] { display: none; }
 .by { margin: 2px 0 0; font-size: var(--t-small); line-height: 1.35; color: var(--ink-3); }
 /* Quit, top right: asks first (the .arm Confirm, like Forget). */
 .head-quit { flex: none; margin-inline-start: auto; font-size: var(--t-small); }
-
-/* ---------- look tiles: each look, live ---------- */
-.looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
-.looktile {
-  appearance: none; border: 0; cursor: pointer; display: grid; justify-items: center; gap: 2px; padding: 6px 4px 8px;
-  --bc: var(--line); --fill: var(--panel); color: var(--ink-2);
-}
-.looktile canvas { display: block; width: 104px; height: 76px; }
-.looktile .name { font: 500 var(--t-small)/1.3 var(--display); color: var(--ink-2); white-space: nowrap; }
-.looktile:hover { --bc: var(--line-hi); color: var(--ink); }
-.looktile[aria-checked="true"] { --bc: var(--accent); --fill: rgba(232, 180, 105, 0.08); color: var(--accent); }
-
-/* ---------- About: who made it ---------- */
-.maker { display: flex; align-items: center; gap: 4px; min-width: 0; }
-.maker canvas { flex: none; width: 100px; height: 74px; margin-inline-start: -14px; background: radial-gradient(closest-side, rgba(232, 180, 105, 0.10), transparent) 50% 92% / 70% 22% no-repeat; }
-.maker > span { min-width: 0; font: 600 var(--t-head)/1.4 var(--display); color: var(--ink); white-space: nowrap; }
-.maker > span small { display: block; font: 400 var(--t-small)/1.4 var(--display); color: var(--ink-3); }
 
 /* ---------- sidebar: one page per concern ---------- */
 .split { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--side) minmax(0, 1fr); border-top: 1px dashed var(--line); }
@@ -128,10 +108,10 @@ html, body { height: 100%; background: transparent; }
   --bc: transparent; --fill: transparent;
   transition: color 120ms steps(2, end);
 }
-.navi:hover { color: var(--ink); --fill: rgba(232, 180, 105, 0.05); }
-.navi[aria-current="page"] { color: var(--accent); font-weight: 600; --fill: rgba(232, 180, 105, 0.08); --bc: var(--accent); }
+.navi:hover { color: var(--ink); --fill: rgba(56, 184, 255, 0.05); }
+.navi[aria-current="page"] { color: var(--accent); font-weight: 600; --fill: rgba(56, 184, 255, 0.08); --bc: var(--accent); }
 /* Needs you (an update, no account): one small LED at the end, nothing more. */
-.navi .dot { display: none; width: 6px; height: 6px; margin-inline-start: auto; background: var(--accent); border-radius: 50%; box-shadow: 0 0 6px rgba(232, 180, 105, 0.8); }
+.navi .dot { display: none; width: 6px; height: 6px; margin-inline-start: auto; background: var(--accent); border-radius: 50%; box-shadow: 0 0 6px rgba(56, 184, 255, 0.8); }
 .navi.flag .dot { display: block; }
 .navi.ping { animation: navi-ping 240ms steps(3, end); }
 @keyframes navi-ping { 0% { filter: brightness(1.9); } 100% { filter: none; } }
@@ -207,20 +187,6 @@ html, body { height: 100%; background: transparent; }
 .item.bad .text, .item .text small.late { color: var(--danger); }
 .mark { width: 8px; height: 8px; justify-self: center; background: rgba(255, 255, 255, 0.16); border-radius: 50%; }
 
-/* ---------- What's new: one change per row, the title and its kind on one line, the date, then a line or two ---------- */
-.item.wn { grid-template-columns: minmax(0, 1fr); align-items: start; gap: 3px; padding: 8px 0; }
-.wn-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.wn-title { min-width: 0; font: 600 var(--t-body)/1.3 var(--display); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* The kind: a solid LED fill and its word (never colour alone), brightest for New. */
-.wn-kind { flex: none; margin-inline-start: auto; padding: 2px 6px; font: 700 var(--t-small)/1.25 var(--display); letter-spacing: 0.06em; text-transform: uppercase; }
-.wn-kind.k-new { background: var(--accent); color: var(--accent-ink); }
-.wn-kind.k-improved { background: var(--line-hi); color: var(--ink); }
-.wn-kind.k-fixed { background: var(--line); color: var(--ink); }
-.wn-kind.k-removed { background: #232936; color: var(--ink-2); }
-.wn-date { font-size: var(--t-small); line-height: 1.3; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.wn-text { margin: 0; min-height: 2.8em; font-size: var(--t-small); line-height: 1.4; color: var(--ink-2); } /* two lines kept, so every row is one height */
-/* This update's changes: lit like the current page in the sidebar, the rest as they were. */
-.item.wn.fresh { padding-inline: 10px; background: rgba(232, 180, 105, 0.08); color: var(--ink); border-bottom-color: var(--bg); }
 .item.did .mark { background: var(--accent-lo); }
 .item.bad .mark { background: var(--danger); }
 /* A question: two stacked bars, like a quote, instead of a dot. */

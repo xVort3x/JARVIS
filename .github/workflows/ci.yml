@@ -147,9 +147,9 @@ jobs:
           kill $pid 2>/dev/null
           if ! { $started && $alive && $shaped; }; then
             tail -40 "$RUNNER_TEMP/app.log"; tail -40 "$HOME/.gg/sidekick.log" 2>/dev/null
-            echo "Roamies didn't start properly (sidecar started: $started, still running: $alive, Roamie on screen: $shaped)"; exit 1
+            echo "Jarvis didn't start properly (sidecar started: $started, still running: $alive, Jarvis on screen: $shaped)"; exit 1
           fi
-          echo "Roamies started its sidecar and showed the Roamie (pid $pid)"
+          echo "Jarvis started its sidecar and showed the Jarvis overlay (pid $pid)"
           SH
           dbus-run-session -- xvfb-run -a -s '-screen 0 1600x1000x24' bash "$RUNNER_TEMP/smoke.sh"
 
@@ -172,6 +172,6 @@ jobs:
           if ($alive) { taskkill /PID $p.Id /T /F | Out-Null }
           if (-not ($started -and $alive)) {
             Get-Content (Join-Path $env:USERPROFILE '.gg/sidekick.log') -ErrorAction SilentlyContinue | Select-Object -Last 40
-            throw "Roamies didn't start its sidecar (started: $started, still running: $alive)"
+            throw "Jarvis didn't start its sidecar (started: $started, still running: $alive)"
           }
-          "Roamies started its sidecar (pid $($p.Id))"
+          "Jarvis started its sidecar (pid $($p.Id))"

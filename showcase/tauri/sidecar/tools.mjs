@@ -229,8 +229,8 @@ export function sideSearchFor(route) {
 // Every request and redirect hop of web_fetch goes through safety.mjs, by name and by the addresses it resolves to.
 export const guardFetch = async (url) => { const v = await checkFetch(url); return v.level === BLOCK ? `Blocked for safety: ${v.reason}` : null; };
 
-export function createTools({ allowActions, ui, ask, openUrl, onCommitments, focus = null, firedReminders = () => [], showList, fmtWhen, commitmentsText, userName, onPlan = () => {}, speak = () => false, onHandoff = () => {}, watchClicks = () => {}, onInkGone = () => {}, askShell = async () => ({ ok: false, error: 'Roamies isn\'t running.' }), workdir = HOME, own = null, sideSearch = async () => null, pointScale = () => 'pixels', assistantName = 'Echo' }) {
-  // The look's name, for the cards it signs (Echo, JARVIS, Sarah…). Live, so changing the look changes it.
+export function createTools({ allowActions, ui, ask, openUrl, onCommitments, focus = null, firedReminders = () => [], showList, fmtWhen, commitmentsText, userName, onPlan = () => {}, speak = () => false, onHandoff = () => {}, watchClicks = () => {}, onInkGone = () => {}, askShell = async () => ({ ok: false, error: 'Jarvis isn\'t running.' }), workdir = HOME, own = null, sideSearch = async () => null, pointScale = () => 'pixels', assistantName = 'Jarvis' }) {
+  // The assistant's name, for the cards it signs. Live, so a rename carries through.
   const assistant = typeof assistantName === 'function' ? assistantName : () => assistantName;
   // Relative paths (and run_command) start in workdir: the home folder for the chat, its own folder for an agent.
   const at = (p) => { const s = String(p ?? ''); return /^~(?=$|\/|\\)/.test(s) || path.isAbsolute(s) || /^[a-z]:[\\/]/i.test(s) ? s : path.join(workdir, s); };
@@ -264,7 +264,7 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
     };
   }
   async function hands(...args) {
-    if (!HANDS) throw new Error('This needs the Roamies app.');
+    if (!HANDS) throw new Error('This needs the Jarvis app.');
     // Acting in an app may take the real cursor: meanwhile clicks go through the overlay, even where the Sidekick or
     // its bubble sits on the spot being clicked.
     const acting = args[0] === 'act';
@@ -285,7 +285,7 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
       if (process.platform === 'darwin' && /Accessibility/i.test(res.error ?? '')) {
         // Open the exact Settings pane (once a minute at most) so the fix is one click away.
         if (Date.now() - axNudged > 60_000) { axNudged = Date.now(); openUrl('x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'); }
-        throw new Error('Accessibility is off for Roamies, so I can\'t read or control other apps yet. I just opened System Settings → Privacy & Security → Accessibility: switch on Roamies there, then ask again. Tell the user exactly that, briefly.');
+        throw new Error('Accessibility is off for Jarvis, so I can\'t read or control other apps yet. I just opened System Settings → Privacy & Security → Accessibility: switch on Jarvis there, then ask again. Tell the user exactly that, briefly.');
       }
       throw new Error(res.error || 'That did not work.');
     }
@@ -313,7 +313,7 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
   // The helper's screenshot: one window or app (even behind others), or the screen; shrunk by the helper itself.
   async function handsShot(file, t) {
     const spec = t === 'screen' || t === 'front' || t.startsWith('window:') ? t : `app:${t}`;
-    // Shot straight away, with nothing played on screen (the Roamie only shows a "looking" tag).
+    // Shot straight away, with nothing played on screen (Jarvis only shows a "looking" tag).
     // 1568 px is Claude's own cap; a bigger image gets shrunk again and its coordinates drift. The helper shrinks it
     // itself and says the final size; an older helper doesn't, so sips does it here.
     const res = await hands('capture', file, spec, '1568');
@@ -484,7 +484,7 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
         return (await hands('ocr-find', where, String(find), 'all').catch(() => null))?.matches ?? [];
       },
       async findText(find) {
-        if (!HANDS) throw new Error('Finding words on screen needs the Roamies app; take a screenshot and give x, y instead.');
+        if (!HANDS) throw new Error('Finding words on screen needs the Jarvis app; take a screenshot and give x, y instead.');
         // Text read off the screen: one match, or where each of several is, so the right one can be picked with within.
         const readOne = async () => {
           const all = await this.textAll(find);
@@ -509,7 +509,7 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
         }
       },
       async id(n) {
-        if (!HANDS) throw new Error('read_window ids need the Roamies app; give x, y from a screenshot instead.');
+        if (!HANDS) throw new Error('read_window ids need the Jarvis app; give x, y from a screenshot instead.');
         live ??= await liveControls(spec);
         const c = live(n);
         if (c.offscreen) throw new Error(`"${c.label || c.role}" is further down the page. Use its text instead; that scrolls to it.`);
@@ -583,7 +583,7 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
       else if (m.kind === 'open') { await tools.find((x) => x.name === 'open').execute({ target: m.url }); }
       else if (m.kind === 'handoff') onHandoff(m.task || m.text || m.label || 'a task');
       else if (m.kind === 'type') {
-        if (!HANDS) throw new Error('Typing into apps needs the Roamies app.');
+        if (!HANDS) throw new Error('Typing into apps needs the Jarvis app.');
         const src = m.at.src, app = t === 'front' || t === 'screen' ? {} : { app: t };
         const steps = src.text != null ? [{ do: 'fill', field: src.text, text: m.text }]
           : src.id != null ? [{ do: 'click', id: m.at.live }, { do: 'type', text: m.text }]
@@ -604,7 +604,7 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
     const id = ctx.toolCallId, edits = args.edit ?? [], notes = [], said = [];
     // Clicks and hovers in other apps can't be seen here (Wayland): the beats play one after another instead.
     const beats = (args.beats ?? []).map((b) => (POINTER_OK || !b.wait ? b : { ...b, wait: undefined }));
-    if (beats.some((b, i) => b !== (args.beats ?? [])[i])) notes.push("This desktop doesn't let Roamies see clicks in other apps, so the beats played one after another instead of waiting for clicks.");
+    if (beats.some((b, i) => b !== (args.beats ?? [])[i])) notes.push("This desktop doesn't let Jarvis see clicks in other apps, so the beats played one after another instead of waiting for clicks.");
     for (const e of edits) if (e.do !== 'clear' && !parts.has(e.part)) throw new Error(`There's no ${e.part} on screen now${parts.ids.length ? ` (there is: ${parts.describe()})` : ' (nothing is drawn)'}. Draw it again instead.`);
     // A new drawing in a later request replaces the old one (cards too), unless it's editing what's there.
     if (ink.turn !== turn && !edits.length && parts.ids.length) clearAllInk();
@@ -836,7 +836,7 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
     ] : []),
     {
       name: 'draw',
-      description: `Draw on the user's screen while you talk. Your Roamie turns into its cursor and draws with its tip, each beat's marks paced to its spoken line (also shown as a caption). One call holds a whole explanation or walkthrough.
+      description: `Draw on the user's screen while you talk. Jarvis turns into a cursor and draws with its tip, each beat's marks paced to its spoken line (also shown as a caption). One call holds a whole explanation or walkthrough.
 beats: [{say, marks, wait?}]. say: one short line, under 20 words, spoken and captioned while that beat's marks draw, so your reply after draw never repeats or rephrases it (no restating the steps). Keep 1 to 4 marks per beat, in the order you mention them.
 Places (at, to, tie), best first: {text: the exact words shown on screen} (exact bounds, scrolls to it; target 'screen' searches every app; also words inside paragraphs, text in images or canvases, and a single character, which matches case); add every: true to mark every place that text appears (each letter s, each mention of a word), one mark per place, and within: {x, y, w, h} (screenshot pixels, x, y the centre) to keep to one part of the screen (every s in one sentence); {id} from read_window, for controls without words; {x, y, w, h} pixels in your latest screenshot, for icons, shapes and areas without words: x, y is the thing's centre, and w, h its whole width and height; the box is then fitted to what's really drawn there, so a close guess is enough.
 Which mark: one control they should click: target (with wait 'click' in a walkthrough); one thing to notice: ring (follows its shape; r sets the corner radius); a small spot or icon: point; a region or panel: frame; key words: underline (outdated ones: strike); right or wrong: check, cross; order of steps: num; a name beside something: label (text) or label on any mark; how two things relate: connect (at → to; flow: true runs moving dots along it, for something that travels or keeps happening); an odd-shaped group: trace (points); scroll here: scroll (dir); one thing above all else: spotlight (sparingly); something to hover: hover with wait 'hover'; big words: write (text, size).

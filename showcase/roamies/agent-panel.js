@@ -8,12 +8,12 @@
 (() => {
   const R = window.Roamie;
   const css = `
-.rp { --ink: #eef1f7; --ink-2: #c6ccd8; --ink-3: #8b93a3; --accent: #e8b469; --line-hi: #313a4a;
+.rp { --ink: #eef1f7; --ink-2: #c6ccd8; --ink-3: #8b93a3; --accent: #38b8ff; --line-hi: #313a4a;
   --ease: cubic-bezier(.2, .8, .2, 1); --r: 16px;
   position: fixed; z-index: 5; width: 380px; display: flex; flex-direction: column;
   background: var(--line-hi); border-radius: var(--r); padding: 2px; box-sizing: border-box;
   font: 400 12.5px/1.6 "Inter", ui-sans-serif, system-ui, sans-serif; color: var(--ink);
-  filter: drop-shadow(0 0 10px rgba(232, 180, 105, 0.14)) drop-shadow(0 8px 22px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(0 0 10px rgba(56, 184, 255, 0.14)) drop-shadow(0 8px 22px rgba(0, 0, 0, 0.45));
   opacity: 0; transform: translateX(-8px) scale(.98); transform-origin: top left;
   transition: opacity .16s var(--ease), transform .16s var(--ease); pointer-events: auto; cursor: default; }
 .rp.on { opacity: 1; transform: none; }
@@ -44,7 +44,7 @@
 .rp-body s { color: var(--ink-3); }
 .rp-body code { font: inherit; color: var(--accent); }
 .rp-body a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; cursor: pointer; }
-.rp-body a:hover { color: var(--accent-hi, #ffd9a6); }
+.rp-body a:hover { color: var(--accent-hi, #9bdcff); }
 .rp-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .rp-body li > ul, .rp-body li > ol { margin: 6px 0 0; }
 .rp-body blockquote { margin: 0 0 8px; padding: 2px 0 2px 12px; border-left: 2px solid var(--line-hi); color: var(--ink-2); }

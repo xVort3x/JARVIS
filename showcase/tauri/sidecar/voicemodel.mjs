@@ -2,7 +2,7 @@
 // huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx), pinned to one commit and checked by SHA-256.
 // Downloaded once into the user's local app data; interrupted downloads resume where they stopped.
 import { createHash } from 'node:crypto';
-import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, readFileSync, renameSync, statSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -22,7 +22,21 @@ export const totalBytes = (model = MODEL) => model.files.reduce((n, f) => n + f.
 export const sizeLabel = (model = MODEL) => `${Math.round(totalBytes(model) / 1e6)} MB`;
 
 export function modelDir(model = MODEL) {
-  const root = process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Roamies') : path.join(os.homedir(), '.gg', 'sidekick');
+  const local = process.env.LOCALAPPDATA;
+  const root = local ? path.join(local, 'Jarvis') : path.join(os.homedir(), '.gg', 'sidekick');
+  // A Roamies copy's downloaded model moves over once; if the move fails, keep using the old folder rather than
+  // downloading 670 MB again.
+  if (local) {
+    const legacy = path.join(local, 'Roamies');
+    try {
+      if (!existsSync(path.join(root, 'models')) && existsSync(path.join(legacy, 'models'))) {
+        mkdirSync(root, { recursive: true });
+        renameSync(path.join(legacy, 'models'), path.join(root, 'models'));
+      }
+    } catch {
+      return path.join(existsSync(path.join(legacy, 'models')) ? legacy : root, 'models', model.id);
+    }
+  }
   return path.join(root, 'models', model.id);
 }
 

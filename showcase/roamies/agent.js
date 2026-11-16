@@ -393,7 +393,7 @@
     // Bubble text: Inter, sized to the bubble's line grid.
     const fontPx = (t) => Math.round(CH * t * 0.64 * 2) / 2;
     const colW = (t) => fontPx(t) * 0.7 + 0.35;
-    const TEXT_INK = '#eef1f7', TEXT_ACCENT = '#e8b469';
+    const TEXT_INK = '#eef1f7', TEXT_ACCENT = '#38b8ff';
     const T = () => clamp(k.P * 0.42, 1.4, 2.4);
     const G = R.glass;
     // Padding inside a bubble. The thinking tag is slim, one line, with its three dots before the words.
