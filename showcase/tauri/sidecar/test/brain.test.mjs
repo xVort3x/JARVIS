@@ -23,6 +23,18 @@ assert.equal(sideThinking('huggingface', 'deepseek-ai/DeepSeek-V4.1-Flash', 'low
   await assert.rejects(oneShot({ provider: 'anthropic', model: 'claude-haiku-5-5', system: 's', text: 't', run: async () => { throw new Error('down'); } }), /down/, 'no second try on the same model');
 }
 
+// Preferences and digests, alongside the facts.
+{
+  const reply = '{"facts": [{"text": "Ken uses Rust"}], "preferences": [{"text": "Run tests before calling it done"}, {"text": "Answer first", "replaces": "p222222"}, {"text": "x"}, {"text": "Ken\'s password is hunter2"}], "digest": "Debugging their Rust build"}';
+  const out = parseBrain(reply, { knownIds: ['f111111'], knownPrefIds: ['p222222'] });
+  assert.deepEqual(out.facts, [{ text: 'Ken uses Rust' }]);
+  assert.deepEqual(out.preferences, [{ text: 'Run tests before calling it done' }, { text: 'Answer first', replaces: 'p222222' }], 'scraps and secrets are dropped, unknown id places no replaces');
+  assert.equal(out.digest, 'Debugging their Rust build');
+  const prefs = [{ id: 'p1', text: 'Prefers terse answers' }];
+  assert.match(foldInput({ facts: [], preferences: prefs, summary: 'Earlier.', turns: 'Ken: hi', name: 'Ken' }), /Current preferences[\s\S]*- p1: Prefers terse answers/);
+  assert.match(memoryInput({ facts: [], turns: 'Ken: hi', preferences: prefs }), /- p1: Prefers terse answers/);
+}
+
 // The reply: JSON (fenced or not), facts redacted and checked, replaces only for ids that exist.
 {
   const reply = '```json\n{"summary": "Ken asked to tidy the Downloads folder and it was done.", "facts": [' +

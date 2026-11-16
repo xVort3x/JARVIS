@@ -62,7 +62,7 @@ export async function prepareFolder(dir, passphrase) {
 export const TOMB_DAYS = 60;
 const MAX_FILE = 5 * 1024 * 1024;
 const SKEW_MS = 24 * 3600_000; // a stamp further ahead than this is a broken clock, not a change
-const VOLATILE = { f: ['usedAt'], c: [] }; // fields that change all the time and never sync
+const VOLATILE = { f: ['usedAt'], c: [], p: [] }; // fields that change all the time and never sync
 
 const stable = (v) => JSON.stringify(v, Object.keys(v).sort());
 const strip = (kind, v) => { const o = { ...v }; for (const k of VOLATILE[kind]) delete o[k]; return o; };
@@ -74,7 +74,7 @@ const ownTime = (v) => Math.max(0, ...['createdAt', 'updatedAt', 'doneAt', 'remi
 export const newDevice = () => randomBytes(6).toString('hex');
 
 // ---------- checking what another computer wrote ----------
-const ID = /^[cf][0-9a-f]{1,16}$/;
+const ID = /^[cfp][0-9a-f]{1,16}$/;
 const STATUS = new Set(['open', 'done', 'dropped']);
 function validItem(key, v) {
   if (!v || typeof v !== 'object' || typeof v.id !== 'string' || `${key[0]}:${v.id}` !== key || !ID.test(v.id)) return false;
@@ -90,22 +90,22 @@ export function cleanRemote(data, now = Date.now()) {
   if (data?.version !== 1 || typeof data.device !== 'string' || typeof data.items !== 'object' || !data.items) return null;
   const items = {}, tombs = {};
   for (const [key, e] of Object.entries(data.items)) {
-    if (/^[cf]:/.test(key) && Number.isFinite(e?.at) && e.at <= now + SKEW_MS && validItem(key, e.v)) items[key] = { v: e.v, at: e.at };
+    if (/^[cfp]:/.test(key) && Number.isFinite(e?.at) && e.at <= now + SKEW_MS && validItem(key, e.v)) items[key] = { v: e.v, at: e.at };
   }
-  for (const [key, at] of Object.entries(data.tombs ?? {})) if (/^[cf]:[0-9a-f]{1,16}$/.test(key) && Number.isFinite(at) && at <= now + SKEW_MS) tombs[key] = at;
+  for (const [key, at] of Object.entries(data.tombs ?? {})) if (/^[cfp]:[cfp][0-9a-f]{1,16}$/.test(key) && Number.isFinite(at) && at <= now + SKEW_MS) tombs[key] = at;
   return { device: data.device, items, tombs };
 }
 
 // ---------- the merge (pure) ----------
 /**
- * local: { commitments, facts } as stored here. state: what the last pass saw ({ items: {key: {hash, at}}, tombs }).
- * remotes: cleaned files from the other computers. → { commitments, facts, state, out, changed }
+ * local: { commitments, facts, preferences } as stored here. state: what the last pass saw ({ items: {key: {hash, at}}, tombs }).
+ * remotes: cleaned files from the other computers. → { commitments, facts, preferences, state, out, changed }
  * out is this computer's file; changed says whether local memory needs replacing.
  */
 export function merge({ local, state = { items: {}, tombs: {} }, remotes = [], device, name = '', now = Date.now() }) {
   const prevItems = state.items ?? {}, tombs = { ...(state.tombs ?? {}) };
   const mine = new Map();
-  for (const [kind, list] of [['c', local.commitments ?? []], ['f', local.facts ?? []]]) {
+  for (const [kind, list] of [['c', local.commitments ?? []], ['f', local.facts ?? []], ['p', local.preferences ?? []]]) {
     for (const v of list) {
       const key = `${kind}:${v.id}`, h = hashItem(kind, v), prev = prevItems[key];
       // Changed here since the last pass: stamped now. New to the sync state: its own times say when.
@@ -136,17 +136,17 @@ export function merge({ local, state = { items: {}, tombs: {} }, remotes = [], d
     if (kind === 'f') { delete v.usedAt; if (usedAt.get(v.id) != null) v.usedAt = usedAt.get(v.id); }
     return v;
   }).sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0) || (a.id < b.id ? -1 : 1));
-  const commitments = pick('c'), facts = pick('f');
+  const commitments = pick('c'), facts = pick('f'), preferences = pick('p');
   // What this computer knew (held, or saw last pass) that this pass removes, for the brake (tooMuchGone).
   const known = new Set([...mine.keys(), ...Object.keys(prevItems)]);
   const removed = [...known].filter((key) => !keep.has(key)).length;
 
   const items = {}, outItems = {};
   for (const [key, e] of keep) { items[key] = { hash: hashItem(key[0], e.v), at: e.at }; outItems[key] = { v: strip(key[0], e.v), at: e.at }; }
-  const sig = (cs, fs) => [...cs.map((v) => `c:${v.id}:${hashItem('c', v)}`), ...fs.map((v) => `f:${v.id}:${hashItem('f', v)}`)].sort().join('|');
-  const changed = sig(commitments, facts) !== sig(local.commitments ?? [], local.facts ?? []);
+  const sig = (cs, fs, ps) => [...cs.map((v) => `c:${v.id}:${hashItem('c', v)}`), ...fs.map((v) => `f:${v.id}:${hashItem('f', v)}`), ...ps.map((v) => `p:${v.id}:${hashItem('p', v)}`)].sort().join('|');
+  const changed = sig(commitments, facts, preferences) !== sig(local.commitments ?? [], local.facts ?? [], local.preferences ?? []);
   return {
-    commitments, facts, changed, removed, known: known.size,
+    commitments, facts, preferences, changed, removed, known: known.size,
     state: { items, tombs },
     out: { version: 1, device, name: String(name).slice(0, 60), at: now, items: outItems, tombs },
   };

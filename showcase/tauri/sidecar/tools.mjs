@@ -13,7 +13,7 @@ import { CARDS, DrawArgs, LIMITS, checkDraw, createParts, createPhotos, describe
 import { plain } from './intro.mjs';
 import { linuxSession, seesPointer } from './platform.mjs';
 import { exclusionsOf, isLocked, excluded, hashShot } from './aware.mjs';
-import { addCommitment, forgetFact, getCommitment, parseDue, parseRepeat, repeatLabel, updateCommitment } from './store.mjs';
+import { addCommitment, forgetFact, getCommitment, parseDue, parseRepeat, repeatLabel, searchSessions, updateCommitment } from './store.mjs';
 import { snoozeTarget, snoozeUntil } from './snooze.mjs';
 import { thinkBeats, thinkProblems, THINK_MAX_OPTIONS } from './think.mjs';
 
@@ -1054,6 +1054,17 @@ A drawing stays until the user clears it or the window changes; your next drawin
       name: 'forget_fact', description: 'Delete a saved fact that is wrong or that the user asks you to forget. Ids are in the memory section of the <live-state> block.',
       parameters: z.object({ id: z.string() }),
       execute: async ({ id }) => { const f = await forgetFact(id); if (!f) throw new Error(`No fact with id ${id}.`); return `Forgot: ${f.text}`; },
+    },
+    {
+      name: 'recall',
+      description: "Search past conversations for what was said or decided. query: the words to look for ('website', 'Rust'). from: optional, an ISO date ('2026-11-01') or an age in days ('14'). limit: how many conversations (default 3, max 5). Returns when, a one-line recap of each conversation and a snippet of what was said. Use it when they ask what you did, decided or discussed before.",
+      parameters: z.object({ query: z.string().min(3).max(200), from: z.string().max(30).optional(), limit: z.number().int().min(1).max(5).optional() }),
+      execute: async ({ query, from, limit }) => {
+        const day = from && /^\d{4}-\d{2}-\d{2}$/.test(from) ? Date.parse(`${from}T00:00`) : from && /^\d+$/.test(from) ? Date.now() - Number(from) * 864e5 : 0;
+        const hits = searchSessions(query, { from: Number.isFinite(day) ? day : 0, limit: limit ?? 3 });
+        if (!hits.length) return 'Nothing from past conversations matches that.';
+        return hits.map((h) => `${new Date(h.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}${h.digest ? ` — ${h.digest}` : ''}${h.snippet ? `\n  ${h.snippet}` : ''}`).join('\n');
+      },
     },
     {
       // The step trail on screen. Free to call: always alongside other tool calls, never in a turn of its own.

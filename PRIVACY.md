@@ -61,6 +61,12 @@ Each provider's own privacy policy applies to what is sent to it.
   never let me see the windows you list (password managers, private browsing and the lock screen are the defaults),
   and Private mode turns all of it off until you switch it back on. Nothing is recorded between requests; the only
   screen data kept is the picture taken to answer "what's on my screen?" — it's deleted right after it's used.
+- **Session memory:** after each conversation ends, Jarvis saves a one-line recap of it ("Debugging their Rust
+  build"), so it can pick up where you left off. The recap is one sentence, kept in `sidekick/summaries/`,
+  alongside the session's transcript in `sidekick/sessions/`. Forget a session in the panel and both its recap and
+  its transcript are deleted.
+- **Working preferences:** how you like Jarvis to work (e.g. "run the tests before calling it done"), saved
+  separately from facts and synced with your other computers if you set up sync.
 - **Password fields** are blacked out of every picture that goes to the AI (Windows only, for now), however the
   picture was taken.
 - The screen is captured only when Jarvis answers something about your screen, or when you mark an area. On Linux
@@ -73,8 +79,9 @@ Everything lives in `~/.gg` (on Windows, `%USERPROFILE%\.gg`) and stays on your 
 | File or folder           | What's in it                                                                        |
 | ------------------------ | ----------------------------------------------------------------------------------- |
 | `sidekick.json`          | your settings                                                                       |
-| `sidekick/memory.json`   | facts Jarvis learned and your commitments                                          |
+| `sidekick/memory.json`   | facts Jarvis learned, your working preferences and your commitments                 |
 | `sidekick/sessions/`     | conversations (the newest 60 are kept)                                              |
+| `sidekick/summaries/`    | one-line recaps of past conversations (deleted with the session)                    |
 | `sidekick/logs/`         | activity logs: tool names, timings, errors and short snippets of tool results (such as a line of window or page text); text you type into apps or files is reduced to its length; kept 7 days |
 | `sidekick/usage.jsonl`   | token counts and timings only, never content                                       |
 | `auth.json`              | your AI sign-ins, shared with GG Coder                                              |

@@ -26,6 +26,7 @@ import { createInterface } from 'node:readline';
 import {
   addFact, applySynced, syncSnapshot, DIR as STORE_DIR, repeatLabel, startOfDay, applyFold, approxTokens, archiveFolded, clearFacts, clearFinished, compactTrigger, fitContext, flushWrites, forgetFact, isSummary, listItems, listFacts, nextDue, pickFacts, planFold,
   touchFacts, forDisk, forProvider, loadLatestSession, newSession, openCommitments, pruneSessions, readJson, saveSession, takeDueReminders, updateCommitment, writeJson,
+  addPreference, listPreferences, forgetPreference, saveSessionSummary, listSessionSummaries, forgetSession, clearPreferences,
 } from './store.mjs';
 import { foldInput, foldPrompt, memoryInput, memoryPrompt, oneShot, parseBrain, transcript } from './brain.mjs';
 import { briefNote } from './brief.mjs';
@@ -666,13 +667,16 @@ let frontNow = ''; // set just before each request (screenNow)
 const livePrompt = (context = '') => {
   const facts = pickFacts(context, 40), total = listFacts().length;
   lastFactIds = facts.map((f) => f.id);
+  const preferences = listPreferences().slice(0, 10);
+  const recent = listSessionSummaries(3);
+  const dateLine = (at) => new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   const open = commitmentsText(), done = doneTodayText(), working = agents.liveText();
   const turn = `Live state (current as of this moment):
 ${frontNow ? `${frontNow}\n` : ''}${focusLine()}- Editing files, running commands and controlling other apps: ${config.allowActions ? 'ALLOWED' : `switched OFF (tell the user to turn on "Allow File Edits & Commands" on the General page in ${PANEL} if they want it)`}.
 ${VOICE_OK ? `- Voice: ${!config.voice ? 'off' : voiceReady() ? `on; ${HOTKEYS_OK ? `${userName} holds ${talkWords()} to talk` : `${userName} presses the key they bound to ${BIND.talk} to start talking and again to send (a pause sends too)`}${config.autoListen ? '. Auto-listen is on: when your reply to a spoken question ends with a question, the mic opens by itself for their answer' : ''}${MAC && config.wakeWord ? `. Wake word is on: ${userName} can also say "Hey ${wakeName(config)}" to start talking hands-free, and what they say right after it is the request (a request that still starts with "Hey ${wakeName(config)}" is them waking you, not calling you by another name: never correct it)${config.wakeName ? ` (they chose "${config.wakeName}" as the wake word; your own name is unchanged)` : ''}` : ''}` : `on, but the speech model isn't downloaded yet (${voiceModel.status === 'downloading' ? 'downloading now' : `the Voice page in ${PANEL}`})`}.` : ''}
 - Shortcuts: ${HOTKEYS_OK ? `${keys().write ? `type a question to you: ${typeof keys().write === 'string' ? `press ${keys().write} to start typing, which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)` : `a quick tap of ${writeWords()} (press both and let go), which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)`}` : `the tap that opens a text field to type a question is turned off (the Ask button in ${PANEL} still opens it; the Shortcuts page there turns the tap back on)`}; show or hide you ${keyWords(keys().summon)}` : `on this Wayland desktop no app can have global shortcuts, so ${userName} binds keys to these commands in their desktop's keyboard settings: ${BIND.summon} (show or hide you), ${BIND.ask} (ask you), ${BIND.list} (the list), ${BIND.talk} (talk) and ${BIND.panel} (the panel)`}${SNAP_OK ? `; ask about an area ${keyWords(keys().snap)}` : ''}${CIRCLE_OK ? "; while holding the talk keys, moving the cursor round something circles it (no clicking; it snaps shut with a click when the circle closes, and loose lines don't count) and you'll see what they circled" : ''}${HOTKEYS_OK ? `; show the list ${keyWords(keys().list)}` : ''}.${HANDS_OK ? '' : ' Asking about an area, reading app windows, finding things on screen by their words and working other apps need the Jarvis app, which isn\'t running here; draw there with x, y from a screenshot.'}`;
   const memory = `${open ? `Open commitments:\n${open}` : 'No open commitments.'}${done ? `\nDone today (ticked off on the list or by you; still shown struck through until midnight):\n${done}` : ''}
-${facts.length ? `What you know about ${userName}${total > facts.length ? ` (${facts.length} most relevant of ${total})` : ''}:\n${facts.map((f) => `- ${f.id}: ${f.text}`).join('\n')}` : `You don't know anything lasting about ${userName} yet.`}${working ? `\n${working}` : ''}`;
+${facts.length ? `What you know about ${userName}${total > facts.length ? ` (${facts.length} most relevant of ${total})` : ''}:\n${facts.map((f) => `- ${f.id}: ${f.text}`).join('\n')}` : `You don't know anything lasting about ${userName} yet.`}${preferences.length ? `\nHow they want it:\n${preferences.map((p) => `- ${p.id}: ${p.text}`).join('\n')}` : ''}${recent.length ? `\nRecent work:\n${recent.map((r) => `- ${dateLine(r.at)}: ${r.digest}`).join('\n')}` : ''}${working ? `\n${working}` : ''}`;
   return { turn, memory };
 };
 const system = () => stablePrompt();
@@ -946,10 +950,11 @@ function maybeCompact() {
   const s = session, t0 = Date.now();
   compacting = (async () => {
     try {
-      const facts = listFacts();
-      const { text, model } = await oneShot({ ...(await sideRoute()), system: foldPrompt(userName), text: foldInput({ facts, summary: plan.summary, turns: transcript(plan.folded, userName, stripNote), name: userName }) });
-      const out = parseBrain(text, { knownIds: facts.map((f) => f.id), wantSummary: true });
+      const facts = listFacts(), preferences = listPreferences();
+      const { text, model } = await oneShot({ ...(await sideRoute()), system: foldPrompt(userName), text: foldInput({ facts, summary: plan.summary, turns: transcript(plan.folded, userName, stripNote), name: userName, preferences }) });
+      const out = parseBrain(text, { knownIds: facts.map((f) => f.id), knownPrefIds: preferences.map((p) => p.id), wantSummary: true });
       const learned = await learnFacts(out.facts);
+      await learnPreferences(out.preferences);
       if (s !== session) { logLine('compact_dropped', { session: s.id, why: 'new conversation' }); return; }
       pendingFold = { session: s, plan, summary: out.summary, model, ms: Date.now() - t0, facts: learned.length };
       // A request that started meanwhile only appends turns: the fold lands when it's saved.
@@ -984,16 +989,27 @@ async function learnFacts(facts) {
   if (added.length) menu();
   return added;
 }
+async function learnPreferences(preferences) {
+  const added = [];
+  for (const p of preferences) {
+    if (p.replaces) await forgetPreference(p.replaces);
+    added.push(await addPreference(p.text));
+  }
+  if (added.length) menu();
+  return added;
+}
 async function memoryPass(s, why) {
   const turns = transcript(s.messages.filter((m) => !isSummary(m)), userName, stripNote);
   if (!turns.trim() || !config.model) return [];
   const t0 = Date.now();
   try {
-    const facts = listFacts();
-    const { text, model } = await oneShot({ ...(await sideRoute()), system: memoryPrompt(userName), text: memoryInput({ facts, turns }) });
-    const out = parseBrain(text, { knownIds: facts.map((f) => f.id) });
+    const facts = listFacts(), preferences = listPreferences();
+    const { text, model } = await oneShot({ ...(await sideRoute()), system: memoryPrompt(userName), text: memoryInput({ facts, turns, preferences }) });
+    const out = parseBrain(text, { knownIds: facts.map((f) => f.id), knownPrefIds: preferences.map((p) => p.id) });
     const learned = await learnFacts(out.facts);
-    logLine('memory', { why, session: s.id, model, ms: Date.now() - t0, facts: learned.length, replaced: out.facts.filter((f) => f.replaces).length });
+    await learnPreferences(out.preferences);
+    if (out.digest && s?.id) await saveSessionSummary(s.id, out.digest, s.lastActiveAt ?? Date.now()).catch(() => {});
+    logLine('memory', { why, session: s.id, model, ms: Date.now() - t0, facts: learned.length, facts_replaced: out.facts.filter((f) => f.replaces).length, preferences: out.preferences.length });
     return learned;
   } catch (e) {
     logLine('memory_failed', { why, session: s.id, ms: Date.now() - t0, error: String(e?.message ?? e).slice(0, 300) });
@@ -1674,7 +1690,7 @@ async function syncPass() {
     const remotes = await readRemotes(dir, config.syncDevice, syncKey);
     const r = syncMerge({ local: snap, state, remotes, device: config.syncDevice, name: os.hostname() });
     if (tooMuchGone(r) && !syncAllowOnce) {
-      syncInfo = { at: syncInfo.at, paused: true, error: `paused, as it would remove ${r.removed} of ${r.known} reminders and memories on every computer` };
+      syncInfo = { at: syncInfo.at, paused: true, error: `paused, as it would remove ${r.removed} of ${r.known} reminders, memories and preferences on every computer` };
       logLine('sync', { paused: r.removed, of: r.known });
       return;
     }
@@ -1682,7 +1698,7 @@ async function syncPass() {
       // Before every change from elsewhere, a copy of memory as it was, to go back to if ever needed.
       await fs.copyFile(path.join(STORE_DIR, 'memory.json'), path.join(STORE_DIR, 'memory.before-sync.json')).catch(() => {});
       if (!(await applySynced(r, snap.basis))) { syncSoon(); return; } // changed here meanwhile: merge again shortly
-      logLine('sync', { applied: true, commitments: r.commitments.length, facts: r.facts.length });
+      logLine('sync', { applied: true, commitments: r.commitments.length, facts: r.facts.length, preferences: r.preferences.length });
       menu(); scheduleReminders();
     }
     await writeJson(SYNC_STATE, r.state);
@@ -1883,6 +1899,8 @@ function panelState() {
     recent: activity.recent,
     usage: usageToday.requests ? { requests: usageToday.requests, tokens: usageToday.tokens } : null,
     facts: listFacts().slice().reverse().map((f) => ({ id: f.id, text: f.text })),
+    preferences: listPreferences().slice().reverse().map((p) => ({ id: p.id, text: p.text })),
+    summaries: listSessionSummaries(20).map((s) => ({ id: s.id, digest: s.digest, at: s.at })),
     commitments: openCommitments().map((c) => ({ id: c.id, text: c.text, due: c.due ?? null, when: c.due ? `${fmtWhen(c.due)}${c.repeat ? ` · repeats ${repeatLabel(c.repeat)}` : ''}` : '', overdue: !!(c.due && c.due < Date.now()), repeat: c.repeat ?? null })),
     look: config.look ?? 'classic', looks: LOOKS.map(([id, label]) => [id, label]), name: lookName(),
     size: sizeNow(), sizes: SIZES,
@@ -2184,6 +2202,9 @@ async function onMenu(id, via) {
     const entry = id.slice('awareexclrm:'.length);
     config.awareExclusions = exclusionsOf(config).filter((x) => x.toLowerCase() !== entry.toLowerCase()); saveConfig(); menu();
   }
+  else if (id.startsWith('forgetpref:')) { const p = await forgetPreference(id.slice('forgetpref:'.length)); if (!p) return; menu(); say('Forgot that preference.', 'happy'); }
+  else if (id.startsWith('forgetdigest:')) { const ok = await forgetSession(id.slice('forgetdigest:'.length)); if (!ok) return; menu(); say('Forgot that conversation.', 'happy'); }
+  else if (id === 'forgetprefs:yes') { const n = await clearPreferences(); menu(); panelNote(`Forgot ${n} preference${n === 1 ? '' : 's'}.`); }
   else if (id === 'autolisten') { config.autoListen = !config.autoListen; saveConfig(); menu(); }
   else if (id === 'snoozelisten') { config.snoozeListen = !config.snoozeListen; saveConfig(); menu(); }
   else if (id === 'wakeword' && MAC) { config.wakeWord = !config.wakeWord; saveConfig(); agentStale = true; voiceConfig(); menu(); }

@@ -385,10 +385,25 @@
     }, label);
     return [
       el('div', { className: 'mhead' },
-        el('div', { className: 'tabs', role: 'tablist', 'aria-label': 'Memory' }, tabBtn('facts', 'What I remember'), tabBtn('commits', 'Commitments')),
+        el('div', { className: 'tabs', role: 'tablist', 'aria-label': 'Memory' }, tabBtn('facts', 'What I remember'), tabBtn('prefs', 'How I work'), tabBtn('recent', 'Recent work'), tabBtn('commits', 'Commitments')),
         link('Get to know me', () => act('intro', true), { k: 'intro', disabled: state.intro })),
-      ...(on === 'commits' ? commitList() : factList()),
+      ...(on === 'commits' ? commitList() : on === 'prefs' ? prefList() : on === 'recent' ? recentList() : factList()),
     ];
+  }
+  function prefList() {
+    const p = state.preferences, { box, nav } = paged('prefs', p, (x) => el('li', { className: 'item mem' },
+      el('span', { className: 'text', textContent: x.text, title: x.text }),
+      el('span', { className: 'row-btns icons' }, iconArmed('x', 'Forget', `forgetpref:${x.id}`, `forgetpref:${x.id}`, `Forget: ${x.text}`))),
+      { label: 'How I work', empty: 'I don’t know how you like me to work yet — it builds up as we talk.', id: 'prefs-box' });
+    return [el('div', { className: 'group paged', role: 'tabpanel', id: 'mem-panel', 'aria-labelledby': 'tab-prefs' }, box),
+      foot(p.length ? armed('Forget everything', `Forget all ${p.length}`, 'forget-prefs-all', 'forgetprefs:yes', `Forget all ${p.length} preferences`) : null, nav, 'prefs-foot')];
+  }
+  function recentList() {
+    const s = state.summaries ?? [], { box, nav } = paged('recent', s, (x) => el('li', { className: 'item mem' },
+      el('span', { className: 'text', title: x.digest }, `${new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} — ${x.digest}`),
+      el('span', { className: 'row-btns icons' }, iconArmed('x', 'Forget', `forgetdigest:${x.id}`, `forgetdigest:${x.id}`, 'Forget this conversation'))),
+      { label: 'Recent work', empty: 'No conversations summarized yet — they get one when they end.', id: 'recent-box' });
+    return [el('div', { className: 'group paged', role: 'tabpanel', id: 'mem-panel', 'aria-labelledby': 'tab-recent' }, box), foot(null, nav, 'recent-foot')];
   }
   function factList() {
     const f = state.facts, q = ui.q.trim().toLowerCase();
@@ -914,7 +929,7 @@
     document.title = 'Jarvis panel (preview with sample data)';
     const at = Date.now(), q = new URLSearchParams(location.search);
     const s = {
-      version: '0.3.0', os: /Win/.test(navigator.platform) ? 'win' : 'mac',
+      version: '0.4.0', os: /Win/.test(navigator.platform) ? 'win' : 'mac',
       status: { state: 'ready', text: 'Ready' }, busy: false, canNew: true,
       model: { provider: 'anthropic', id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5', providerLabel: 'Anthropic' },
       providers: [
@@ -944,6 +959,8 @@
       ],
       usage: { requests: 14, tokens: 31240 },
       facts: [{ id: 'f1', text: 'Prefers short answers in the morning' }, { id: 'f2', text: 'Working on the Jarvis launch, due end of month' }, { id: 'f3', text: 'Has a cat called Miso' }],
+      preferences: [{ id: 'p1', text: 'Starts with the answer, then the detail' }, { id: 'p2', text: 'Runs tests before calling anything done' }, { id: 'p3', text: 'Prefers PowerShell over bash' }],
+      summaries: [{ id: 's1', digest: 'Debugging their Rust build', at: at - 864e5 * 1 }, { id: 's2', digest: 'Planning the Jarvis launch', at: at - 864e5 * 3 }, { id: 's3', digest: 'Setting up memory sync between their PCs', at: at - 864e5 * 6 }],
       commitments: [{ id: 'c1', text: 'Send the launch email', when: 'Fri 7 Nov, 10:00', overdue: false }, { id: 'c2', text: 'Book the dentist', when: 'Mon 3 Nov, 09:00', overdue: true }],
       name: 'Jarvis', look: 'jarvis', looks: [['jarvis', 'Jarvis']],
       size: 'default', sizes: [['default', 'Default'], ['small', 'Small'], ['cursor', 'Cursor']],
@@ -960,7 +977,7 @@
       intro: false,
     };
     if (q.has('busy')) Object.assign(s, { busy: true, status: { state: 'busy', text: 'Reading notes.md' } });
-    if (q.has('empty')) Object.assign(s, { recent: [], facts: [], commitments: [], usage: null });
+    if (q.has('empty')) Object.assign(s, { recent: [], facts: [], commitments: [], preferences: [], summaries: [], usage: null });
     if (q.has('many')) {
       const things = ['Prefers short answers', 'Drinks oat flat whites', 'Works late on Thursdays', 'Has a cat called Miso', 'Training for a 10k in March', 'Learning Japanese', 'Uses Figma for design', 'Ships on Fridays', 'Allergic to peanuts', 'Sister is called Ana'];
       s.facts = Array.from({ length: 100 }, (_, i) => ({ id: `f${i}`, text: `${things[i % things.length]}${i >= things.length ? ` (${Math.floor(i / things.length) + 1})` : ''}` }));

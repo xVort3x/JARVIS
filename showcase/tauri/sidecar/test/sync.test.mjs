@@ -171,6 +171,24 @@ assert.deepEqual(checkFolder('~/Cloud', TMP), { ok: true, dir: path.join(TMP, 'C
   assert.ok(!tooMuchGone(back) && Object.keys(back.out.tombs).length === 0, 'and nothing is deleted anywhere');
 }
 
+// Preferences ride the same merge as commitments and facts.
+{
+  const p = (id, text, extra = {}) => ({ id, text, createdAt: T, ...extra });
+  const A = merge({ local: { commitments: [], facts: [], preferences: [p('p1a2b3', 'Answer first')] }, device: 'aaaaaaaaaaaa', now: T + 10 });
+  assert.equal(A.changed, false, 'nothing from elsewhere yet');
+  assert.equal(A.preferences.length, 1);
+  const B = merge({ local: { commitments: [], facts: [], preferences: [] }, remotes: [remoteOf(A)], device: 'bbbbbbbbbbbb', now: T + 20 });
+  assert.equal(B.changed, true, 'preferences arrive from the other computer');
+  assert.deepEqual(B.preferences.map((x) => x.text), ['Answer first']);
+  const B2 = merge({ local: B, state: B.state, device: 'bbbbbbbbbbbb', now: T + 30 });
+  assert.equal(B2.changed, false, 'steady state');
+  // A deleted preference stays deleted everywhere (tombstone).
+  const B3 = merge({ local: { ...B2, preferences: [] }, state: B2.state, device: 'bbbbbbbbbbbb', now: T + 40 });
+  const A2 = merge({ local: A, state: A.state, remotes: [remoteOf(B3)], device: 'aaaaaaaaaaaa', now: T + 50 });
+  assert.equal(A2.preferences.length, 0, 'a deleted preference does not come back');
+  assert.ok(Object.keys(A2.out.tombs).some((k) => k.startsWith('p:')), 'the tombstone is there');
+}
+
 // The store says when memory couldn't be read (trusted: false) or came from a newer Roamies (readOnly).
 {
   const fresh = async (name, files = {}) => {

@@ -2,13 +2,14 @@
 // Writes are atomic (temp file, fsync, rename) and serialised per file, files are private (0600),
 // and a file that fails to parse is kept aside as *.corrupt-<time> instead of being overwritten.
 import { createHash, randomBytes } from 'node:crypto';
-import { existsSync, readFileSync, renameSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, renameSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
 export const DIR = process.env.ROAMIES_DATA_DIR ? path.join(process.env.ROAMIES_DATA_DIR, 'sidekick') : path.join(os.homedir(), '.gg', 'sidekick');
 const SESSIONS = path.join(DIR, 'sessions');
+const SUMMARIES = path.join(DIR, 'summaries');
 const MEMORY = path.join(DIR, 'memory.json');
 const SESSION_FILE = /^\d{8}-\d{6}-[a-z0-9]{6}\.json$/;
 const KEEP_SESSIONS = 60;
@@ -98,6 +99,80 @@ export async function archiveFolded(id, messages) {
   await fs.mkdir(SESSIONS, { recursive: true, mode: 0o700 });
   const at = Date.now();
   await fs.appendFile(path.join(SESSIONS, `${id}.folded.jsonl`), messages.map((m) => JSON.stringify({ at, ...m })).join('\n') + '\n', { mode: 0o600 });
+}
+
+// ---------- session memory (the episodic layer: what past conversations were about) ----------
+
+const ID_RE = /^\d{8}-\d{6}-[a-z0-9]{6}$/;
+// stop words for query matching: small and enough
+const STOP_Q = new Set('the a an and or but to of in on at for with is are was were be it this that my me i you your his her its our their what how when where why can do does just like about from have has had will would should could not no yes so if then than'.split(' '));
+
+/** One line about what a conversation was about, saved when it ends: what future Jarvis can answer "what was
+ *  I working on?" from, instead of guessing from the facts alone. */
+export async function saveSessionSummary(id, digest, at = Date.now()) {
+  if (!ID_RE.test(String(id ?? ''))) return null;
+  const text = String(digest ?? '').trim().replace(/\s+/g, ' ').slice(0, 240);
+  if (!text) return null;
+  const rec = { version: 1, id, digest: text, at };
+  await fs.mkdir(SUMMARIES, { recursive: true, mode: 0o700 });
+  await writeJson(path.join(SUMMARIES, `${id}.json`), rec);
+  return rec;
+}
+
+/** The newest session summaries first; the raw sessions they describe are still on disk beside them. */
+export function listSessionSummaries(limit = 30) {
+  let names = [];
+  try { names = readdirSync(SUMMARIES).filter((n) => ID_RE.test(n.replace(/\.json$/, '')) && n.endsWith('.json')); } catch { return []; }
+  const out = [];
+  for (const n of names) {
+    const s = readJson(path.join(SUMMARIES, n));
+    if (s?.version === 1 && typeof s.digest === 'string' && s.digest.trim()) out.push({ id: s.id, digest: s.digest, at: s.at ?? 0 });
+  }
+  return out.sort((a, b) => (b.at ?? 0) - (a.at ?? 0)).slice(0, limit);
+}
+
+/** Delete a session's digest AND its raw transcript (and folded turns): forgetting a conversation means all of it. */
+export async function forgetSession(id) {
+  if (!ID_RE.test(String(id ?? ''))) return null;
+  const files = [path.join(SUMMARIES, `${id}.json`), path.join(SESSIONS, `${id}.json`), path.join(SESSIONS, `${id}.folded.jsonl`)];
+  let had = false;
+  for (const f of files) {
+    if (existsSync(f)) had = true;
+    await fs.unlink(f).catch(() => {});
+  }
+  return had;
+}
+
+/** Search past conversations by words: digests and transcripts both. Returns snippets; `from` (ms since epoch)
+ *  keeps only conversations active since then. */
+export function searchSessions(query, { from = 0, limit = 5 } = {}) {
+  const words = (String(query ?? '').toLowerCase().match(/[a-z0-9]{3,}/g) ?? []).filter((w) => !STOP_Q.has(w));
+  if (!words.length) return [];
+  const hits = [];
+  let names = [];
+  try { names = readdirSync(SESSIONS).filter((n) => SESSION_FILE.test(n)).sort().reverse(); } catch { return []; }
+  for (const n of names.slice(0, 60)) {
+    const s = readJson(path.join(SESSIONS, n));
+    if (!s?.messages?.length) continue;
+    const at = s.lastActiveAt ?? s.startedAt ?? 0;
+    if (at < from) continue;
+    let score = 0, snippet = '';
+    for (const m of s.messages) {
+      const t = typeof m.content === 'string' ? m.content : JSON.stringify(m.content ?? '');
+      const lower = t.toLowerCase();
+      let here = 0;
+      for (const w of words) if (lower.includes(w)) here++;
+      if (here) {
+        score += here;
+        if (!snippet && m.role !== 'system') snippet = `${m.role === 'user' ? 'They' : 'You'}: ${t.replace(/\s+/g, ' ').trim().slice(0, 220)}`;
+      }
+    }
+    if (!score) continue;
+    let digest = null;
+    try { digest = readJson(path.join(SUMMARIES, `${s.id}.json`))?.digest ?? null; } catch { /* no digest */ }
+    hits.push({ id: s.id, at, score, digest, snippet });
+  }
+  return hits.sort((a, b) => b.score - a.score || b.at - a.at).slice(0, limit);
 }
 
 // Screenshots stay in memory for the current turn only: never written to disk. The marker says the
@@ -241,6 +316,7 @@ const loadMemory = () => {
   memory = m?.version === 1 && Array.isArray(m.commitments) ? m : { version: 1, commitments: [] };
   memoryTrusted = memory === m || !had;
   if (!Array.isArray(memory.facts)) memory.facts = []; // added later: older files have no facts yet
+  if (!Array.isArray(memory.preferences)) memory.preferences = []; // added later: older files have no preferences yet
   return memory;
 };
 const saveMemory = () => (memoryReadOnly ? Promise.resolve() : writeJson(MEMORY, memory, { backup: true }));
@@ -460,18 +536,18 @@ export async function updateCommitment(id, { status, dueMs, repeat, keepSeries =
 
 // ---------- sync (sync.mjs) ----------
 
-/** Commitments and facts as stored (a deep copy), plus the text the copy was made from, for applySynced. */
+/** Commitments, facts and preferences as stored (a deep copy), plus the text the copy was made from, for applySynced. */
 export function syncSnapshot() {
-  const m = loadMemory(), basis = JSON.stringify({ commitments: m.commitments, facts: m.facts });
+  const m = loadMemory(), basis = JSON.stringify({ commitments: m.commitments, facts: m.facts, preferences: m.preferences ?? [] });
   return { ...JSON.parse(basis), basis, trusted: memoryTrusted, readOnly: memoryReadOnly };
 }
 
-/** Replaces commitments and facts with a merged copy, unless memory changed since the snapshot (then false: the next
- *  pass merges again) or this file belongs to a newer app. */
-export async function applySynced({ commitments, facts }, basis) {
+/** Replaces commitments, facts and preferences with a merged copy, unless memory changed since the snapshot (then
+ *  false: the next pass merges again) or this file belongs to a newer app. */
+export async function applySynced({ commitments, facts, preferences = [] }, basis) {
   const m = loadMemory();
-  if (memoryReadOnly || JSON.stringify({ commitments: m.commitments, facts: m.facts }) !== basis) return false;
-  m.commitments = commitments; m.facts = facts;
+  if (memoryReadOnly || JSON.stringify({ commitments: m.commitments, facts: m.facts, preferences: m.preferences ?? [] }) !== basis) return false;
+  m.commitments = commitments; m.facts = facts; m.preferences = preferences;
   await saveMemory();
   return true;
 }
@@ -490,9 +566,46 @@ export async function addFact(text) {
   if (same) { same.updatedAt = Date.now(); await saveMemory(); return same; }
   const f = { id: newId('f'), text: t, createdAt: Date.now() };
   facts.push(f);
-  if (facts.length > FACT_CAP) facts.splice(0, facts.length - FACT_CAP); // oldest go first
+  if (facts.length > FACT_CAP) {
+    // Least used first, not first-in: a fact that keeps earning its place stays.
+    const rank = (x) => (x.usedAt ?? x.updatedAt ?? x.createdAt) / 1e12;
+    facts.sort((a, b) => rank(a) - rank(b));
+    facts.splice(0, facts.length - FACT_CAP);
+  }
   await saveMemory();
   return f;
+}
+
+// ---------- preferences (how they like you to work) ----------
+
+export const listPreferences = () => (loadMemory().preferences ?? []).slice();
+const normPref = (t) => String(t).toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+/** Saves a preference; the same one again updates it instead of piling up. Cap 30, drop the least used. */
+export async function addPreference(text) {
+  const t = String(text).trim().replace(/\s+/g, ' ').slice(0, 140);
+  if (t.length < 4) return null;
+  const key = normPref(t);
+  const m = loadMemory(), list = m.preferences ?? (m.preferences = []);
+  const same = list.find((p) => normPref(p.text) === key);
+  if (same) { same.updatedAt = Date.now(); await saveMemory(); return same; }
+  const p = { id: newId('p'), text: t, createdAt: Date.now() };
+  list.push(p);
+  if (list.length > 30) list.splice(0, list.length - 30);
+  await saveMemory();
+  return p;
+}
+export async function forgetPreference(id) {
+  const m = loadMemory(), list = m.preferences ?? [], i = list.findIndex((p) => p.id === id);
+  if (i < 0) return null;
+  const [p] = list.splice(i, 1);
+  await saveMemory();
+  return p;
+}
+export async function clearPreferences() {
+  const m = loadMemory(), n = (m.preferences ?? []).length;
+  m.preferences = [];
+  await saveMemory();
+  return n;
 }
 
 // Picks which facts go into the prompt: the newest few always, then the ones that share words with

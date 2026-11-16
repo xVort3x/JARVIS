@@ -113,6 +113,18 @@ ever kept: on a request one is taken, used and thrown away. Jarvis never says an
 own — it just knows, when you ask. In the list of what leaves your computer: the AI provider you pick, and nothing
 else. [PRIVACY.md](PRIVACY.md) says exactly what.
 
+## What it remembers
+
+- **From your conversations:** lasting facts (who you are, what you're building, what matters to you), pulled out after each one.
+- **How you work:** your working preferences, kept separately — "run the tests before calling it done" — used in every answer.
+- **Recent work:** a one-line recap of the last few sessions, so "where were we?" works without you re-explaining.
+- **Your list:** commitments and reminders, as before.
+
+All of it stays on your computer in `~/.gg/sidekick/`. If you set up memory sync, facts and preferences travel
+with your other computers (encrypted, end to end — the passphrase never leaves your keyring). Forget anything in
+the panel's **Memory** page: facts, working preferences, past sessions (forgetting a session deletes the
+transcript too), or everything at once.
+
 ## Get started
 
 1. Install Jarvis from the **Assets** list on the release page. The *Source code* downloads there are the code,
