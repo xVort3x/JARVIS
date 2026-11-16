@@ -26,7 +26,7 @@ thread_local! {
     static SNAP: RefCell<Option<Snap>> = const { RefCell::new(None) };
 }
 
-const ACCENT: [u8; 4] = [0xe2, 0xff, 0x78, 255];
+const ACCENT: [u8; 4] = [0xe8, 0xb4, 0x69, 255];
 
 fn norm(a: (i32, i32), b: (i32, i32)) -> RECT {
     RECT { left: a.0.min(b.0), top: a.1.min(b.1), right: a.0.max(b.0), bottom: a.1.max(b.1) }

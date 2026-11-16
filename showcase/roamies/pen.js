@@ -1,13 +1,13 @@
 // The user's pen on Windows: while the talk keys are held, the voice helper follows the cursor and sends its trail
 // here (voice "ink" messages, in global screen points; voice-win/src/ink.rs). Drawn like voice/ink.swift draws it
-// on macOS: teal with a dark edge and a soft glow, dimmer until it snaps shut round something (then a glow pulse and
+// on macOS: amber with a dark edge and a soft glow, dimmer until it snaps shut round something (then a glow pulse and
 // a tick), and lines that never close fade. The picture sent with what was said is the helper's own capture, with
 // the strokes drawn into it; this canvas is left out of captures like the rest of the overlay.
 (() => {
   const R = window.Roamie;
   if (!R || typeof document === 'undefined') return;
   // The pen's colours and size, the same as ink.js and voice/ink.swift.
-  const ACC = '#78ffe2', EDGE = 'rgba(3,39,34,0.6)', RADIUS = 2.8;
+  const ACC = '#e8b469', EDGE = 'rgba(60,38,8,0.65)', RADIUS = 2.8;
   const reducedMQ = matchMedia('(prefers-reduced-motion: reduce)');
   const loc = (x, y) => [x - (R.origin?.x ?? 0), y - (R.origin?.y ?? 0)];
   let cv = null, ctx = null, raf = 0, cur = null;
@@ -59,7 +59,7 @@
       path(s.pts);
       ctx.shadowBlur = 0;
       ctx.strokeStyle = EDGE; ctx.lineWidth = RADIUS * 2 + 2.5; ctx.stroke();
-      ctx.shadowColor = 'rgba(120,255,226,0.75)'; ctx.shadowBlur = glow;
+      ctx.shadowColor = 'rgba(255,179,71,0.75)'; ctx.shadowBlur = glow;
       ctx.strokeStyle = ACC; ctx.lineWidth = RADIUS * 2; ctx.stroke();
     }
     ctx.globalAlpha = 1; ctx.shadowBlur = 0;

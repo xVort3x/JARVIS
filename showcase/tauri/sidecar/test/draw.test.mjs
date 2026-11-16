@@ -248,7 +248,7 @@ console.log('shape radius tests: passed');
   const { checkFlow, findCountry, flowLayers, parseTex, resolveRegion, CARDS } = await import('../draw.mjs');
   const one = (mark) => checkDraw({ beats: [{ say: 'x', marks: [mark] }] });
   const fine = (mark, why) => { assert.ok(ok({ beats: [{ say: 'x', marks: [mark] }] }), `${why}: fits the schema`); assert.deepEqual(one(mark), [], why); };
-  for (const k of ['flow', 'table', 'bars', 'map', 'math', 'geometry', 'quiz']) assert.ok(CARDS.includes(k), `${k} is a card`);
+  for (const k of ['flow', 'table', 'bars', 'map', 'math', 'geometry', 'quiz', 'quote']) assert.ok(CARDS.includes(k), `${k} is a card`);
 
   // moving parts
   fine({ kind: 'model', title: 'Piston', parts: [{ shape: 'cylinder', label: 'piston', motion: { do: 'slide', to: [0, 0.6, 0], secs: 2 } }, { shape: 'torus', motion: { do: 'spin', axis: 'z' } }, { shape: 'sphere', motion: { do: 'orbit', around: [0, 0, 0] } }, { shape: 'box', motion: { do: 'pulse' } }] }, 'a model whose parts move');
@@ -304,7 +304,7 @@ console.log('shape radius tests: passed');
   console.log('table, bars and label tests: passed');
 
   // maps
-  fine({ kind: 'map', region: 'Europe', shade: [{ name: 'Portugal', tone: 'teal' }], pins: [{ name: 'Lisbon', lat: 38.7, lon: -9.1 }, { name: 'Porto', lat: 41.1, lon: -8.6 }], routes: [{ from: 'Lisbon', to: 'Porto' }] }, 'a map');
+  fine({ kind: 'map', region: 'Europe', shade: [{ name: 'Portugal', tone: 'amber' }], pins: [{ name: 'Lisbon', lat: 38.7, lon: -9.1 }, { name: 'Porto', lat: 41.1, lon: -8.6 }], routes: [{ from: 'Lisbon', to: 'Porto' }] }, 'a map');
   assert.equal(findCountry('usa'), findCountry('United States of America'), 'a country goes by its usual names');
   assert.equal(findCountry('Côte d’Ivoire'), findCountry('ivory coast'), 'accents and case don’t matter');
   assert.equal(findCountry('the Netherlands'), findCountry('Holland'));
@@ -312,7 +312,7 @@ console.log('shape radius tests: passed');
   assert.throws(() => findCountry('Singapore'), /mark a city, a state or a small country with a pin/, 'no outline at this scale: use a pin');
   assert.throws(() => findCountry('England'), /part of United Kingdom/);
   assert.deepEqual(resolveRegion({ region: 'europe' }).view, [-25, 34, 45, 72], 'a continent by name');
-  const pt = resolveRegion({ shade: [{ name: 'Portugal', tone: 'teal' }] });
+  const pt = resolveRegion({ shade: [{ name: 'Portugal', tone: 'amber' }] });
   assert.equal(pt.shade[0].name, 'Portugal');
   assert.ok(pt.view[0] < -9.5 && pt.view[2] > -6.4 && pt.view[2] - pt.view[0] >= 7, 'with no region the view fits what is shaded, with its neighbours in view');
   const fr = resolveRegion({ region: 'France' }).view;
@@ -375,6 +375,7 @@ console.log('shape radius tests: passed');
   assert.match(one({ kind: 'quiz', questions: [{ ...q, options: ['Mars', 'mars '] , answer: 'Mars' }] })[0], /two options are the same/);
   assert.ok(!ok({ beats: [{ say: 'x', marks: [{ kind: 'quiz', questions: [{ ...q, options: ['only one'] }] }] }] }), 'a question needs two options');
   assert.match(one({ kind: 'quiz' })[0], /needs questions/);
+fine({ kind: 'quote', text: 'Hello world', author: 'Ada' }, 'a quote');
   // A quiz answered on screen: the score and what was missed, in words for the model's next request.
   const { quizNote } = await import('../draw.mjs');
   const [qb] = await resolveTargets([{ say: 'x', marks: [{ kind: 'quiz', title: 'Planets', questions: [q, { text: 'Biggest planet?', options: ['Jupiter', 'Saturn'], answer: 'Jupiter' }, { text: 'Red planet?', options: ['Mars', 'Venus'], answer: 'Mars' }] }] }], {});

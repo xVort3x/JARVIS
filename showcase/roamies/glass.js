@@ -1,12 +1,12 @@
 // The card look shared by the Sidekick's own UI (bubbles, the thinking tag, task tags, the step list): the same
-// stepped corners, dark glass, teal edge, glint and Martian Mono as the drawings' cards (ink.js) and the reminders.
+// rounded dark glass, amber edge, glint and Inter as the drawings' cards (ink.js) and the reminders.
 (() => {
   const R = window.Roamie;
   if (!R || typeof document === 'undefined') return;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const ACC = '#78ffe2', HOT = '#e6fffa', MID = '#28c4b8', DEEP = '#0e5c60', EDGE = 'rgba(3,39,34,0.6)';
-  const GLASS = 'rgba(6,22,24,0.94)', TEXT = '#dcfff6', DIM = '#8ab8b0', CORAL = '#ff8a7a', NOTE = '#e9a196';
-  const MONO = '"Martian Mono", ui-monospace, monospace';
+  const ACC = '#e8b469', HOT = '#ffd9a6', MID = '#c98f43', DEEP = '#5c3a0e', EDGE = 'rgba(60,38,8,0.65)';
+  const GLASS = 'rgba(13,16,22,0.94)', TEXT = '#eef1f7', DIM = '#8b93a3', CORAL = '#ef5b52', NOTE = '#e9a196';
+  const MONO = '"Inter", ui-sans-serif, system-ui, sans-serif';
   const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const rgba = (h, a) => `rgba(${hex(h).join(',')},${a})`;
 
@@ -100,20 +100,21 @@
     c.restore();
   }
 
-  // A pixel button like the drawings' chips (ink.js): filled is teal with dark ink, otherwise dark glass with a teal
-  // edge and light ink. focus adds a bright ring, so the keyboard's choice shows; down presses it into its shadow.
-  const CHIP_F = `700 11px ${MONO}`, INK_DARK = '#032722';
+  // A rounded button like the launcher's chips (the setup guide's, and the panel's): dark glass with a soft amber
+  // edge and light ink, or amber filled. focus adds a bright ring, so the keyboard's choice shows; down presses it
+  // into its shadow.
+  const CHIP_F = `700 11px ${MONO}`, INK_DARK = '#1b1204';
   const mix = (a, b, k) => `rgb(${hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * k)).join(',')})`;
   const chipW = (label) => Math.round(textW(label, CHIP_F) + 22);
   function chip(c, x, y, w, h, label, o = {}) {
     c.save();
     if (o.focus) { c.strokeStyle = HOT; c.lineWidth = 2; c.stroke(steppedPath(x - 3.5, y - 3.5, w + 7, h + 9, 6)); }
     if (o.down) c.translate(0, 2);
-    c.fillStyle = o.filled ? mix(ACC, '#000000', 0.62) : 'rgba(0,0,0,0.45)'; c.fill(steppedPath(x, y + (o.down ? 1 : 3), w, h, 4));
+    c.fillStyle = o.filled ? ACC : 'rgba(13,16,22,0.9)'; c.fill(steppedPath(x, y + (o.down ? 1 : 3), w, h, 4));
     const face = steppedPath(x, y, w, h, 4);
     if (o.filled) {
-      c.fillStyle = o.hover ? mix(ACC, '#ffffff', 0.3) : ACC; c.fill(face);
-      c.fillStyle = 'rgba(255,255,255,0.55)'; c.fillRect(x + 4, y + 1, w - 8, 1.5); c.fillStyle = 'rgba(3,39,34,0.25)'; c.fillRect(x + 4, y + h - 2.5, w - 8, 1.5);
+      c.fillStyle = o.hover ? mix(ACC, TEXT, 0.25) : ACC; c.fill(face);
+      c.fillStyle = 'rgba(255,255,255,0.55)'; c.fillRect(x + 4, y + 1, w - 8, 1.5); c.fillStyle = 'rgba(27,18,4,0.25)'; c.fillRect(x + 4, y + h - 2.5, w - 8, 1.5);
     } else {
       c.fillStyle = GLASS; c.fill(face);
       if (o.hover) { c.fillStyle = rgba(ACC, 0.16); c.fill(face); }

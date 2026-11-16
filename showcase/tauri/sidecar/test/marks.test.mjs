@@ -24,10 +24,10 @@ assert.equal(placeOf([880, 300], rect), 'the right');
 assert.equal(placeOf([450, 590], rect), 'the bottom');
 assert.equal(placeOf([-20, 900], rect), 'the bottom left', 'points outside the area clamp to its edge');
 
-assert.equal(describeMarks([ring(450, 300, 80)], rect), "My pen marks are drawn on it in teal: I circled something at the middle. That's what I mean.");
+assert.equal(describeMarks([ring(450, 300, 80)], rect), "My pen marks are drawn on it in amber: I circled something at the middle. That's what I mean.");
 assert.equal(
   describeMarks([ring(450, 300, 80), line(300, 560, 600, 562), line(100, 100, 800, 500)], rect),
-  "My pen marks are drawn on it in teal: I circled something at the middle, underlined something at the bottom, then drew a line from the top left to the bottom right. That's what I mean.",
+  "My pen marks are drawn on it in amber: I circled something at the middle, underlined something at the bottom, then drew a line from the top left to the bottom right. That's what I mean.",
 );
 assert.equal(describeMarks([], rect), '');
 assert.equal(describeMarks(undefined, rect), '');

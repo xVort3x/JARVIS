@@ -22,26 +22,20 @@
 
   const css = `
 .ah-col { position: fixed; left: 0; top: 0; z-index: 5; width: 300px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; will-change: transform; }
-.ah, .ahs { --ink: #e8fffa; --ink-2: #b4d8d1; --ink-3: #8ab8b0; --accent: #78ffe2; --line-hi: #2f7c74; --line-hot: #4fbfa9; --note: #e9a196;
-  --s: 2px; --ease: cubic-bezier(.2, .8, .2, 1);
-  --notch: polygon(
-    calc(var(--s) * 2) 0, calc(100% - var(--s) * 2) 0, calc(100% - var(--s) * 2) var(--s), calc(100% - var(--s)) var(--s),
-    calc(100% - var(--s)) calc(var(--s) * 2), 100% calc(var(--s) * 2), 100% calc(100% - var(--s) * 2),
-    calc(100% - var(--s)) calc(100% - var(--s) * 2), calc(100% - var(--s)) calc(100% - var(--s)),
-    calc(100% - var(--s) * 2) calc(100% - var(--s)), calc(100% - var(--s) * 2) 100%, calc(var(--s) * 2) 100%,
-    calc(var(--s) * 2) calc(100% - var(--s)), var(--s) calc(100% - var(--s)), var(--s) calc(100% - var(--s) * 2),
-    0 calc(100% - var(--s) * 2), 0 calc(var(--s) * 2), var(--s) calc(var(--s) * 2), var(--s) var(--s), calc(var(--s) * 2) var(--s));
-  pointer-events: auto; cursor: default; box-sizing: border-box; padding: 2px; background: var(--line-hot); color: #051214; clip-path: var(--notch);
-  font: 400 12px/1.45 "Martian Mono", ui-monospace, Menlo, monospace;
-  filter: drop-shadow(0 0 10px rgba(120, 255, 226, .18)) drop-shadow(0 8px 22px rgba(0, 0, 0, .45)); }
-.ah-in, .ahs-in { background: rgba(5, 18, 20, .97); color: var(--ink); clip-path: var(--notch); }
+.ah, .ahs { --ink: #eef1f7; --ink-2: #c6ccd8; --ink-3: #8b93a3; --accent: #e8b469; --line-hi: #313a4a; --note: #ef5b52;
+  --ease: cubic-bezier(.2, .8, .2, 1); --r: 16px;
+  pointer-events: auto; cursor: default; box-sizing: border-box; padding: 2px; background: var(--line-hi); border-radius: var(--r);
+  color: var(--ink);
+  font: 400 12px/1.45 "Inter", ui-sans-serif, system-ui, sans-serif;
+  filter: drop-shadow(0 0 10px rgba(232, 180, 105, 0.14)) drop-shadow(0 8px 22px rgba(0, 0, 0, 0.45)); }
+.ah-in, .ahs-in { background: rgba(13, 16, 22, 0.92); color: var(--ink); border-radius: calc(var(--r) - 2px); }
 /* Panels unfold on the way in and only dissolve on the way out: the entrance is a one-way keyframe, the exit
    is just the opacity transition (260 ms). */
 .ah { transform-origin: top right; opacity: 0; transition: opacity .26s ease-out; }
 .ah.on { opacity: 1; transition-duration: .22s; animation: ah-unfold .22s var(--ease); }
 @keyframes ah-unfold { from { transform: scale(.9); } }
 .ah.gone { display: none; }
-.ah-head { display: flex; align-items: center; gap: 8px; padding: 9px 12px 8px 14px; border-bottom: 1px solid #12302e; }
+.ah-head { display: flex; align-items: center; gap: 8px; padding: 9px 12px 8px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
 .ah-dot { width: 6px; height: 6px; flex: none; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
 .ah-count { flex: 1; min-height: 1.3em; font-size: 11px; line-height: 1.3; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
 .ah-rows { list-style: none; margin: 0; padding: 0; }
@@ -51,7 +45,7 @@
 .ah-row.fade { opacity: 0; transition: opacity .26s ease-out; }
 .ah-row.fade.shut { transition: grid-template-rows .18s var(--ease); }
 .ah-row-in { min-height: 0; overflow: hidden; }
-.ah-row + .ah-row .ah-row-in { border-top: 1px solid #0f2725; }
+.ah-row + .ah-row .ah-row-in { border-top: 1px solid rgba(255, 255, 255, 0.07); }
 .ah-line { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; padding: 8px 6px 8px 12px; }
 /* desktop.html pins every canvas (position: fixed, grab cursor): keep the minis in their row's flow. */
 .ah-mini, .ahs-mini { position: static; pointer-events: none; will-change: auto; }
@@ -61,18 +55,18 @@
 .ah-status { font-size: 11px; line-height: 1.35; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ah-row[data-state="failed"] .ah-status { color: var(--note); }
 .ah-x, .ahs-x { all: unset; box-sizing: border-box; width: 26px; height: 26px; display: grid; place-items: center; color: var(--ink-3); cursor: pointer; flex: none; transition: color .12s var(--ease), background-color .12s var(--ease); }
-.ah-x:hover, .ahs-x:hover { color: var(--ink); background: #0d2a2a; }
-.ah-x:active, .ahs-x:active { color: var(--ink); background: #12302e; }
+.ah-x:hover, .ahs-x:hover { color: var(--ink); background: rgba(255, 255, 255, 0.07); }
+.ah-x:active, .ahs-x:active { color: var(--ink); background: rgba(255, 255, 255, 0.09); }
 .ah-x:focus-visible, .ahs-x:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .ah-x:disabled { color: var(--line-hi); background: transparent; cursor: default; }
 /* Stop asks first, in the same spot (like the panel's X buttons): pressed, it turns into Confirm for 4 s. */
 .ah-x { min-width: 26px; width: auto; }
 .ah-x > .yes { display: none; }
-.ah-x[aria-pressed="true"] { padding: 0 8px; background: #ffb4a8; color: #032722; font: 700 11px/1.25 "Martian Mono", ui-monospace, Menlo, monospace; animation: ah-arm 600ms steps(2, end) 2; }
-.ah-x[aria-pressed="true"]:hover { background: #ffcbc2; color: #032722; }
+.ah-x[aria-pressed="true"] { padding: 0 8px; background: var(--accent); color: #1b1204; font: 700 11px/1.25 "Inter", ui-sans-serif, system-ui, sans-serif; animation: ah-arm 600ms steps(2, end) 2; }
+.ah-x[aria-pressed="true"]:hover { background: var(--accent-hi, #ffd9a6); color: #1b1204; }
 .ah-x[aria-pressed="true"] > .no { display: none; }
 .ah-x[aria-pressed="true"] > .yes { display: inline; }
-@keyframes ah-arm { 50% { background: #ff8a78; } }
+@keyframes ah-arm { 50% { background: var(--accent-hi, #ffd9a6); } }
 /* Waiting for a yes: the question and two buttons, under the row's text. */
 /* The question opens like a row (height, then the words fade in) and closes the other way round. */
 .ah-ask { display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden;
@@ -84,16 +78,15 @@
 .ah-q { margin: 0 0 8px; font-size: 11.5px; line-height: 1.45; color: var(--ink-2); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .ah-btns { display: flex; gap: 8px; }
 .ah-chip, .ahs-chip { all: unset; box-sizing: border-box; height: 26px; padding: 0 11px; display: inline-grid; place-items: center; cursor: pointer;
-  font: 700 11px/1.25 "Martian Mono", ui-monospace, Menlo, monospace; white-space: nowrap;
-  --c: 4px; clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
-  background: #0b2224; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--accent); transition: background-color .12s var(--ease), color .12s var(--ease); }
-.ah-chip:hover, .ahs-chip:hover { background: #12393a; color: var(--ink); }
-.ah-chip:active, .ahs-chip:active { background: #164446; color: var(--ink); }
-.ah-chip.yes { background: var(--accent); color: #032722; box-shadow: none; }
-.ah-chip.yes:hover { background: #a6ffeb; color: #032722; }
-.ah-chip.yes:active { background: #5fe0c6; color: #032722; }
-.ah-chip:focus-visible, .ahs-chip:focus-visible { outline: 2px solid #e6fffa; outline-offset: 2px; clip-path: none; }
-.ah-chip:disabled, .ahs-chip:disabled { background: #0b2224; color: var(--ink-3); box-shadow: inset 0 0 0 1.5px var(--line-hi); cursor: default; }
+  font: 700 11px/1.25 "Inter", ui-sans-serif, system-ui, sans-serif; white-space: nowrap;
+  --c: 9px; border-radius: 9px; background: rgba(255, 255, 255, 0.05); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--accent); transition: background-color .12s var(--ease), color .12s var(--ease); }
+.ah-chip:hover, .ahs-chip:hover { background: rgba(255, 255, 255, 0.09); color: var(--ink); }
+.ah-chip:active, .ahs-chip:active { background: rgba(255, 255, 255, 0.12); color: var(--ink); }
+.ah-chip.yes { background: var(--accent); color: #1b1204; box-shadow: none; }
+.ah-chip.yes:hover { background: var(--accent-hi, #ffd9a6); color: #1b1204; }
+.ah-chip.yes:active { background: var(--accent-lo, #c98f43); color: #1b1204; }
+.ah-chip:focus-visible, .ahs-chip:focus-visible { outline: 2px solid var(--accent-hi, #ffd9a6); outline-offset: 2px; }
+.ah-chip:disabled, .ahs-chip:disabled { background: rgba(255, 255, 255, 0.04); color: var(--ink-3); box-shadow: inset 0 0 0 1.5px var(--line-hi); cursor: default; }
 /* The made shelf: what one agent made, until it's closed. */
 .ahs { opacity: 0; transition: opacity .26s ease-out; }
 .ahs.on { opacity: 1; transition-duration: .22s; animation: ahs-in .22s var(--ease); }
@@ -107,8 +100,8 @@
 .ahs-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 10px 8px 6px; }
 .ahs-tile { all: unset; box-sizing: border-box; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 2px 6px; cursor: pointer;
   background: transparent; color: var(--ink-2); transition: background-color .12s var(--ease), color .12s var(--ease); }
-.ahs-tile:hover { background: #0d2a2a; color: var(--ink); }
-.ahs-tile:active { background: #12302e; color: var(--ink); }
+.ahs-tile:hover { background: rgba(255, 255, 255, 0.06); color: var(--ink); }
+.ahs-tile:active { background: rgba(255, 255, 255, 0.09); color: var(--ink); }
 .ahs-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .ahs-tile:disabled { color: var(--ink-3); cursor: default; }
 .ahs-tile svg { width: 36px; height: 36px; display: block; }
@@ -188,7 +181,7 @@
   };
   const fitNames = (root) => { for (const n of root.querySelectorAll('.ahs-name[data-name]')) fitName(n); };
   const refit = () => { for (const s of shelves) fitNames(s.el); };
-  document.fonts?.load('400 11px "Martian Mono"').then(refit, () => {});
+  document.fonts?.load('400 11px "Inter"').then(refit, () => {});
   document.fonts?.addEventListener?.('loadingdone', refit);
   const statusOf = (a) => (a.state === 'waiting' ? 'Waiting for your yes' : a.state === 'failed' ? `Couldn't finish: ${a.reason ?? 'something went wrong'}` : a.step || 'Starting');
   function makeRow(a) {

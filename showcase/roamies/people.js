@@ -121,6 +121,30 @@
         rows: ['...hhhhh...', '..hhhhhhhh.', '.hhhssshhhh', '.hssssssshT', '.sssssssshT', '..ssssssshT', '...ssssshTt', '....zszhTt.', '..CCkwkCtCC'],
       },
     },
+    // Echo: a warm, steady presence. A soft silver bob with a thin circlet at the brow, a high shawl collar and a
+    // small glowing pendant. Her eyes are kind and her smile is a little wider than the others'.
+    echo: {
+      L: {
+        w: 29, cy: 14, fade: 5, eye: [2, 12], mouth: 18, blush: [6, 16], tail: [11, 27],
+        mouths: { closed: ['0....0', '.0000.'], grin: ['0....0', '044440', '.0000.'] },
+        rows: [
+          '...............', '..........hhhhh', '........hhHHHHH', '.......hHHhhhhh', '......hhHhhhhhh', '.....hhhhhhhhhh',
+          '....hhhhhhhhhhh', '....hhhhhhhhwww', '...hhhhhhhsssss', '...hhhhhsssssss', '...hhhhssssssss', '..thhhsssssssss',
+          '..thhhsssssssss', '..tthhsssssssss', '..tthhsssssssss', '..tthhhssssssss', '..tthhhh.ssssss', '..tthhhh..sssss',
+          '..tthhhh...ssss', '..tthhhh.....ss', '..tthhhh.....zs', '..tthhhh.....zs', '..tthhhhcccccss', '..tthhhcccccccc',
+          '..tthhhcccccccw', '.tthhhccccccccw', '.tthhhccccccccc', 'cthhCCccccccccc', 'ccCCCCccccccccc', 'CCCCCCCCCCCCCCC',
+        ],
+      },
+      S: {
+        w: 17, cy: 8, fade: 3, eye: [2, 8], mouth: 11, blush: [4, 10], tail: [7, 16],
+        mouths: { closed: ['0..0', '.00.'] },
+        rows: ['.....hhhh', '...hhHHHH', '..hhHhhhh', '.hhhhhhhh', '.hhhhhhhh', '.hhhhhhww', '.hhhsssss', 'thhssssss', 'thhssssss', 'thhssssss', 'thhhsssss', 'thhh.ssss', 'thhh...ss', 'thhh...zs', 'thhhccccw', 'thccccccc', 'ccccccccc'],
+      },
+      X: {
+        w: 11, cy: 4, fade: 1, eye: [1, 3], mouth: 5, tail: [3, 8],
+        rows: ['..hhhh', '.hhhhh', 'hhhhss', 'hhssss', 'hhssss', 'thssss', 'th.sss', 'th..zs', 'tccccw'],
+      },
+    },
     // Ken Kai, who made Roamies (shown on the About page, not a look): a textured dark fringe over faded sides,
     // and a hoodie with its drawstrings.
     ken: {
@@ -169,6 +193,11 @@
     },
     rita: {
       L: { open: ['.22200', '00000.', '04110.', '01110.', '.222..'], wide: ['.22200', '00000.', '04110.', '01110.', '01110.', '.222..'], shut: ['......', '......', '....00', '00000.', '.0.0..'], happy: ['......', '......', '.000.0', '0...0.'], dizzy: ['0...0', '.0.0.', '..0..', '.0.0.', '0...0'], sleepy: ['......', '......', '......', '00000.', '....00'] },
+      S: { open: ['00', '40'], wide: ['00', '40', '00'], shut: ['..', '00'], happy: ['.0.', '0.0'], dizzy: ['0.0', '.0.'], sleepy: ['..', '00'] },
+      X: { open: ['0', '0'], wide: ['0', '0'], shut: ['.', '0'], happy: ['0'], dizzy: ['0'], sleepy: ['.', '0'] },
+    },
+    echo: {
+      L: { open: ['.000.', '04100', '.111.'], wide: ['.000.', '04100', '01100', '.000.'], shut: ['.....', '.....', '0000.'], happy: ['.....', '.000.', '0...0'], dizzy: ['0...0', '.0.0.', '..0..', '.0.0.', '0...0'], sleepy: ['.....', '.....', '.000.'] },
       S: { open: ['00', '40'], wide: ['00', '40', '00'], shut: ['..', '00'], happy: ['.0.', '0.0'], dizzy: ['0.0', '.0.'], sleepy: ['..', '00'] },
       X: { open: ['0', '0'], wide: ['0', '0'], shut: ['.', '0'], happy: ['0'], dizzy: ['0'], sleepy: ['.', '0'] },
     },
@@ -325,5 +354,5 @@
     },
   });
 
-  R.people = { anime: person('anime'), sarah: person('sarah'), adrian: person('adrian'), rita: person('rita'), ken: person('ken') };
+  R.people = { anime: person('anime'), sarah: person('sarah'), adrian: person('adrian'), rita: person('rita'), echo: person('echo'), ken: person('ken') };
 })();

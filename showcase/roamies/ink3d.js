@@ -6,7 +6,7 @@
   const R = window.Roamie;
   if (!R || typeof document === 'undefined') return;
   const B4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
-  const TONE_K = { white: 1.08, accent: 1, teal: 1, sky: 0.95, lime: 0.95, amber: 0.92, lilac: 0.88, coral: 0.85, red: 0.8 };
+  const TONE_K = { white: 1.08, accent: 1, sky: 0.95, lime: 0.95, amber: 0.92, lilac: 0.88, coral: 0.85, red: 0.8 };
 
   // ---------------------------------------------------------------- meshes: [positions, normals] as flat triangle lists
   function mesh(fn, nu, nv) {

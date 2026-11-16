@@ -9,7 +9,7 @@ const linux = aboutRoamies({ ...base, linux: true, voice: true });
 assert.match(mac, /lives in the menu bar at the top of the screen/);
 assert.match(mac, /Show JARVIS, Ask JARVIS…, Ask About an Area…, Stop, Quit Roamies/);
 assert.match(mac, /Look: Roamie, JARVIS or Anime Girl/);
-assert.match(mac, /Wake word \(say "Hey Roamies"/);
+assert.match(mac, /Wake word \(say "Hey Echo"/);
 assert.match(mac, /Voice Provider: Fish Audio, Gemini or VoiceStudio/);
 assert.match(win, /bottom right of the taskbar/);
 assert.ok(!/Ask About an Area|Wake word|Voice Control|Cursor, a little arrow/.test(win), 'features this copy lacks are left out');

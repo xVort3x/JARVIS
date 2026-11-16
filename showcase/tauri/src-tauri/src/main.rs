@@ -28,7 +28,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Wry};
 
 use sidecar::spawn_sidecar;
-use voice::{init_hotkeys, set_esc, set_hotkey, start_voice, stop_voice, to_voice, voice_binary};
+use voice::{clear_hotkey, init_hotkeys, set_esc, set_hotkey, start_voice, stop_voice, to_voice, voice_binary};
 
 static GENERATION: AtomicUsize = AtomicUsize::new(0);
 /// The overlay window the sidekick lives in. It moves to whichever screen the cursor is on.
@@ -907,7 +907,7 @@ fn open_onboarding(app: &AppHandle, mode: Option<&str>) {
         // macOS: the first click acts even while another app is active, instead of only activating Roamies.
         .accept_first_mouse(true)
         .focused(true)
-        .background_color(tauri::window::Color(5, 16, 18, 255));
+        .background_color(tauri::window::Color(11, 14, 19, 255));
     #[cfg(target_os = "macos")]
     {
         b = b.title_bar_style(tauri::TitleBarStyle::Overlay).hidden_title(true);
@@ -1584,11 +1584,26 @@ fn handle_sidecar(app: &AppHandle, msg: Value) {
                     to_voice(app, &json!({ "cmd": "chord", "mods": mods }));
                 }
             }
-            // The type-to-ask pair; none sent (Wayland) switches the tap off.
-            let write = msg.get("write").and_then(Value::as_array).and_then(|m| {
-                tap::mask(&m.iter().filter_map(|v| v.as_str().map(str::to_owned)).collect::<Vec<_>>())
-            });
-            WRITE_CHORD.store(write.unwrap_or(0), Ordering::Relaxed);
+            // The type-to-ask shortcut: F7 as one key, or a pair of modifiers tapped together (macOS). None sent
+            // (Wayland) switches both off.
+            match msg.get("write") {
+                Some(Value::String(accel)) => {
+                    WRITE_CHORD.store(0, Ordering::Relaxed);
+                    if let Err(e) = set_hotkey(3, accel) {
+                        eprintln!("write shortcut {accel}: {e}");
+                        to_sidecar(app, &json!({ "type": "keybind_error", "which": "write", "accel": accel, "error": e }));
+                    }
+                }
+                Some(Value::Array(m)) => {
+                    clear_hotkey(3);
+                    let write = tap::mask(&m.iter().filter_map(|v| v.as_str().map(str::to_owned)).collect::<Vec<_>>());
+                    WRITE_CHORD.store(write.unwrap_or(0), Ordering::Relaxed);
+                }
+                _ => {
+                    clear_hotkey(3);
+                    WRITE_CHORD.store(0, Ordering::Relaxed);
+                }
+            }
         }
         // Listen right away, hands-free (after an area snap: snap, then just talk).
         Some("listen") => to_voice(app, &json!({ "cmd": "listen" })),

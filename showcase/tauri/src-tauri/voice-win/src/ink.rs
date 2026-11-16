@@ -106,7 +106,7 @@ pub fn marks(loops: &[Vec<Pt>]) -> Vec<Vec<[i64; 2]>> {
     }).collect()
 }
 
-/// Draws strokes (pixel coordinates) onto an RGBA picture: the pen's teal with a dark edge, smooth at the rim.
+/// Draws strokes (pixel coordinates) onto an RGBA picture: the pen's amber with a dark edge, smooth at the rim.
 pub fn draw_strokes(rgba: &mut [u8], w: usize, h: usize, strokes: &[Vec<Pt>], r: f64) {
     let mut blend = |x: i64, y: i64, c: [f64; 3], a: f64| {
         if x < 0 || y < 0 || x as usize >= w || y as usize >= h || a <= 0.0 {
@@ -143,8 +143,8 @@ pub fn draw_strokes(rgba: &mut [u8], w: usize, h: usize, strokes: &[Vec<Pt>], r:
             }
         }
     };
-    pass(r + 1.25 * r / PEN, [3.0, 39.0, 34.0], 0.6, &mut blend);
-    pass(r, [0x78 as f64, 255.0, 0xe2 as f64], 1.0, &mut blend);
+    pass(r + 1.25 * r / PEN, [60.0, 38.0, 8.0], 0.6, &mut blend);
+    pass(r, [232.0, 180.0, 105.0], 1.0, &mut blend);
 }
 
 /// Shrinks an RGBA picture to at most `max` px on its long side (an average of each block), never enlarging.
@@ -469,7 +469,7 @@ mod tests {
         let mut px = vec![255u8; w * h * 4];
         draw_strokes(&mut px, w, h, &[vec![(5.0, 10.0), (35.0, 10.0)]], 2.8);
         let at = |x: usize, y: usize| &px[(y * w + x) * 4..(y * w + x) * 4 + 3];
-        assert_eq!(at(20, 10), &[0x78, 0xff, 0xe2], "the pen's teal on the line");
+        assert_eq!(at(20, 10), &[232, 180, 105], "the pen's amber on the line");
         assert_eq!(at(20, 1), &[255, 255, 255], "untouched away from it");
         let (small, sw, sh) = downscale(&px, w, h, 10);
         assert_eq!((sw, sh, small.len()), (10, 5, 10 * 5 * 4));

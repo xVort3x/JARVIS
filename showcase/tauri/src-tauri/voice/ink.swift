@@ -1,4 +1,4 @@
-// Drawing on the screen while talking. While ⌃⌥ is held, moving the cursor draws teal pen strokes (tapered,
+// Drawing on the screen while talking. While ⌃⌥ is held, moving the cursor draws amber pen strokes (tapered,
 // faster = thinner, with a soft glow) on a see-through panel over every screen: circle something, no clicking.
 // A stroke counts only once it closes round something: it snaps shut (a glow pulse, a soft click, a trackpad tick)
 // and stays. One circle per talk: after it snaps, the cursor stops drawing until the keys are let go. Lines and
@@ -8,8 +8,8 @@
 import AppKit
 import QuartzCore
 
-private let accent = CGColor(srgbRed: 0x78 / 255, green: 1, blue: 0xe2 / 255, alpha: 1)
-private let rim = CGColor(srgbRed: 0x03 / 255, green: 0x27 / 255, blue: 0x22 / 255, alpha: 0.6)
+private let accent = CGColor(srgbRed: 0xe8 / 255, green: 0xb4 / 255, blue: 0x69 / 255, alpha: 1)
+private let rim = CGColor(srgbRed: 0x3c / 255, green: 0x26 / 255, blue: 0x08 / 255, alpha: 0.6)
 
 /// One pen stroke: points in its view's coordinates (top-left origin), drawn as a filled, tapered outline.
 final class InkStroke {

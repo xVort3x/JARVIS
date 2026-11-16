@@ -23,7 +23,7 @@
   };
   const sidekick = Roamie.ditherKit({
     id: 'guide', label: 'Guide', matrix: true, pixel: 1.3, glow: 0.55, speed: 80,
-    pal: [[4, 16, 18], [14, 92, 96], [40, 196, 184], [120, 255, 226], [230, 255, 250]],
+    pal: [[20, 12, 4], [92, 58, 14], [196, 120, 40], [255, 179, 71], [255, 230, 200]],
     // busy: no random acts; pose: whatever the current step wants, except while acting something out.
     // calm while a quip is up: the act keeps its gesture but drops its icon, which would sit on the bubble.
     plugin: (kit) => { K = kit; return { busy: () => true, calm: () => !!quipText && clock < quipUntil, pose: () => (clock < actUntil ? null : poseFn?.(clock) ?? null) }; },
@@ -564,7 +564,7 @@
       $('fish-change').setAttribute('aria-expanded', String(replies.changing));
       $('fish-save').disabled = replies.saving;
       $('fish-save').textContent = replies.saving ? 'Checking…' : 'Save';
-      // Talking hands-free (needs voice): open the mic for an answer, and on macOS, wake on "Hey Roamies".
+      // Talking hands-free (needs voice): open the mic for an answer, and on macOS, wake on "Hey Echo".
       $('talk-rows').hidden = !state?.voice;
       $('wake-row').hidden = !isMac();
       $('autolisten-switch').setAttribute('aria-checked', String(!!state?.autoListen));
@@ -637,7 +637,10 @@
   // Windows: no Win key (letting go of it opens Start) and no Alt+Shift (it switches keyboard layout).
   const PC_CHORDS = [['control', 'option'], ['control', 'shift']];
   const chords = () => (isMac() ? MAC_CHORDS : PC_CHORDS);
+  // F7 opens the text box with one press on a PC; a Mac keeps the pair tap.
+  const writeChoices = () => (isMac() ? chords() : ['F7', ...chords()]);
   const same = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+  const sameChoice = (a, b) => (typeof a === 'string' || typeof b === 'string' ? a === b : Array.isArray(a) && Array.isArray(b) && same(a, b));
   const voice = {
     level: 0, target: 0, bars: [], listening: false,
     drawMeter(dt) {
@@ -694,13 +697,15 @@
         b.onclick = () => { if (!on) { send({ type: 'set_keys', talk: c }); quip('Ooh, fancy.'); } };
         return b;
       }));
-      // Type to me: a quick tap of a pair. Picking the pair the other shortcut has swaps the two (the sidecar does it).
-      $('write-chords').replaceChildren(...chords().map((c) => {
-        const on = !!k.write && same(c, k.write);
-        const b = el('button', { className: 'px chord', type: 'button', role: 'radio', tabIndex: on ? 0 : -1 }, capsEl(capsFor(c)));
+      // Type to me: F7 on a PC, or a quick tap of a pair. Picking the pair the other shortcut has swaps the two
+      // (the sidecar does it).
+      $('write-chords').replaceChildren(...writeChoices().map((c) => {
+        const on = !!k.write && sameChoice(c, k.write);
+        const caps = typeof c === 'string' ? [c] : capsFor(c);
+        const b = el('button', { className: 'px chord', type: 'button', role: 'radio', tabIndex: on ? 0 : -1 }, capsEl(caps));
         b.setAttribute('aria-checked', String(on));
-        b.setAttribute('aria-label', `Tap ${c.map((x) => (isMac() ? x[0].toUpperCase() + x.slice(1) : PC_MOD[x])).join(' and ')}`);
-        b.onclick = () => { if (!on) { send({ type: 'set_keys', write: c }); quip('Tap, tap.'); } };
+        b.setAttribute('aria-label', typeof c === 'string' ? `Press ${c} to type to me` : `Tap ${c.map((x) => (isMac() ? x[0].toUpperCase() + x.slice(1) : PC_MOD[x])).join(' and ')}`);
+        b.onclick = () => { if (!on) { send({ type: 'set_keys', write: c }); quip(typeof c === 'string' ? 'One press.' : 'Tap, tap.'); } };
         return b;
       }));
       keys.tryLabel();
@@ -920,7 +925,7 @@
       recap.replaceChildren();
       const b = bind();
       if (state?.voice && k) recap.append(el('dt', {}, capsEl(b ? ['Your talk key'] : capsFor(k.talk))), el('dd', { textContent: b ? 'Press to talk to me, again to send' : canCircle() ? 'Hold to talk to me. Circle something to mark it' : 'Hold to talk to me' }));
-      if (k?.write && !b) recap.append(el('dt', {}, capsEl(capsFor(k.write))), el('dd', { textContent: 'Tap, then type to me' }));
+      if (k?.write && !b) recap.append(el('dt', {}, capsEl(typeof k.write === 'string' ? [k.write] : capsFor(k.write))), el('dd', { textContent: 'Press, then type to me' }));
       if (k) recap.append(el('dt', {}, capsEl(b ? ['Your show key'] : accelCaps(k.summon))), el('dd', { textContent: 'Show or hide me' }));
       if (k?.snap && canSnap()) recap.append(el('dt', {}, capsEl(accelCaps(k.snap))), el('dd', { textContent: 'Ask about an area of the screen' }));
       const tray = el('span', { className: 'caps' }); const cap = el('kbd', { className: 'px cap' }); cap.innerHTML = TRAY_SVG; tray.append(cap);
@@ -1162,8 +1167,8 @@
   // ---------------------------------------------------------------- flow
   // ---------------------------------------------------------------- step 0: look and size
   // Picked here, previewed on the guide right away, saved by the app (Settings has the same choices).
-  const LOOKS = [['classic', 'Roamie'], ['jarvis', 'JARVIS'], ['anime', 'Anime Girl'], ['sarah', 'Sarah'], ['adrian', 'Adrian'], ['rita', 'Rita X']], SIZES = [['default', 'Default'], ['small', 'Small'], ['cursor', 'Cursor']];
-  const LOOK_QUIPS = { classic: 'Classic me!', jarvis: 'At your service.', anime: 'Yay, hi hi!', sarah: 'Hey, nice to meet you!', adrian: 'Alright, let\'s do this.', rita: 'Shall we get to work?' }, SIZE_QUIPS = { default: 'Full size!', small: 'Fun size!', cursor: 'Tiny pointer me!' };
+  const LOOKS = [['classic', 'Roamie'], ['jarvis', 'JARVIS'], ['anime', 'Anime Girl'], ['sarah', 'Sarah'], ['adrian', 'Adrian'], ['rita', 'Rita X'], ['echo', 'Echo']], SIZES = [['default', 'Default'], ['small', 'Small'], ['cursor', 'Cursor']];
+  const LOOK_QUIPS = { classic: 'Classic me!', jarvis: 'At your service.', anime: 'Yay, hi hi!', sarah: 'Hey, nice to meet you!', adrian: 'Alright, let\'s do this.', rita: 'Shall we get to work?', echo: 'I am here with you.' }, SIZE_QUIPS = { default: 'Full size!', small: 'Fun size!', cursor: 'Tiny pointer me!' };
   const look = {
     radios(id, list, value, pickIt) {
       $(id).replaceChildren(...list.map(([v, label]) => {
@@ -1394,10 +1399,11 @@
       else if (m.type === 'ob_studiovoice') { st.studio.voice = m.voice === 'default' ? null : m.voice; reply({ ...st }); reply({ kind: 'say', text: 'This is my new voice.' }, 50); }
       else if (m.type === 'ob_geminivoice') { st.geminiVoice = m.voice; reply({ ...st }); reply({ kind: 'say', text: 'This is how I sound.' }, 50);
       } else if (m.type === 'set_keys') {
-        // As the sidecar does: talk and type never share a pair, so picking the other one's pair swaps them.
-        const k = st.keys, both = (a, b) => a.every((x) => b.includes(x));
-        if (m.talk) { if (both(m.talk, k.write)) k.write = k.talk; k.talk = m.talk; }
-        if (m.write) { if (both(m.write, k.talk)) k.talk = k.write; k.write = m.write; }
+        // As the sidecar does: talk and type never share keys, so picking the other one's pair swaps them.
+        const k = st.keys, both = (a, b) => Array.isArray(a) && Array.isArray(b) && a.every((x) => b.includes(x));
+        const sameC = (a, b) => (typeof a === 'string' || typeof b === 'string' ? a === b : both(a, b));
+        if (m.talk) { if (sameC(m.talk, k.write)) k.write = k.talk; k.talk = m.talk; }
+        if (m.write) { if (sameC(m.write, k.talk)) k.talk = k.write; k.write = m.write; }
         if (m.summon) k.summon = m.summon; if (m.snap) k.snap = m.snap;
         reply({ kind: 'keys', keys: k });
       }

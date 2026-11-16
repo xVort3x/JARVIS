@@ -34,6 +34,7 @@ voice, keeps track of what you said you'd do and nudges you when it's due.
 - **It talks back.** Spoken replies in its own voice, with real feeling, through [Fish Audio](https://fish.audio), or in a Gemini voice you pick, with your own [Google AI Studio](https://aistudio.google.com/apikey) key (the one you already use for a Gemini model works).
 - **It remembers.** What you said you'd do, reminders down to the second (or on repeat: "every weekday at 9", "every 2 hours"), and what matters to you.
 - **It draws on your screen.** Rings the exact button to click, walks you through each step, and sketches answers beside what you're reading.
+- **It thinks with you.** Weighing a real choice? Ask it to think it through: the options side by side, what matters most, the trade-offs, and one warm recommendation on a card.
 - **It does the clicking.** Opens apps, sites and files, and on macOS and Windows clicks or types in other apps for you.
 - **Your subscriptions.** Sign in with Claude or ChatGPT, or use an API key (Gemini, Grok, Kimi Code and more).
 
@@ -45,6 +46,7 @@ voice, keeps track of what you said you'd do and nudges you when it's due.
 | Sarah            | A pixel woman                                           |
 | Adrian           | A pixel man                                             |
 | Rita X           | A pixel secretary in cat-eye glasses                    |
+| Echo             | A warm, steady presence (wise & warm)                   |
 
 <sub>Each one has its own name, voice and animations, in three sizes: Default, Small, or Cursor, a pixel pointer that rides along with your mouse.</sub>
 

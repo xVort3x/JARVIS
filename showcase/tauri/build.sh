@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 rm -rf dist && mkdir -p dist
 cp ../desktop.html dist/
 cp -R ../roamies ../onboarding ../panel dist/
-../tauri/sidecar/bundle.sh
+../tauri/sidecar/scripts/bundle.mjs
 # Ship a Node.js runtime with the app, for the target being built (--target <triple>, else this machine).
 TARGET=""; prev=""; for a in "$@"; do [ "$prev" = "--target" ] && TARGET="$a"; prev="$a"; done
 ../tauri/sidecar/fetch-node.sh ${TARGET:+"$TARGET"}

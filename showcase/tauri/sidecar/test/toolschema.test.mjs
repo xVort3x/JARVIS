@@ -22,6 +22,14 @@ for (const t of tools) walk(t.name, resolveToolSchema(t), '');
 assert.deepEqual(formats, [], 'no tool uses a string format');
 // draw replaced point_at, on every platform (pixels from a screenshot work everywhere).
 assert.ok(tools.some((t) => t.name === 'draw') && !tools.some((t) => t.name === 'point_at'), 'draw, not point_at');
+// Echo's think_it_through: a decision laid out as cards, with the lean one of the options.
+{
+  const think = tools.find((t) => t.name === 'think_it_through');
+  assert.ok(think, 'think_it_through is a tool');
+  const s = resolveToolSchema(think);
+  for (const f of ['decision', 'options', 'values', 'lean', 'why', 'next']) assert.ok(s.properties[f], `a decision can have ${f}`);
+  await assert.rejects(think.execute({ decision: 'A or B?', options: [{ name: 'A', good: 'x' }, { name: 'B', bad: 'y' }], lean: 'C', why: 'Because.' }, {}), /lean: "C" is not one of the options/, 'the lean must be one of the options');
+}
 const drawSchema = JSON.stringify(resolveToolSchema(tools.find((t) => t.name === 'draw')));
 assert.ok(!/"(oneOf|anyOf|allOf)"/.test(drawSchema), 'draw is one flat object schema (no unions some providers reject)');
 // Labels on a photo need a look at the picture first: see_photo is there, and draw refuses labels on an unseen one
@@ -37,7 +45,7 @@ assert.ok(!/"(oneOf|anyOf|allOf)"/.test(drawSchema), 'draw is one flat object sc
 // What the model reads is what the schema takes: every new card's fields are there, and the text has real backslashes.
 {
   const d = tools.find((t) => t.name === 'draw'), mark = resolveToolSchema(d).properties.beats.items.properties.marks.items.properties;
-  for (const f of ['nodes', 'links', 'columns', 'rows', 'bars', 'unit', 'labels', 'region', 'shade', 'pins', 'routes', 'steps', 'vertices', 'lines', 'angles', 'circles', 'questions']) assert.ok(mark[f], `a mark can have ${f}`);
+  for (const f of ['nodes', 'links', 'columns', 'rows', 'bars', 'unit', 'labels', 'region', 'shade', 'pins', 'routes', 'steps', 'vertices', 'lines', 'angles', 'circles', 'questions', 'author']) assert.ok(mark[f], `a mark can have ${f}`);
   for (const k of ['flow', 'table', 'bars', 'map', 'math', 'geometry', 'quiz']) assert.ok(mark.kind.enum.includes(k), `${k} is a kind of mark`);
   assert.ok(mark.parts.items.properties.motion, 'a part can move');
   assert.ok(d.description.includes('\\frac{a}{b}, \\sqrt{x}') && d.description.includes('no \\begin, & or \\\\ line breaks'), 'the LaTeX in the description reaches the model with single backslashes');

@@ -11,12 +11,14 @@ static SUMMON_ID: AtomicU32 = AtomicU32::new(0);
 /// Id of the registered "ask about an area" hotkey.
 static SNAP_ID: AtomicU32 = AtomicU32::new(0);
 static LIST_ID: AtomicU32 = AtomicU32::new(0);
+/// Id of the type-to-ask key (F7 on a PC), when it's a single key rather than a modifier tap.
+static WRITE_ID: AtomicU32 = AtomicU32::new(0);
 /// Id of the Esc hotkey, held only while the Roamie is on screen (0 when it isn't).
 static ESC_ID: AtomicU32 = AtomicU32::new(0);
 
 thread_local! {
-    // The hotkey manager must live on the main thread; it also owns the current show/hide hotkey.
-    static HOTKEYS: RefCell<Option<(global_hotkey::GlobalHotKeyManager, [Option<global_hotkey::hotkey::HotKey>; 3])>> = const { RefCell::new(None) };
+    // The hotkey manager must live on the main thread; it also owns the current shortcuts.
+    static HOTKEYS: RefCell<Option<(global_hotkey::GlobalHotKeyManager, [Option<global_hotkey::hotkey::HotKey>; 4])>> = const { RefCell::new(None) };
     // The overlays that have the Roamie (or its card, or its ask field) on screen right now.
     static ESC_UP: RefCell<std::collections::HashSet<String>> = RefCell::new(std::collections::HashSet::new());
 }
@@ -115,7 +117,7 @@ fn cancel_voice(app: &AppHandle) {
 pub(crate) fn init_hotkeys(app: &AppHandle) {
     use global_hotkey::{GlobalHotKeyEvent, GlobalHotKeyManager, HotKeyState};
     match GlobalHotKeyManager::new() {
-        Ok(m) => HOTKEYS.with(|h| *h.borrow_mut() = Some((m, [None, None, None]))),
+        Ok(m) => HOTKEYS.with(|h| *h.borrow_mut() = Some((m, [None, None, None, None]))),
         Err(e) => return eprintln!("hotkeys unavailable: {e}"),
     }
     let app = app.clone();
@@ -126,6 +128,7 @@ pub(crate) fn init_hotkeys(app: &AppHandle) {
         let summon = e.id() == SUMMON_ID.load(Ordering::Relaxed);
         let snap = e.id() == SNAP_ID.load(Ordering::Relaxed);
         let list = e.id() == LIST_ID.load(Ordering::Relaxed);
+        let write = e.id() == WRITE_ID.load(Ordering::Relaxed);
         let esc = e.id() != 0 && e.id() == ESC_ID.load(Ordering::Relaxed);
         if esc {
             // The panel has the keyboard: Esc closes it, as it would without this hotkey.
@@ -137,6 +140,14 @@ pub(crate) fn init_hotkeys(app: &AppHandle) {
                 } else {
                     to_overlays(&app2, &json!({ "kind": "esc" }));
                 }
+            });
+            return;
+        }
+        if write {
+            // F7: the type-to-ask box, exactly as a tap of the pair opens it.
+            let app2 = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                to_sidecar(&app2, &json!({ "type": "write_tap" }));
             });
             return;
         }
@@ -158,12 +169,12 @@ pub(crate) fn init_hotkeys(app: &AppHandle) {
     }));
 }
 
-/// Swaps one global shortcut (0 = show/hide, 1 = ask about an area, 2 = show the list). On failure (bad format, or
-/// another app owns it) the old one stays.
+/// Swaps one global shortcut (0 = show/hide, 1 = ask about an area, 2 = show the list, 3 = type to me). On failure (bad
+/// format, or another app owns it) the old one stays.
 pub(crate) fn set_hotkey(slot: usize, accel: &str) -> Result<(), String> {
     use global_hotkey::hotkey::HotKey;
     let new: HotKey = accel.parse().map_err(|e| format!("{e}"))?;
-    let id_slot = [&SUMMON_ID, &SNAP_ID, &LIST_ID][slot];
+    let id_slot = [&SUMMON_ID, &SNAP_ID, &LIST_ID, &WRITE_ID][slot];
     HOTKEYS.with(|h| {
         let mut h = h.borrow_mut();
         let Some((manager, keys)) = h.as_mut() else { return Err("hotkeys unavailable".to_string()) };
@@ -191,6 +202,19 @@ pub(crate) fn set_hotkey(slot: usize, accel: &str) -> Result<(), String> {
             }
         }
     })
+}
+
+/// Removes a global shortcut (the type-to-ask key, when the shortcut goes back to a modifier tap or off). Must run on
+/// the main thread.
+pub(crate) fn clear_hotkey(slot: usize) {
+    HOTKEYS.with(|h| {
+        let mut h = h.borrow_mut();
+        let Some((manager, keys)) = h.as_mut() else { return };
+        if let Some(old) = keys[slot].take() {
+            let _ = manager.unregister(old);
+        }
+        [&SUMMON_ID, &SNAP_ID, &LIST_ID, &WRITE_ID][slot].store(0, Ordering::Relaxed);
+    });
 }
 
 /// Esc stops the Roamie's answer, or sends it away when it's idle (overlay host.js decides which). Global, so it

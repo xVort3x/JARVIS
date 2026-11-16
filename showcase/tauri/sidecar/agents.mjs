@@ -17,7 +17,7 @@ const returnsOf = (a) => (RETURNS.includes(a?.returns) ? a.returns : DEFAULT_RET
 // Every type works with files, commands and the web; the screen and the user's lists stay the chat's.
 const WORK_TOOLS = ['read_file', 'list_files', 'search_files', 'write_file', 'run_command', 'web_search', 'web_fetch'];
 export const TYPE_TOOLS = { maker: WORK_TOOLS, researcher: WORK_TOOLS, organizer: WORK_TOOLS };
-export const SCREEN_TOOLS = ['take_screenshot', 'list_windows', 'read_window', 'act_in_app', 'draw', 'open', 'see_photo',
+export const SCREEN_TOOLS = ['take_screenshot', 'list_windows', 'read_window', 'act_in_app', 'draw', 'open', 'see_photo', 'think_it_through',
   'remember_commitment', 'update_commitment', 'forget_fact', 'plan_steps', 'show_list', 'list_commitments', 'about_roamies'];
 /** The tools an agent of this type gets, from the full set createTools made. */
 export const toolsFor = (type, all) => all.filter((t) => (TYPE_TOOLS[type] ?? []).includes(t.name) && !SCREEN_TOOLS.includes(t.name));

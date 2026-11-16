@@ -1205,8 +1205,8 @@ enum Pal {
     static func c(_ hex: Int) -> NSColor {
         NSColor(srgbRed: CGFloat(hex >> 16 & 255) / 255, green: CGFloat(hex >> 8 & 255) / 255, blue: CGFloat(hex & 255) / 255, alpha: 1)
     }
-    static let bg = c(0x051214), panel = c(0x071a1c), ink = c(0xe8fffa), ink2 = c(0xb4d8d1)
-    static let line = c(0x1d4a48), lineHi = c(0x2f7c74), lineHot = c(0x4fbfa9), accent = c(0x78ffe2)
+    static let bg = c(0x0b0e13), panel = c(0x11151c), ink = c(0xeef1f7), ink2 = c(0xc6ccd8)
+    static let line = c(0x202633), lineHi = c(0x313a4a), lineHot = c(0x4b576d), accent = c(0xe8b469)
 }
 
 /// The onboarding's pixel frame: corners cut in two steps of `s` points (same polygon as .px in onboarding.css).

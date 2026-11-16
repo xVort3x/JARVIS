@@ -47,16 +47,28 @@ export const writeChords = (platform) => (platform === 'darwin'
   ? [['option', 'command'], ['control', 'command'], ['control', 'option'], ['control', 'shift'], ['option', 'shift']]
   : [['control', 'shift'], ['control', 'option']]);
 
+/** On a PC the type-to-ask shortcut is a single key, F7: one press and the box is there. A Mac keeps the pair tap. */
+export const writeKey = (platform) => (platform === 'darwin' ? null : 'F7');
+
+/** Everything the type-to-ask shortcut can be, the default first: F7 on a PC, else two modifier keys tapped together. */
+export const writeChoices = (platform) => {
+  const key = writeKey(platform);
+  return key ? [key, ...writeChords(platform)] : writeChords(platform);
+};
+
 /** Two modifier pairs are the same keys, whichever order they're written in. */
 export const samePair = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === 2 && b.length === 2 && a.every((m) => b.includes(m)) && b.every((m) => a.includes(m));
 
-/** The type-to-ask pair in use: the saved one when it's on offer and isn't the talk pair, else the first on offer that
- *  isn't. So a config from before this shortcut, or a talk pair already set to its default, still gets one.
- *  Saved as 'off': the tap is off, so null (it can clash with another app's shortcut, like Wispr Flow's). */
+/** Whether two type-to-ask choices are the same: a single key, or a pair in either order. */
+export const sameChoice = (a, b) => (typeof a === 'string' || typeof b === 'string' ? a === b : samePair(a, b));
+
+/** The type-to-ask shortcut in use: the saved one when it's on offer and isn't the talk pair, else the first on offer
+ *  that isn't. So a config from before this shortcut, or a talk pair already set to its default, still gets one.
+ *  Saved as 'off': the shortcut is off, so null (it can clash with another app's, like Wispr Flow's). */
 export function writeChord(platform, talk, saved) {
   if (saved === 'off') return null;
-  const offered = writeChords(platform);
-  return offered.find((c) => samePair(c, saved) && !samePair(c, talk)) ?? offered.find((c) => !samePair(c, talk)) ?? offered[0];
+  const offered = writeChoices(platform);
+  return offered.find((c) => sameChoice(c, saved) && !sameChoice(c, talk)) ?? offered.find((c) => !sameChoice(c, talk)) ?? offered[0];
 }
 
 /** The voice helper's mic list ({"type":"mics"}), checked: up to 40 mics with a string id, names and ids cut short, and

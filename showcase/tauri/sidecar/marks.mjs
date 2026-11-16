@@ -49,5 +49,5 @@ export function describeMarks(strokes, rect) {
   });
   if (!parts.length) return '';
   const said = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')}, then ${parts[parts.length - 1]}`;
-  return `My pen marks are drawn on it in teal: I ${said}. That's what I mean.`;
+  return `My pen marks are drawn on it in amber: I ${said}. That's what I mean.`;
 }

@@ -13,6 +13,7 @@ assert.deepEqual(describe('list_files', { dir: 'C:\\Users\\ken\\Desktop\\' }), [
 assert.equal(describe('plan_steps', {}), null);
 assert.deepEqual(describe('draw', { beats: [{ say: 'Here', marks: [] }] }), ['Drawing on your screen', 'Drew on your screen']);
 assert.deepEqual(describe('draw', { edit: [{ do: 'clear' }] }), ['Changing the drawing', 'Changed the drawing']);
+assert.deepEqual(describe('think_it_through', { decision: 'Stay or move?' }), ['Thinking it through', 'Thought it through'], 'a decision has its own line');
 assert.equal(describe('point_at', {}), null, 'the old pointing tool is gone');
 // Looking at a picture before labelling it: never the search words, only the site for a link.
 assert.deepEqual(describe('see_photo', { query: 'Acoustic guitar' }), ['Looking at a picture', 'Looked at a picture']);

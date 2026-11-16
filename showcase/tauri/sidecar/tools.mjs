@@ -14,6 +14,7 @@ import { plain } from './intro.mjs';
 import { linuxSession, seesPointer } from './platform.mjs';
 import { addCommitment, forgetFact, getCommitment, parseDue, parseRepeat, repeatLabel, updateCommitment } from './store.mjs';
 import { snoozeTarget, snoozeUntil } from './snooze.mjs';
+import { thinkBeats, thinkProblems, THINK_MAX_OPTIONS } from './think.mjs';
 
 const HOME = os.homedir();
 export const expand = (p) => path.resolve(String(p).replace(/^~(?=$|\/|\\)/, HOME));
@@ -228,7 +229,9 @@ export function sideSearchFor(route) {
 // Every request and redirect hop of web_fetch goes through safety.mjs, by name and by the addresses it resolves to.
 export const guardFetch = async (url) => { const v = await checkFetch(url); return v.level === BLOCK ? `Blocked for safety: ${v.reason}` : null; };
 
-export function createTools({ allowActions, ui, ask, openUrl, onCommitments, focus = null, firedReminders = () => [], showList, fmtWhen, commitmentsText, userName, onPlan = () => {}, speak = () => false, onHandoff = () => {}, watchClicks = () => {}, onInkGone = () => {}, askShell = async () => ({ ok: false, error: 'Roamies isn\'t running.' }), workdir = HOME, own = null, sideSearch = async () => null, pointScale = () => 'pixels' }) {
+export function createTools({ allowActions, ui, ask, openUrl, onCommitments, focus = null, firedReminders = () => [], showList, fmtWhen, commitmentsText, userName, onPlan = () => {}, speak = () => false, onHandoff = () => {}, watchClicks = () => {}, onInkGone = () => {}, askShell = async () => ({ ok: false, error: 'Roamies isn\'t running.' }), workdir = HOME, own = null, sideSearch = async () => null, pointScale = () => 'pixels', assistantName = 'Echo' }) {
+  // The look's name, for the cards it signs (Echo, JARVIS, Sarah…). Live, so changing the look changes it.
+  const assistant = typeof assistantName === 'function' ? assistantName : () => assistantName;
   // Relative paths (and run_command) start in workdir: the home folder for the chat, its own folder for an agent.
   const at = (p) => { const s = String(p ?? ''); return /^~(?=$|\/|\\)/.test(s) || path.isAbsolute(s) || /^[a-z]:[\\/]/i.test(s) ? s : path.join(workdir, s); };
   const where = workdir === HOME ? "the user's home folder" : `its working folder (${workdir})`;
@@ -838,7 +841,7 @@ beats: [{say, marks, wait?}]. say: one short line, under 20 words, spoken and ca
 Places (at, to, tie), best first: {text: the exact words shown on screen} (exact bounds, scrolls to it; target 'screen' searches every app; also words inside paragraphs, text in images or canvases, and a single character, which matches case); add every: true to mark every place that text appears (each letter s, each mention of a word), one mark per place, and within: {x, y, w, h} (screenshot pixels, x, y the centre) to keep to one part of the screen (every s in one sentence); {id} from read_window, for controls without words; {x, y, w, h} pixels in your latest screenshot, for icons, shapes and areas without words: x, y is the thing's centre, and w, h its whole width and height; the box is then fitted to what's really drawn there, so a close guess is enough.
 Which mark: one control they should click: target (with wait 'click' in a walkthrough); one thing to notice: ring (follows its shape; r sets the corner radius); a small spot or icon: point; a region or panel: frame; key words: underline (outdated ones: strike); right or wrong: check, cross; order of steps: num; a name beside something: label (text) or label on any mark; how two things relate: connect (at → to; flow: true runs moving dots along it, for something that travels or keeps happening); an odd-shaped group: trace (points); scroll here: scroll (dir); one thing above all else: spotlight (sparingly); something to hover: hover with wait 'hover'; big words: write (text, size).
 Walkthroughs ("how do I…"): one beat per step, each a target on that step's control with label and wait 'click'; the next step is found after they click, on the screen as it is then.
-Explanations that a picture makes clearer go on cards beside the window (tie connects a card to what it explains; every card can take a title, and card_size: small for an aside, large for something to read closely (a dense table, a detailed graph or diagram), full to fill the screen for something to study; normal by default. They can still resize it or make it full screen themselves): card (heading, text, items, sources), note (text, tone), list (title, items), mindmap (title: the topic; branches [{text, items: up to 6 short points, tone}], 2 to 8) for a topic and its parts at a glance (the user clicks a branch to open its points), clip (title, text), sources ([{name, url}]), legend (keys [{tone, text}]).
+Explanations that a picture makes clearer go on cards beside the window (tie connects a card to what it explains; every card can take a title, and card_size: small for an aside, large for something to read closely (a dense table, a detailed graph or diagram), full to fill the screen for something to study; normal by default. They can still resize it or make it full screen themselves): card (heading, text, items, sources), note (text, tone), list (title, items), mindmap (title: the topic; branches [{text, items: up to 6 short points, tone}], 2 to 8) for a topic and its parts at a glance (the user clicks a branch to open its points), clip (title, text), sources ([{name, url}]), legend (keys [{tone, text}]), quote (text, author) for a styled quotation.
 photo (query: a thing with a Wikipedia page, or url; text = caption). To name its parts add labels [{text, x, y}], x and y as fractions of the picture from its top left (0 to 1): only after see_photo has shown you that same picture, never from memory.
 Numbers: bars (bars [{label, value, tone}], unit) compares amounts; graph (x_range, y_range, plots [{points, tone, label}], dots [{x, y, label}]) is for curves and change over time; timeline (events [{when, text}]) for dates. table (columns [headings], rows [[one cell per column]], up to ${LIMITS.columns} by ${LIMITS.rows}) compares things side by side: the first column names each row, cells stay short, and a cell of exactly "yes" or "no" is drawn as a tick or a cross.
 flow (nodes [{id, text, shape: box|round|diamond, tone}], links [{from, to, label, flow}] by node id, dir: down|right) for a process, cause and effect or a decision: round for a start or an end, diamond for a question, flow: true runs moving dots along a link (what travels: data, blood, current), animate: true on the flow runs them along every link. Up to ${LIMITS.nodes} nodes, a few words each; it lays itself out.
@@ -847,7 +850,7 @@ math (steps [{tex, note}]) writes worked maths one step at a time. tex: one line
 molecule (smiles, label) for chemistry. model (parts [{shape: box|sphere|cylinder|cone|torus, at [x,y,z], size [x,y,z], rot [deg x,y,z], tone, label, motion}] within about -1 to 1, title) for objects and machines. motion {do: spin|orbit|slide|pulse, axis: x|y|z, around [x,y,z], to [x,y,z], secs} makes a part move to show how the thing works: slide goes from at to "to" and back (a piston), orbit circles the point "around" (a planet, a crank pin), spin turns it in place (a round part spinning on its own axis looks still, so spin a box or orbit one round it), pulse swells and shrinks (a heart).
 quiz (questions [{text, options: 2 to 4, answer: the right option word for word, explain}], up to ${LIMITS.questions}) for "test me": they answer by clicking and see right or wrong at once, and their score comes to you with their next message, so say a line and stop: never ask the questions in words too, or ask them for their answers or score.
 Deep explanations: when they want to really understand something ("explain gene transcription in depth", "teach me how a jet engine works", "walk me through photosynthesis"), or the answer is a process with several stages, set deep: true. Each card then opens big in the middle of the screen and replaces the one before, so plan 4 to 10 beats with one card each that build on each other: the big picture first, then one stage or idea per card (flow, model, molecule, graph, timeline, table, math, photo with labels), then a short summary card. Each say line tells that part of the story; the cards show it. Not for quick answers.
-Actions: type (text into the field at; needs actions allowed), copy (text to the clipboard), open (url), handoff (task), button (text + action {do: ask|open|copy, value}: a likely next step they can click), emote (name: hype, wave, upset, remind, motivate), sfx (name). tone: accent, teal, amber, coral, lilac, sky, lime, red, white.
+Actions: type (text into the field at; needs actions allowed), copy (text to the clipboard), open (url), handoff (task), button (text + action {do: ask|open|copy, value}: a likely next step they can click), emote (name: hype, wave, upset, remind, motivate), sfx (name). tone: accent, amber, coral, lilac, sky, lime, red, white.
 A drawing stays until the user clears it or the window changes; your next drawing replaces it. At most ${LIMITS.cardsShown} cards show at once (one more closes the oldest), so make a point with the fewest cards. Every drawn piece gets an id (p1, p2 …) in the result. To change what's drawn ("make that red", "move it left", "never mind"): edit [{do: recolor|move|erase|clear, part, tone, dx, dy}] with no beats. Up to 12 beats, 40 marks each.${POINTER_OK ? '' : " On this desktop (Wayland) clicks and hovers in other apps can't be seen: never use wait; beats play one after another, so say each step's line in an order that reads well without pausing."}`,
       parameters: DrawArgs, executionMode: 'sequential', timeoutMs: 30 * 60_000,
       execute: draw,
@@ -862,6 +865,28 @@ A drawing stays until the user clears it or the window changes; your next drawin
           { type: 'text', text: `This is the picture a photo mark with ${url ? 'this url' : `query "${query}"`} shows${p.title ? ` (${p.title})` : ''}. To name its parts, draw that photo with labels [{text, x, y}]: x and y are fractions of this picture, x from 0 at its left edge to 1 at its right, y from 0 at its top to 1 at its bottom. Put each point on the middle of the part it names, and only name parts you can see here.` },
           { type: 'image', mediaType: p.mediaType, data: p.data },
         ] };
+      },
+    },
+    {
+      name: 'think_it_through',
+      description: `Walk the user through a real decision, then lay it out on screen: what matters most, the options and their trade-offs, and one warm recommendation. Use it when they are weighing something without an obvious answer ("should I…?", "X or Y?", "help me decide", "I can't choose"). Work it out before calling: 2 to ${THINK_MAX_OPTIONS} real options, each with what it gives and what it asks; up to 4 things that matter most to them (from what they said; ask if you don't know); the option you lean toward, word for word, and why in one or two sentences; one small first step if there is one. It speaks a short line per card and signs the recommendation with your name, so don't call draw for the same decision and don't repeat the cards in your reply: end with a question about what they feel they're leaning toward. A lean is not a verdict: say so when the choice is close or still theirs to feel out.`,
+      parameters: z.object({
+        decision: z.string().min(3).max(60),
+        options: z.array(z.object({
+          name: z.string().min(1).max(40),
+          good: z.string().min(1).max(80).optional(),
+          bad: z.string().min(1).max(80).optional(),
+        })).min(2).max(THINK_MAX_OPTIONS),
+        values: z.array(z.string().min(1).max(60)).max(4).optional(),
+        lean: z.string().min(1).max(40),
+        why: z.string().min(1).max(240),
+        next: z.string().min(1).max(140).optional(),
+      }),
+      executionMode: 'sequential',
+      execute: async (args, ctx) => {
+        const problems = thinkProblems(args);
+        if (problems.length) throw new Error(problems.join('\n'));
+        return draw({ beats: thinkBeats(args, assistant()) }, ctx);
       },
     },
     {

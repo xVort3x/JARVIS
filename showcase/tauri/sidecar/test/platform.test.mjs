@@ -1,7 +1,7 @@
 // What the model is told about each system, and which features each one gets. Run: npm test
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { canCircle, canSnap, hasHands, hasHotkeys, hasVoice, linuxSession, micTrouble, needsVoiceModel, platformLine, samePair, seesPointer, writeChord, writeChords } from '../platform.mjs';
+import { canCircle, canSnap, hasHands, hasHotkeys, hasVoice, linuxSession, micTrouble, needsVoiceModel, platformLine, sameChoice, samePair, seesPointer, writeChoices, writeChord, writeChords } from '../platform.mjs';
 
 const win = platformLine('win32', { arch: 'x64', release: '10.0.22631' });
 assert.match(win, /^Platform: Windows 11 on x64\./);
@@ -71,19 +71,24 @@ assert.match(micTrouble('win32', 'failed', 'unsupported sample format I48'), /\(
 assert.ok(micTrouble('win32', 'failed', 'x'.repeat(500)).length < 300, 'the system\'s words are cut short');
 for (const r of ['busy', 'blocked', 'lost', 'failed']) assert.ok(!/can't find a microphone/.test(micTrouble('win32', r)), `${r} isn't reported as a missing mic`);
 
-// The type-to-ask shortcut: a tap of two modifier keys, never the pair that talks.
+// The type-to-ask shortcut: F7 on a PC, a tap of two modifier keys on a Mac, never the pair that talks.
 const TALK = ['control', 'option'];
 assert.deepEqual(writeChord('darwin', TALK, undefined), ['option', 'command'], 'the Mac default, also for a config from before the shortcut');
-assert.deepEqual(writeChord('win32', TALK, undefined), ['control', 'shift'], 'the PC default');
-assert.deepEqual(writeChord('linux', TALK, undefined), ['control', 'shift']);
+assert.equal(writeChord('win32', TALK, undefined), 'F7', 'the PC default: one key');
+assert.equal(writeChord('linux', TALK, undefined), 'F7');
 assert.deepEqual(writeChord('darwin', TALK, ['shift', 'control']), ['control', 'shift'], 'a saved pair, in whichever order it was written');
+assert.deepEqual(writeChord('win32', TALK, ['control', 'shift']), ['control', 'shift'], 'a pair saved on purpose stays on a PC');
+assert.equal(writeChord('win32', TALK, 'F7'), 'F7');
 assert.deepEqual(writeChord('darwin', ['command', 'option'], undefined), ['control', 'command'], 'talk already has the default: the next one');
 assert.deepEqual(writeChord('darwin', TALK, ['option', 'control']), ['option', 'command'], 'saved the same as talk: never both on one pair');
-assert.deepEqual(writeChord('win32', ['control', 'shift'], ['control', 'shift']), ['control', 'option'], 'on a PC too, where there are only two');
+assert.equal(writeChord('win32', ['control', 'shift'], ['control', 'shift']), 'F7', 'on a PC too, where F7 is first');
 for (const bad of ['option+command', ['option'], ['option', 'option'], ['command', 'shift'], ['control', 'hyper'], 7, null, {}]) {
   assert.deepEqual(writeChord('darwin', TALK, bad), ['option', 'command'], `a bad saved value (${JSON.stringify(bad)}) falls back to the default`);
 }
-assert.deepEqual(writeChord('win32', TALK, ['option', 'command']), ['control', 'shift'], 'a Mac pair saved on a PC (no Win key there)');
+assert.equal(writeChord('win32', TALK, ['option', 'command']), 'F7', 'a Mac pair saved on a PC (no Win key there)');
+assert.equal(writeChoices('win32')[0], 'F7', 'F7 is offered first on a PC');
+assert.ok(!writeChoices('darwin').includes('F7'), 'a Mac keeps the pair tap');
+assert.ok(sameChoice('F7', 'F7') && !sameChoice('F7', ['control', 'shift']) && sameChoice(['control', 'shift'], ['shift', 'control']), 'one key or a pair in either order');
 for (const p of ['darwin', 'win32', 'linux']) {
   for (const c of writeChords(p)) assert.ok(c.length === 2 && new Set(c).size === 2 && c.every((m) => ['control', 'option', 'shift', 'command'].includes(m)), `${p}: ${c} is two different modifiers`);
   for (const talk of writeChords(p)) assert.ok(!samePair(writeChord(p, talk, talk), talk), `${p}: never the talk pair (${talk})`);
