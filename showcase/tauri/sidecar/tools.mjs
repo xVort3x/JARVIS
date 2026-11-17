@@ -41,6 +41,43 @@ export const winOpen = (target, app = '') => run('powershell', ['-NoProfile', '-
 export const shellFor = (command, platform = process.platform, env = process.env) => (platform === 'win32'
   ? ['cmd.exe', ['/d', '/s', '/c', `"${command}"`], { windowsVerbatimArguments: true }]
   : [env.SHELL || (platform === 'linux' ? '/bin/bash' : '/bin/zsh'), ['-lc', command], {}]);
+// Native content search for machines without ripgrep or grep (Windows). Bounded on purpose: a specific
+// folder, small text files only, at most 3000 files / 30 MB / 200 hits.
+const SKIP_DIRS = new Set(['node_modules', '.git', '.cache', 'AppData', 'Library', 'target', 'Windows', 'Program Files', 'Program Files (x86)']);
+export async function searchText(dir, pattern) {
+  let re;
+  try { re = new RegExp(pattern); } catch { throw new Error(`"${pattern}" isn't a valid regular expression.`); }
+  const out = [];
+  let files = 0, bytes = 0;
+  const walk = async (d) => {
+    if (files >= 3000 || bytes >= 30 * 1024 * 1024 || out.length >= 200) return;
+    const ents = await fs.readdir(d, { withFileTypes: true }).catch(() => null);
+    if (!ents) return;
+    for (const e of ents) {
+      if (files >= 3000 || bytes >= 30 * 1024 * 1024 || out.length >= 200) return;
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) {
+        if (!e.name.startsWith('.') && !SKIP_DIRS.has(e.name)) await walk(p);
+        continue;
+      }
+      if (!e.isFile()) continue;
+      const st = await fs.stat(p).catch(() => null);
+      if (!st || st.size > 2 * 1024 * 1024) continue;
+      files += 1; bytes += st.size;
+      const text = await fs.readFile(p, 'utf8').catch(() => '');
+      if (!text || text.includes('\0')) continue;
+      let hits = 0;
+      const lines = text.split('\n');
+      for (let i = 0; i < lines.length && hits < 5 && out.length < 200; i += 1) {
+        if (!re.test(lines[i])) continue;
+        out.push(`${p}:${i + 1}: ${lines[i].slice(0, 200)}`);
+        hits += 1;
+      }
+    }
+  };
+  await walk(dir);
+  return out.length ? out.join('\n') + (out.length >= 200 ? '\n…(stopped at 200 matches)' : '') : 'No matches.';
+}
 const THIS_COMPUTER = process.platform === 'darwin' ? 'this Mac' : 'this computer';
 const LINUX = process.platform === 'linux';
 // A Wayland session hides the pointer and clicks in other apps, so a drawing can't wait for them (platform.mjs).
@@ -943,6 +980,29 @@ A drawing stays until the user clears it or the window changes; your next drawin
       },
     },
     {
+      name: 'recent_files',
+      description: `The newest files in a folder (${userName}'s Downloads folder by default), newest first, with when each last changed and how big it is. Read-only, no confirmation. Use it for "my latest download" or "what did I just save" instead of guessing names.`,
+      parameters: z.object({ dir: z.string().optional(), limit: z.number().int().min(1).max(50).optional() }),
+      execute: async ({ dir, limit }) => {
+        const d = allowed(checkRead(at(dir || '~/Downloads'), HOME));
+        const root = expand(d);
+        const ents = await fs.readdir(root, { withFileTypes: true }).catch((e) => {
+          if (e.code === 'ENOENT') return null;
+          throw e;
+        });
+        if (!ents) throw new Error(`There's no folder at ${d}.`);
+        const files = await Promise.all(ents.filter((e) => e.isFile()).map(async (e) => {
+          const s = await fs.stat(path.join(root, e.name)).catch(() => null);
+          return s && { name: e.name, at: s.mtimeMs, size: s.size };
+        }));
+        const newest = files.filter(Boolean).sort((a, b) => b.at - a.at).slice(0, limit ?? 10);
+        if (!newest.length) return `No files in ${d}.`;
+        const size = (n) => (n >= 1e9 ? `${(n / 1e9).toFixed(1)} GB` : n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : n >= 1e3 ? `${Math.round(n / 1e3)} KB` : `${n} B`);
+        const when = (t) => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        return `Newest in ${d}:\n${newest.map((f) => `${f.name}\t${when(f.at)}\t${size(f.size)}`).join('\n')}`;
+      },
+    },
+    {
       name: 'search_files', description: `Search file contents under a specific folder for a text pattern (regex). Not your whole home folder: that trips macOS privacy prompts. To find files by name anywhere, use run_command with ${process.platform === 'darwin' ? 'mdfind' : LINUX ? 'find or locate' : 'dir /s'}.`,
       parameters: z.object({ pattern: z.string(), dir: z.string() }),
       execute: async ({ pattern, dir }) => {
@@ -950,6 +1010,7 @@ A drawing stays until the user clears it or the window changes; your next drawin
         // -e and -- keep a pattern like "--pre=cmd" from being read as an option (rg --pre runs programs).
         let r = await run('rg', ['-n', '--max-count', '5', '--max-columns', '200', '-e', pattern, '--', d]);
         if (r.err?.code === 'ENOENT') r = await run('grep', ['-rnI', '-m', '5', '-E', '-e', pattern, '--', d]);
+        if (r.err?.code === 'ENOENT') return clip(await searchText(d, pattern), 12_000);
         return clip(r.stdout || 'No matches.', 12_000);
       },
     },

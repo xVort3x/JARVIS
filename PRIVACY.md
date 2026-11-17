@@ -45,11 +45,12 @@ Each provider's own privacy policy applies to what is sent to it.
   recognition isn't available, Apple's recognizer may use Apple's servers, under Apple's terms.
 - **Windows and Linux:** speech is turned into text on your computer (Parakeet).
 - The microphone is used only while you hold the talk keys (or, on Linux with Wayland, from your talk shortcut
-  until you press it again or pause).
-- **Wake word (macOS, off by default):** when you turn it on, the microphone stays open so J.A.R.V.I.S can hear
-  "Hey J.A.R.V.I.S", and macOS shows its microphone dot the whole time. That audio is turned into text only on your Mac
-  (it never starts on a Mac that would need Apple's servers). Nothing is kept or sent anywhere until you say the phrase;
-  the log notes only when it heard speech and how close that came to the phrase, never what was said.
+  until you press it again or pause), or while the wake word is on.
+- **Wake word (macOS and Windows, off by default):** when you turn it on, the microphone stays open so
+  J.A.R.V.I.S can hear "Hey Jarvis", and the system shows its microphone dot the whole time. On macOS the
+  phrase is matched on your Mac by Apple's on-device recognizer. On Windows it is matched on this PC by the
+  same Parakeet model that hears your requests. J.A.R.V.I.S keeps nothing and sends nothing from wake
+  listening; the log notes only that the wake word was heard, never the words.
 - **Memory sync (off by default):** if you choose a sync folder, J.A.R.V.I.S writes your reminders, commitments and
   remembered facts to the existing `Roamies Sync/<random id>.json` folder in it, so your other computer can read them. Everything in that
   folder is encrypted (AES-256-GCM) with a key made from a passphrase you type on each computer; the key is kept in

@@ -30,6 +30,10 @@ assert.match(side, /Most replies want a voice cue somewhere/, 'voice cues are na
 // The app's manual is read on demand, not sent with every request.
 assert.match(side, /call about_jarvis and answer from what it says\. Don't invent features or settings it doesn't list\./, 'the prompt sends app questions to about_jarvis');
 assert.match(side, /name: 'about_jarvis',[^]*?execute: async \(\) => aboutJarvis\(/, 'about_jarvis is a tool');
+// Where a question is answered from is decided in the same turn, without asking: screen, files, or the web.
+assert.match(side, /Where the answer lives: work it out before you answer, in this turn\./, 'the prompt routes questions to screen, files or web');
+assert.match(side, /recent_files for anything newest/, 'newest files go to recent_files');
+assert.match(side, /web_search, then web_fetch the best page; never answer those from memory/, 'current facts always use the web');
 assert.ok(!side.includes('it saves one .log file in Downloads'), 'the manual is no longer in the system prompt');
 // One home per rule: how act_in_app pages and forms work is in its description, not repeated in the prompt.
 assert.ok(!/Long pages, feeds and lists:/.test(side) && !/a field that opens a calendar is clicked/.test(side), 'act_in_app details live in act_in_app');

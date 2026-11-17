@@ -629,6 +629,7 @@
     const v = state.voice;
     if (!v) return [group('Listening', 'Voice input isn’t available on this computer.', null)];
     const mac = !!v.mac;
+    const canWake = mac || state.os === 'win';
     const mode = ['ptt', 'handsfree', 'text'].includes(v.mode) ? v.mode : 'handsfree';
     const on = mac ? v.on : mode !== 'text';
     const needs = (hint) => (on ? hint : (mac ? 'Needs Voice control on' : 'Needs voice on'));
@@ -657,8 +658,8 @@
             { '0.75': 'Wait three quarters of a second of quiet.', '1.5': 'A natural pause, like a breath between sentences.', '3': 'Long silence before I send (slow talkers).' }),
           mac ? null : picks('Mic sensitivity', [['low', 'Low'], ['normal', 'Normal'], ['high', 'High']], sens, (x) => act(`vadsensitivity:${x}`), 'vadsensitivity',
             { low: 'Needs a clear voice, barely notices the room.', normal: 'Works out the room first, then hears you.', high: 'Hears a quiet voice; noise may open the mic.' }),
-          mac ? toggle('Wake word', needs(`Say “Hey ${v.wakeName || 'J.A.R.V.I.S'}” to talk. Mic stays on.`), v.wakeWord, () => act('wakeword'), 'wakeword') : null,
-          mac ? el('div', { className: 'setting' }, el('span', {}, 'Wake word name', el('small', { textContent: `Hey ${v.wakeName || 'J.A.R.V.I.S'}` })),
+          canWake ? toggle('Wake word', v.wakeProblem ? 'Wake word isn’t listening; check the microphone' : needs(`Say “Hey ${v.wakeName || 'Jarvis'}” to talk. Mic stays on.`), v.wakeWord, () => act('wakeword'), 'wakeword') : null,
+          canWake ? el('div', { className: 'setting' }, el('span', {}, 'Wake word name', el('small', { textContent: `Hey ${v.wakeName || 'Jarvis'}` })),
             link('Change', () => act('wakename'), { k: 'wakename', aria: 'Change the wake word name' })) : null) : null,
       ],
     ];
@@ -929,7 +930,7 @@
     document.title = 'J.A.R.V.I.S panel (preview with sample data)';
     const at = Date.now(), q = new URLSearchParams(location.search);
     const s = {
-      version: '0.5.0', os: /Win/.test(navigator.platform) ? 'win' : 'mac',
+      version: '0.6.0', os: /Win/.test(navigator.platform) ? 'win' : 'mac',
       status: { state: 'ready', text: 'Ready' }, busy: false, canNew: true,
       model: { provider: 'anthropic', id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5', providerLabel: 'Anthropic' },
       providers: [
@@ -972,7 +973,7 @@
       geminiShared: new URLSearchParams(location.search).has('shared'), geminiModel: 'gemini-3.8-flash-lite-tts',
       geminiModels: [{ id: 'gemini-3.8-flash-lite-tts', name: 'Flash Lite', per10s: 0.0015 }, { id: 'gemini-3.8-flash-tts', name: 'Flash', per10s: 0.00225 }],
       fishModels: [{ id: 'drama-3', name: 'Drama 3', perM: 50, promo: { perM: 10, until: '2026-12-01T08:00:00Z' } }, { id: 's2.1-pro', name: 'S2.1 Pro', perM: 15 }],
-      voice: { on: true, keys: 'Ctrl+Alt', ready: true, mac: false, mute: true, mics: [{ id: 'BuiltIn', name: 'MacBook Pro Microphone' }, { id: 'airpods', name: 'AirPods Pro' }], mic: '', micAuto: 'MacBook Pro Microphone', wakeWord: false, wakeName: 'J.A.R.V.I.S', download: null, mode: 'handsfree', vad: { pause: 1.5, sensitivity: 'normal' } }, askKeys: '⌥⌘', aware: { on: true, mode: 'front', private: false, exclusions: ['1password', 'logonui', 'InPrivate', 'my bank'] }, brief: { on: true, todoist: false, canTodoist: true }, focus: { until: null, task: '', list: ['YouTube', 'Reddit', 'X', 'Steam', 'Netflix'], custom: false }, sync: { dir: '', at: null, error: null, paused: false }, shortcuts: { talk: { value: 'control+option', pairs: [['control+option', 'Control+Option'], ['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] }, keys: [{ id: 'summon', words: 'Control+Option+S' }, { id: 'snap', words: 'Control+Option+A' }, { id: 'list', words: 'Control+Option+L' }] }, writeKeys: { value: 'option+command', pairs: [['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] },
+      voice: { on: true, keys: 'Ctrl+Alt', ready: true, mac: false, mute: true, mics: [{ id: 'BuiltIn', name: 'MacBook Pro Microphone' }, { id: 'airpods', name: 'AirPods Pro' }], mic: '', micAuto: 'MacBook Pro Microphone', wakeWord: false, wakeName: 'Jarvis', wakeProblem: false, download: null, mode: 'handsfree', vad: { pause: 1.5, sensitivity: 'normal' } }, askKeys: '⌥⌘', aware: { on: true, mode: 'front', private: false, exclusions: ['1password', 'logonui', 'InPrivate', 'my bank'] }, brief: { on: true, todoist: false, canTodoist: true }, focus: { until: null, task: '', list: ['YouTube', 'Reddit', 'X', 'Steam', 'Netflix'], custom: false }, sync: { dir: '', at: null, error: null, paused: false }, shortcuts: { talk: { value: 'control+option', pairs: [['control+option', 'Control+Option'], ['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] }, keys: [{ id: 'summon', words: 'Control+Option+S' }, { id: 'snap', words: 'Control+Option+A' }, { id: 'list', words: 'Control+Option+L' }] }, writeKeys: { value: 'option+command', pairs: [['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] },
       sound: false, actions: false, login: { on: true },
       intro: false,
     };

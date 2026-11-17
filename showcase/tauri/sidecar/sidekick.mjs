@@ -528,7 +528,7 @@ tools.push({
   name: 'about_jarvis',
   description: 'How J.A.R.V.I.S works: where it lives, its menus, the panel and each settings page, what to do when something is not working, and how to report a problem. Call it before answering a question about the app.',
   parameters: z.object({}),
-  execute: async () => aboutJarvis({ name: lookName(), mac: MAC, linux: LINUX, snap: SNAP_OK, pointer: POINTER_OK, voice: VOICE_OK, hotkeys: HOTKEYS_OK }),
+  execute: async () => aboutJarvis({ name: lookName(), mac: MAC, linux: LINUX, snap: SNAP_OK, pointer: POINTER_OK, voice: VOICE_OK, hotkeys: HOTKEYS_OK, wake: MAC || WIN }),
 });
 // Background agents (agents.mjs): each runs in its own process on the model picked when it starts.
 let turnImage = null; // the picture sent with the request being answered, for send_agent's "snap"
@@ -648,6 +648,7 @@ When you write as ${userName} (an email, a message, a post, a form answer), soun
 Their facts are theirs: never invent ${userName}'s details (a name, address, account, date, link, number, or who someone is) or fill in dummy data where theirs belongs. Use what they told you, what you remember and what's on screen; if something only they know is still missing, do the part that doesn't need it, then ask one short, bundled question for the rest. On a small ambiguity, take the likeliest reading and go.
 Anything that goes to other people (an email, message, post, comment, invite) is a draft until ${userName} has seen that exact text and said yes, unless they dictated it word for word: write it, show it, then wait.
 You can really help: look at the screen or just one app's window, open apps, websites and files, read and search files, search the web (web_search) and read pages (web_fetch, with offset to read on), and, when the user has allowed it, write files, run shell commands${HANDS_OK ? ' and work other apps for them: fill in forms, type, click buttons (read_window, then act_in_app)' : ''}. Whether that's allowed right now is in the <live-state> block.
+Where the answer lives: work it out before you answer, in this turn. Something on their screen ("this", "here", "what does this say") → look now with look_at_screen or read_window (for one app, that app's window). Something of theirs (a file, a download, their notes, "my latest…") → their files: recent_files for anything newest, read_file or search_files for the content; never guess a filename. Anything current or about the world (news, fixtures, scores, prices, weather, releases, "the next…", who holds an office) → web_search, then web_fetch the best page; never answer those from memory or say you can't check. Read-only looks and searches need no permission: do them in the same turn, in parallel where possible, without asking and without announcing them. Only ask when the answer needs something only they know (a password, a choice, a detail not on the machine).
 When you need to see a specific app they mention ("my browser", "this form", "Figma"), screenshot just that app, not the whole screen.
 Show, don't just tell. When they ask how to do something in an app (${process.platform === 'darwin' ? '"how do I add a layer mask"' : 'a how-to'}), walk them through it with draw (one call, a beat per step). When they ask what they're looking at or where something is, mark it on screen with draw (ring, frame, label, point) instead of describing where it is. When they ask you to explain, compare or teach something, draw it without being asked: the picture goes on cards beside their window while you say the short version. Pick the card by the question. How something works or happens: a model with moving parts for a physical thing (an engine, a piston, a heart, a pulley), with a flow beside it only when it also runs in stages; a flow for a process, a chain of causes or a decision (how a bill becomes law, what happens when a page loads). Comparing two or more things: table. How many, how much, biggest or fastest: bars (graph for a curve or a change over time). Where a place is: map. When, in what order, the history of something: timeline. Solving or working out maths: math, a step per line (geometry for a figure with angles or lengths). The parts of a thing ("the parts of a guitar"): see_photo, then a photo with labels. "Test me" or "quiz me": quiz. A compound: molecule. One or two cards per answer, the ones that carry it, and never the same content again as "- " points. Don't draw for a quick fact (a date, a capital, a score, a definition in a sentence), an opinion or advice, small talk, a yes or no, anything they asked for in one line or one sentence, or when they say not to: those are just said. A real decision is the exception: when they are weighing something without an obvious answer ("should I…?", "X or Y?", "help me decide"), call think_it_through, which lays out what matters, the options and their trade-offs, and one warm lean; don't draw the same decision as well. Before you call draw, write one short line first: the answer to anything they said or asked besides the drawing ("I'm good, thanks!"), or what you're about to show. It's said while the drawing is made, so they hear you straight away and in order. After draw, add one short new line (a question, what comes next) or nothing.
 Be fast: every tool call is a round trip, so use as few as the task needs. To point at or click something whose exact words you know (the user said them, or you've seen them), use draw or act_in_app click_text with that text right away, with no read_window or screenshot first. Don't guess words: for "the version number" or "the settings icon" you don't know what's written, so look first. read_window and act_in_app results include the text on screen, so read pages from them; screenshot only when you need to see something words can't tell you (images, layout, colours).
@@ -673,7 +674,7 @@ const livePrompt = (context = '') => {
   const open = commitmentsText(), done = doneTodayText(), working = agents.liveText();
   const turn = `Live state (current as of this moment):
 ${frontNow ? `${frontNow}\n` : ''}${focusLine()}- Editing files, running commands and controlling other apps: ${config.allowActions ? 'ALLOWED' : `switched OFF (tell the user to turn on "Allow File Edits & Commands" on the General page in ${PANEL} if they want it)`}.
-${VOICE_OK ? `- Voice: ${!config.voice ? 'off' : voiceReady() ? `on; ${HOTKEYS_OK ? `${userName} holds ${talkWords()} to talk` : `${userName} presses the key they bound to ${BIND.talk} to start talking and again to send (a pause sends too)`}${config.autoListen ? '. Auto-listen is on: when your reply to a spoken question ends with a question, the mic opens by itself for their answer' : ''}${MAC && config.wakeWord ? `. Wake word is on: ${userName} can also say "Hey ${wakeName(config)}" to start talking hands-free, and what they say right after it is the request (a request that still starts with "Hey ${wakeName(config)}" is them waking you, not calling you by another name: never correct it)${config.wakeName ? ` (they chose "${config.wakeName}" as the wake word; your own name is unchanged)` : ''}` : ''}` : `on, but the speech model isn't downloaded yet (${voiceModel.status === 'downloading' ? 'downloading now' : `the Voice page in ${PANEL}`})`}.` : ''}
+${VOICE_OK ? `- Voice: ${!config.voice ? 'off' : voiceReady() ? `on; ${HOTKEYS_OK ? `${userName} holds ${talkWords()} to talk` : `${userName} presses the key they bound to ${BIND.talk} to start talking and again to send (a pause sends too)`}${config.autoListen ? '. Auto-listen is on: when your reply to a spoken question ends with a question, the mic opens by itself for their answer' : ''}${(MAC || WIN) && config.wakeWord ? `. Wake word is on: ${userName} can also say "Hey ${wakeName(config)}" to start talking hands-free, and what they say right after it is the request (a request that still starts with "Hey ${wakeName(config)}" is them waking you, not calling you by another name: never correct it)${config.wakeName ? ` (they chose "${config.wakeName}" as the wake word; your own name is unchanged)` : ''}` : ''}` : `on, but the speech model isn't downloaded yet (${voiceModel.status === 'downloading' ? 'downloading now' : `the Voice page in ${PANEL}`})`}.` : ''}
 - Shortcuts: ${HOTKEYS_OK ? `${keys().write ? `type a question to you: ${typeof keys().write === 'string' ? `press ${keys().write} to start typing, which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)` : `a quick tap of ${writeWords()} (press both and let go), which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)`}` : `the tap that opens a text field to type a question is turned off (the Ask button in ${PANEL} still opens it; the Shortcuts page there turns the tap back on)`}; show or hide you ${keyWords(keys().summon)}` : `on this Wayland desktop no app can have global shortcuts, so ${userName} binds keys to these commands in their desktop's keyboard settings: ${BIND.summon} (show or hide you), ${BIND.ask} (ask you), ${BIND.list} (the list), ${BIND.talk} (talk) and ${BIND.panel} (the panel)`}${SNAP_OK ? `; ask about an area ${keyWords(keys().snap)}` : ''}${CIRCLE_OK ? "; while holding the talk keys, moving the cursor round something circles it (no clicking; it snaps shut with a click when the circle closes, and loose lines don't count) and you'll see what they circled" : ''}${HOTKEYS_OK ? `; show the list ${keyWords(keys().list)}` : ''}.${HANDS_OK ? '' : ' Asking about an area, reading app windows, finding things on screen by their words and working other apps need the J.A.R.V.I.S app, which isn\'t running here; draw there with x, y from a screenshot.'}`;
   const memory = `${open ? `Open commitments:\n${open}` : 'No open commitments.'}${done ? `\nDone today (ticked off on the list or by you; still shown struck through until midnight):\n${done}` : ''}
 ${facts.length ? `What you know about ${userName}${total > facts.length ? ` (${facts.length} most relevant of ${total})` : ''}:\n${facts.map((f) => `- ${f.id}: ${f.text}`).join('\n')}` : `You don't know anything lasting about ${userName} yet.`}${preferences.length ? `\nHow they want it:\n${preferences.map((p) => `- ${p.id}: ${p.text}`).join('\n')}` : ''}${recent.length ? `\nRecent work:\n${recent.map((r) => `- ${dateLine(r.at)}: ${r.digest}`).join('\n')}` : ''}${working ? `\n${working}` : ''}`;
@@ -1133,7 +1134,7 @@ function warmUp() {
 let frontSoon = null;
 // Auto-listen: the turn whose reply ended on a question, until the overlay says it's been typed out and said.
 let autoTurn = null;
-// Wake word: the voice helper doesn't listen for "Hey J.A.R.V.I.S" while a reply runs, until the overlay says it's been
+// Wake word: the voice helper doesn't listen for "Hey Jarvis" while a reply runs, until the overlay says it's been
 // typed out and said (reply_said), so J.A.R.V.I.S can't wake itself. Let go after a while in case that never comes.
 let wakeHeld = false, wakeHoldTimer = null;
 function holdWake(on) {
@@ -1141,7 +1142,7 @@ function holdWake(on) {
   if (on) wakeHoldTimer = setTimeout(() => holdWake(busy), 3 * 60_000);
   if (on === wakeHeld) return;
   wakeHeld = on;
-  if (MAC) send({ type: 'wake_hold', on });
+  if (MAC || WIN) send({ type: 'wake_hold', on });
 }
 const autoListenOn = () => VOICE_OK && !!config.voice && !!config.autoListen && voiceReady() && !intro;
 // The agents' news waits for a quiet moment (desk.tick): nothing running or queued, not listening, the last reply
@@ -1910,7 +1911,7 @@ function panelState() {
     geminiModel: config.geminiModel, geminiModels: GEMINI_CHOICES,
     studio: tts().local ? studioState() : null,
     voice: VOICE_OK ? {
-      on: !!config.voice, keys: HOTKEYS_OK ? talkSymbols() : null, ready: voiceReady(), mac: MAC, mute: config.muteWhileTalking !== false, autoListen: !!config.autoListen, snoozeListen: !!config.snoozeListen, wakeWord: !!config.wakeWord, wakeName: wakeName(config),
+      on: !!config.voice, keys: HOTKEYS_OK ? talkSymbols() : null, ready: voiceReady(), mac: MAC, mute: config.muteWhileTalking !== false, autoListen: !!config.autoListen, snoozeListen: !!config.snoozeListen, wakeWord: !!config.wakeWord, wakeName: wakeName(config), wakeProblem,
       mode: voiceMode(config), vad: { pause: vadPause(config), sensitivity: vadSensitivity(config) },
       // The mic picker: what the voice helper lists, the pick ('' is automatic) and the mic automatic uses now.
       mics: mics.list, mic: config.mic ?? '', micAuto: mics.list.find((x) => x.id === mics.auto)?.name ?? '',
@@ -1925,7 +1926,7 @@ function panelState() {
 }
 
 
-const voiceConfig = () => { const v = helperVad(config); send({ type: 'voice_config', enabled: VOICE_OK && config.voice && voiceReady(), mute: config.muteWhileTalking !== false, sound: !!config.sound, wake: MAC && !!config.wakeWord, wakeName: wakeName(config), handsfree: v.handsfree, pause: v.pause, sensitivity: v.sensitivity, vadVoice: v.voice, vadLevel: v.level, ...(NEEDS_MODEL ? { model: MODEL_DIR } : {}) }); };
+const voiceConfig = () => { const v = helperVad(config); send({ type: 'voice_config', enabled: VOICE_OK && config.voice && voiceReady(), mute: config.muteWhileTalking !== false, sound: !!config.sound, wake: (MAC || WIN) && !!config.wakeWord, wakeName: wakeName(config), handsfree: v.handsfree, pause: v.pause, sensitivity: v.sensitivity, vadVoice: v.voice, vadLevel: v.level, ...(NEEDS_MODEL ? { model: MODEL_DIR } : {}) }); };
 
 // Progress goes to the setup guide often and to the tray menu now and then.
 let modelShownAt = 0, modelMenuAt = 0;
@@ -1965,6 +1966,7 @@ const startVoiceDownload = () => {
 const PRIVACY = { microphone: 'Privacy_Microphone', speech: 'Privacy_SpeechRecognition' };
 // The mics the voice helper last listed (asked whenever the panel opens), and the pick sent to it ('' is automatic).
 let mics = { list: [], auto: '' };
+let wakeProblem = false; // the wake listener couldn't start (microphone or model)
 const micPick = () => send({ type: 'voice_mic', id: config.mic ?? '' });
 function onVoice(m) {
   if (m.type === 'voice_state') { voiceBusy = m.state === 'listening' || m.state === 'processing'; stir(); }
@@ -1977,8 +1979,14 @@ function onVoice(m) {
   }
   else if (m.type === 'voice_state' && m.state === 'idle' && snap?.waitingVoice) snap.waitingVoice = false;
   else if (m.type === 'voice_ready') micPick();
+  else if (m.type === 'wake_ok') { if (wakeProblem) { wakeProblem = false; panel(); } }
   else if (m.type === 'voice_mics') { mics = cleanMics(m); panel(); }
   else if (m.type === 'voice_error') {
+    if (m.code === 'wake') {
+      wakeProblem = true; panel();
+      say(`I can't listen for the wake word right now${m.message ? ` (${m.message})` : ''}. Check the microphone, or use your talk key.`, 'concerned');
+      return;
+    }
     if (m.code === 'nothing_heard' && snap) { snap.waitingVoice = false; return; }
     if (m.code === 'model_missing') startVoiceDownload();
     else if (m.code === 'permission' && !MAC) {
@@ -2207,8 +2215,8 @@ async function onMenu(id, via) {
   else if (id === 'forgetprefs:yes') { const n = await clearPreferences(); menu(); panelNote(`Forgot ${n} preference${n === 1 ? '' : 's'}.`); }
   else if (id === 'autolisten') { config.autoListen = !config.autoListen; saveConfig(); menu(); }
   else if (id === 'snoozelisten') { config.snoozeListen = !config.snoozeListen; saveConfig(); menu(); }
-  else if (id === 'wakeword' && MAC) { config.wakeWord = !config.wakeWord; saveConfig(); agentStale = true; voiceConfig(); menu(); }
-  else if (id === 'wakename' && MAC) {
+  else if (id === 'wakeword' && (MAC || WIN)) { config.wakeWord = !config.wakeWord; wakeProblem = false; saveConfig(); agentStale = true; voiceConfig(); menu(); }
+  else if (id === 'wakename' && (MAC || WIN)) {
     const typed = await ask({ prompt: `Wake word: what should come after "Hey"? (now ${wakeName(config)}; leave empty for ${DEFAULT_WAKE_NAME})`, placeholder: 'Jarvis' });
     if (typed == null) return;
     const r = cleanWakeName(typed);

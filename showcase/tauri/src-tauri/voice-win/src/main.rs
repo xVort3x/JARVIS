@@ -53,6 +53,7 @@ pub enum Ev {
     AudioFailed(MicError),
     Text { take: u64, text: String, last: bool },
     EngineFailed(String),
+    Wake,
 }
 
 // ---------- transcription (its own thread: loading and reading never stall the hotkey loop) ----------
@@ -61,6 +62,8 @@ struct Job {
     take: u64,
     audio: Vec<f32>,
     last: bool,
+    // Some(name): a wake-word listen. Its text is matched in the engine thread and never sent on.
+    wake: Option<String>,
 }
 
 fn model_present(dir: &Path) -> bool {
@@ -105,13 +108,25 @@ fn spawn_engine(dir: PathBuf, tx: Sender<Ev>) -> (Sender<Job>, thread::JoinHandl
             }
         };
         while let Ok(first) = jrx.recv() {
-            // Only the newest live read matters; a closing read always runs.
+            // Only the newest live read matters; a closing read always runs. A take's read comes before a wake
+            // listen, so the wake word never makes a take wait.
             let mut jobs = vec![first];
             jobs.extend(jrx.try_iter());
             let job = match jobs.iter().rposition(|j| j.last) {
                 Some(i) => jobs.swap_remove(i),
-                None => jobs.pop().expect("at least one job"),
+                None => match jobs.iter().rposition(|j| j.wake.is_none()) {
+                    Some(i) => jobs.swap_remove(i),
+                    None => jobs.pop().expect("at least one job"),
+                },
             };
+            if let Some(name) = job.wake {
+                // A wake listen: only the match leaves this thread, never the words.
+                if woke(&transcribe(&mut asr, job.audio), &name) {
+                    log("wake word heard");
+                    if tx.send(Ev::Wake).is_err() { return; }
+                }
+                continue;
+            }
             let text = transcribe(&mut asr, job.audio);
             if tx.send(Ev::Text { take: job.take, text, last: job.last }).is_err() {
                 return;
@@ -148,6 +163,9 @@ const SPEECH_LEVEL: f64 = 0.15;
 // Hands-free, a take also ends once this much more sound came in without new words: steady noise or a voice in the
 // background can keep the level up, but it doesn't keep adding to what was said (#64).
 const STALE_ENDS: f64 = 4.0;
+// Wake word: how much of the last thing said one read covers, and how often a read runs while there's voice.
+const WAKE_WINDOW: f64 = 2.5;
+const WAKE_EVERY: f64 = 1.0;
 
 /// The room's steady noise on the level scale, so background noise (a fan, a TV, a busy room) doesn't count as talking
 /// and keep a hands-free take open (#64). It starts at the take's first reading, falls almost at once to a quieter
@@ -191,6 +209,13 @@ fn words(text: &str) -> String {
     text.chars().filter(|c| c.is_alphanumeric() || c.is_whitespace()).flat_map(char::to_lowercase).collect::<String>().split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
+/// Whether a wake listen heard the name as a word of its own ("Jarvis", "hey Jarvis", …). The name is one word
+/// (wakename.mjs allows no spaces), so a plain token match is enough and can't be fooled by "jarvison".
+fn woke(text: &str, name: &str) -> bool {
+    let name = name.trim().to_lowercase();
+    !name.is_empty() && words(text).split(' ').any(|w| w == name)
+}
+
 struct Voice {
     phase: Phase,
     chord: u8,
@@ -227,6 +252,17 @@ struct Voice {
     test_audio: Option<PathBuf>,
     ink: ink::Ink,
     tx: Sender<Ev>,
+    // Wake word (Windows): the mic listens quietly while idle, and a short read that says the name starts a take.
+    wake_on: bool,
+    wake_hold: bool,
+    wake_name: String,
+    wake_buf: Arc<Mutex<Vec<f32>>>,
+    wake_src: Option<Source>,
+    wake_at: f64,
+    wake_voice_at: f64,
+    wake_cooldown: f64,
+    wake_bad: bool,
+    wake_floor: NoiseFloor,
     t0: Instant,
 }
 
@@ -264,8 +300,46 @@ impl Voice {
             test_audio,
             ink: ink::Ink::default(),
             tx,
+            wake_on: false,
+            wake_hold: false,
+            wake_name: "jarvis".to_string(),
+            wake_buf: Arc::new(Mutex::new(Vec::new())),
+            wake_src: None,
+            wake_at: 0.0,
+            wake_voice_at: 0.0,
+            wake_cooldown: 0.0,
+            wake_bad: false,
+            wake_floor: NoiseFloor::default(),
             t0: Instant::now(),
         }
+    }
+
+    fn wake_on(&mut self, on: bool) {
+        if self.wake_on == on { return; }
+        self.wake_on = on;
+        self.wake_bad = false;
+        self.wake_cooldown = 0.0;
+        if !on { self.wake_stop(); }
+    }
+
+    fn wake_set_name(&mut self, word: &str) {
+        let w = word.trim().to_lowercase();
+        if w.is_empty() { return; }
+        self.wake_name = w;
+        self.wake_stop(); // the next listen matches the new name
+    }
+
+    fn wake_hush(&mut self, on: bool) {
+        self.wake_hold = on;
+        self.wake_stop();
+        // Let the reply's last words die away before listening again, so it can't wake itself.
+        if !on { self.wake_cooldown = self.now() + 1.0; }
+    }
+
+    fn wake_take(&mut self, on: bool) {
+        self.wake_stop();
+        // The request's tail (and then the reply) is still in the air: wait it out.
+        if !on { self.wake_cooldown = self.now() + 2.0; }
     }
 
     fn now(&self) -> f64 {
@@ -285,6 +359,7 @@ impl Voice {
     fn tick(&mut self) {
         let now = self.now();
         self.tick_keys(now);
+        self.wake_tick(now);
         self.ink.set_armed(matches!(self.phase, Phase::Armed | Phase::Holding), now);
         self.ink.follow(now);
         match self.phase {
@@ -389,6 +464,7 @@ impl Voice {
     }
 
     fn arm(&mut self, now: f64) {
+        self.wake_take(true); // the mic is this take's now: stop listening for the wake word
         self.phase = Phase::Armed;
         self.chord_at = now;
         self.best.clear();
@@ -452,6 +528,72 @@ impl Voice {
         self.source = None;
     }
 
+    // Wake word: while idle, the mic listens quietly, and after each second of voice the last window is read by the
+    // same on-device model that hears requests. A read that says the name sends Ev::Wake and a take opens.
+    fn wake_tick(&mut self, now: f64) {
+        let want = self.wake_on && !self.wake_hold && self.phase == Phase::Idle && now >= self.wake_cooldown;
+        if !want {
+            if self.wake_src.is_some() { self.wake_stop(); }
+            return;
+        }
+        let engine = match &self.engine { Some(e) => e.clone(), None => return };
+        if self.wake_src.is_none() {
+            if !keys::mic_allowed() { return self.wake_problem(now, "microphone blocked"); }
+            self.wake_buf.lock().unwrap().clear();
+            self.wake_floor = NoiseFloor { level: 0.0, at: None, voice: self.speech_level };
+            let sink = Sink::new(self.wake_buf.clone(), self.tx.clone());
+            match audio::open_mic(sink) {
+                Ok(s) => {
+                    self.wake_src = Some(s);
+                    self.wake_at = now;
+                    self.wake_voice_at = now;
+                    if self.wake_bad {
+                        // Recovered: the panel can stop showing the wake problem.
+                        self.wake_bad = false;
+                        emit(json!({ "type": "wake_ok" }));
+                        log("wake listening again");
+                    } else {
+                        log("wake listening");
+                    }
+                }
+                Err(e) => {
+                    log(&format!("wake audio: {} ({})", e.detail, e.reason));
+                    self.wake_problem(now, &e.detail);
+                }
+            }
+            return;
+        }
+        // Keep the buffer at the last window even while the room is quiet, so it can't grow for hours.
+        let window = (RATE as f64 * WAKE_WINDOW) as usize;
+        let audio = {
+            let mut b = self.wake_buf.lock().unwrap();
+            if b.len() > window {
+                let cut = b.len() - window;
+                b.drain(..cut);
+            }
+            if now - self.wake_at < WAKE_EVERY || now - self.wake_voice_at > 1.5 || b.len() < RATE as usize / 2 {
+                return;
+            }
+            self.wake_at = now;
+            b.clone()
+        };
+        let _ = engine.send(Job { take: 0, audio, last: false, wake: Some(self.wake_name.clone()) });
+    }
+
+    fn wake_stop(&mut self) {
+        self.wake_src = None;
+        self.wake_buf.lock().unwrap().clear();
+    }
+
+    // Say it once per enabling; the panel shows the wake problem until it's turned off and on again.
+    fn wake_problem(&mut self, now: f64, why: &str) {
+        self.wake_src = None;
+        self.wake_cooldown = now + 30.0;
+        if self.wake_bad { return; }
+        self.wake_bad = true;
+        emit(json!({ "type": "error", "code": "wake", "message": why }));
+    }
+
     // While listening: re-read the whole take now and then, for live text and pause detection.
     fn maybe_read(&mut self, now: f64) {
         let Some(engine) = &self.engine else { return };
@@ -464,7 +606,7 @@ impl Voice {
         }
         self.read_at = now;
         self.read_len = audio.len();
-        self.reading = engine.send(Job { take: self.take, audio, last: false }).is_ok();
+        self.reading = engine.send(Job { take: self.take, audio, last: false, wake: None }).is_ok();
     }
 
     fn finish(&mut self) {
@@ -489,7 +631,7 @@ impl Voice {
         self.stop_audio();
         let audio = std::mem::take(&mut *self.buf.lock().unwrap());
         match &self.engine {
-            Some(engine) if self.spoke && engine.send(Job { take: self.take, audio, last: true }).is_ok() => self.final_until = Some(now + FINAL_TIMEOUT),
+            Some(engine) if self.spoke && engine.send(Job { take: self.take, audio, last: true, wake: None }).is_ok() => self.final_until = Some(now + FINAL_TIMEOUT),
             _ => self.finalize(),
         }
     }
@@ -521,6 +663,8 @@ impl Voice {
 
     fn on_level(&mut self, v: f64) {
         let now = self.now();
+        // A voice during a wake listen: the read that follows covers it.
+        if self.wake_src.is_some() && self.wake_floor.is_voice(v, now) { self.wake_voice_at = now; }
         if self.floor.is_voice(v, now) {
             self.voice_at = now;
         }
@@ -539,6 +683,7 @@ impl Voice {
             return;
         }
         self.stop_audio();
+        self.wake_take(false);
         self.tail_until = None;
         self.final_until = None;
         self.take += 1;
@@ -569,6 +714,7 @@ impl Voice {
 
     fn cancel(&mut self) {
         self.stop_audio();
+        self.wake_take(false);
         self.buf.lock().unwrap().clear();
         self.tail_until = None;
         self.final_until = None;
@@ -644,6 +790,12 @@ impl Voice {
                     if let Some(sp) = msg.get("level").and_then(Value::as_f64) { self.speech_level = sp.clamp(0.01, 1.0); }
                     log(&format!("vad: handsfree {}, pause {:.2}s, voice bar {:.2}, floor {:.2}", self.handsfree, self.pause_ends, self.floor.voice, self.speech_level));
                 }
+                // Wake word: on/off, the name it listens for, and quiet while a reply runs.
+                Some("wake") => self.wake_on(msg.get("on").and_then(Value::as_bool).unwrap_or(false)),
+                Some("wake_name") => {
+                    if let Some(w) = msg.get("word").and_then(Value::as_str) { self.wake_set_name(w); }
+                }
+                Some("wake_hold") => self.wake_hush(msg.get("on").and_then(Value::as_bool).unwrap_or(false)),
                 // Muting the speakers while listening is macOS-only for now.
                 _ => {}
             },
@@ -661,6 +813,7 @@ impl Voice {
                 self.engine = None;
                 self.engine_error = Some(e);
             }
+            Ev::Wake => self.listen_now(),
         }
         false
     }
@@ -862,6 +1015,16 @@ mod tests {
         assert_eq!(words("Turn on the, lights."), "turn on the lights");
         assert_eq!(words("  Hello   there "), words("hello there!"));
         assert_ne!(words("hello there"), words("hello there friend"));
+    }
+
+    #[test]
+    fn woke_matches_the_name_as_a_whole_word() {
+        assert!(woke("Jarvis, what's the weather?", "jarvis"));
+        assert!(woke("hey JARVIS", "jarvis"));
+        assert!(woke("Okay. Jarvis!", "Jarvis "));
+        assert!(!woke("jarvison is not it", "jarvis"), "no substring match");
+        assert!(!woke("what's the weather", "jarvis"));
+        assert!(!woke("jarvis", ""), "an empty name never matches");
     }
 
     #[test]
