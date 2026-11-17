@@ -216,6 +216,18 @@ fn woke(text: &str, name: &str) -> bool {
     !name.is_empty() && words(text).split(' ').any(|w| w == name)
 }
 
+/// The take's words with the name taken off the front: a wake listen already heard "Jarvis, what's my latest
+/// download?", and the request is what came after the name. A leading "hey" is left alone on purpose.
+fn without_wake(text: &str, name: &str) -> String {
+    let name = name.trim().to_lowercase();
+    let s = text.trim_start();
+    let end = s.find(char::is_whitespace).unwrap_or(s.len());
+    if name.is_empty() || words(&s[..end]) != name {
+        return text.to_string();
+    }
+    s[end..].trim_start_matches(|c: char| c.is_whitespace() || c.is_ascii_punctuation()).to_string()
+}
+
 struct Voice {
     phase: Phase,
     chord: u8,
@@ -263,6 +275,9 @@ struct Voice {
     wake_cooldown: f64,
     wake_bad: bool,
     wake_floor: NoiseFloor,
+    // A wake-started take begins with the audio that was already read, including the name: drop the name from
+    // the text so "Jarvis, what's my latest download?" is the request, not a request to talk to "Jarvis".
+    strip_wake: bool,
     t0: Instant,
 }
 
@@ -310,6 +325,7 @@ impl Voice {
             wake_cooldown: 0.0,
             wake_bad: false,
             wake_floor: NoiseFloor::default(),
+            strip_wake: false,
             t0: Instant::now(),
         }
     }
@@ -465,6 +481,7 @@ impl Voice {
 
     fn arm(&mut self, now: f64) {
         self.wake_take(true); // the mic is this take's now: stop listening for the wake word
+        self.strip_wake = false;
         self.phase = Phase::Armed;
         self.chord_at = now;
         self.best.clear();
@@ -640,6 +657,7 @@ impl Voice {
         if take != self.take {
             return;
         }
+        let text = if self.strip_wake { without_wake(&text, &self.wake_name) } else { text };
         if !last {
             self.reading = false;
         }
@@ -739,6 +757,23 @@ impl Voice {
         self.show_listening("handsfree", now);
     }
 
+    /// The wake word was heard: open a take that already holds what was said after the name, so a quick
+    /// "Jarvis, what's my latest download?" isn't cut down to "what's my latest download?" missing its start.
+    fn wake_start(&mut self) {
+        let heard = std::mem::take(&mut *self.wake_buf.lock().unwrap());
+        self.listen_now();
+        if self.phase != Phase::HandsFree || heard.is_empty() {
+            return;
+        }
+        {
+            let mut buf = self.buf.lock().unwrap();
+            buf.splice(0..0, heard);
+        }
+        self.spoke = true; // the carried words are speech, even if the room is quiet now
+        self.strip_wake = true;
+        self.read_at = 0.0; // read them now, not a second from now
+    }
+
     /// The talk shortcut where the keys can't be watched (`roamies --talk`): the first one starts listening
     /// hands-free, the next one sends what was said (so does a pause).
     fn toggle(&mut self) {
@@ -813,7 +848,7 @@ impl Voice {
                 self.engine = None;
                 self.engine_error = Some(e);
             }
-            Ev::Wake => self.listen_now(),
+            Ev::Wake => self.wake_start(),
         }
         false
     }
@@ -1025,6 +1060,26 @@ mod tests {
         assert!(!woke("jarvison is not it", "jarvis"), "no substring match");
         assert!(!woke("what's the weather", "jarvis"));
         assert!(!woke("jarvis", ""), "an empty name never matches");
+    }
+
+    #[test]
+    fn without_wake_drops_a_leading_name() {
+        assert_eq!(without_wake("Jarvis, what's my latest download?", "jarvis"), "what's my latest download?");
+        assert_eq!(without_wake("JARVIS!", "jarvis"), "");
+        assert_eq!(without_wake("hey Jarvis, what's up", "jarvis"), "hey Jarvis, what's up", "a leading hey is left for the model");
+        assert_eq!(without_wake("what's up", "jarvis"), "what's up");
+        assert_eq!(without_wake("", "jarvis"), "");
+    }
+
+    #[test]
+    fn waking_carries_what_was_said_after_the_name() {
+        let (mut v, _jobs, wav) = voice();
+        v.wake_buf.lock().unwrap().extend([0.123f32; 800]);
+        v.wake_start();
+        assert_eq!(v.phase, Phase::HandsFree);
+        assert!(v.spoke && v.strip_wake, "the carried words count as speech and the name is stripped");
+        assert_eq!(v.buf.lock().unwrap()[0], 0.123, "the wake tail starts the take");
+        let _ = std::fs::remove_file(wav);
     }
 
     #[test]
