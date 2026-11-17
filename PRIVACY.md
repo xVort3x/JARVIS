@@ -13,7 +13,7 @@ data J.A.R.V.I.S handles and where it goes.
 
 ## What leaves your computer, and where it goes
 
-**The AI provider you sign in to** (Anthropic via Claude Code, OpenAI/ChatGPT, or a provider you add with an API
+**The AI provider you sign in to** (Anthropic via Claude Code, OpenAI/ChatGPT, Groq, or a provider you add with an API
 key) receives:
 
 - your messages and the conversation so far
@@ -21,7 +21,7 @@ key) receives:
   and the facts and commitments J.A.R.V.I.S has saved in memory
 - screenshots or window text, when J.A.R.V.I.S looks at your screen to answer
 
-**Fish Audio** or **Google** (Gemini), whichever you pick as the voice, receives the text of each reply to speak it, only if spoken replies are on. It uses your own key for that service (for Gemini, the Gemini key you added for the AI is used unless you save a separate one for the voice).
+**Fish Audio, Google or ElevenLabs**, whichever you pick as the voice, receives the text of each reply to speak it, only if spoken replies are on. It uses your own key for that service (for Gemini, the Gemini key you added for the AI is used unless you save a separate one for the voice).
 
 **GitHub** is used only when you download a new version yourself. The app does not check for updates or contact
 GitHub on its own.

@@ -930,13 +930,14 @@
     document.title = 'J.A.R.V.I.S panel (preview with sample data)';
     const at = Date.now(), q = new URLSearchParams(location.search);
     const s = {
-      version: '0.6.0', os: /Win/.test(navigator.platform) ? 'win' : 'mac',
+      version: '0.7.0', os: /Win/.test(navigator.platform) ? 'win' : 'mac',
       status: { state: 'ready', text: 'Ready' }, busy: false, canNew: true,
       model: { provider: 'anthropic', id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5', providerLabel: 'Anthropic' },
       providers: [
         { id: 'anthropic', label: 'Anthropic', on: true, method: 'oauth', key: true, signedIn: true, models: [{ id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5' }, { id: 'claude-sonnet-5', name: 'Claude Sonnet 5' }] },
         { id: 'openai', label: 'OpenAI', on: false, method: 'oauth', key: true, models: [] },
         { id: 'gemini', label: 'Gemini', on: true, method: 'key', key: true, keySaved: true, models: [{ id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash' }] },
+        { id: 'groq', label: 'Groq', on: false, method: 'key', key: true, keySaved: false, models: [] },
         { id: 'moonshot', label: 'Kimi (Moonshot)', on: false, method: 'key', models: [], kinds: [
           { id: 'kimi-code', label: 'Kimi Code', billing: 'Uses your Kimi Code plan. Create the key in the Kimi Code Console.' },
           { id: 'moonshot', label: 'Moonshot', billing: 'Pay-per-token from platform.moonshot.ai.' }] },

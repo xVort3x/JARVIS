@@ -19,7 +19,10 @@ export const KEY_LINKS = {
   openrouter: 'https://openrouter.ai/settings/keys', huggingface: 'https://huggingface.co/settings/tokens',
   // One OpenCode Console makes the keys for both: Go is the subscription, OpenCode the pay-per-token credits.
   'opencode-go': 'https://opencode.ai/console', opencode: 'https://opencode.ai/console',
+  groq: 'https://console.groq.com/keys',
 };
+// Groq isn't in gg-core's catalogue yet, so its key card is described here (console.groq.com is where keys are made).
+export const GROQ_KEY_META = { value: 'groq', label: 'Groq', methods: ['apikey'], apiKeyLabel: 'Groq', methodDetails: { apikey: { method: 'apikey', label: 'Groq API key', billing: 'Pay-per-token from console.groq.com credits.', when: '' } } };
 const SIGN_IN_NAMES = { anthropic: ['Claude', 'Anthropic'], openai: ['ChatGPT', 'OpenAI'] };
 // Short enough for a one-line card; gg-core's labels ("Token Plan") don't say whose.
 const KEY_NAMES = { 'kimi-code': 'Kimi Code', moonshot: 'Moonshot', xiaomi: 'MiMo Plan', 'xiaomi-credits': 'MiMo Credits', 'opencode-go': 'OpenCode Go', opencode: 'OpenCode' };
@@ -34,6 +37,8 @@ export const keyKinds = (meta) => (meta.apiKeyVariants?.length > 1
   : [[meta.value, KEY_NAMES[meta.value] ?? meta.apiKeyLabel ?? meta.label, meta.methodDetails?.apikey?.billing ?? '']]);
 
 /** One card per kind of API key; `on(id)`: a key of that kind is saved. `id` is what apiKeyLogin takes. */
-export const keyCards = (authProviders, on) =>
-  authProviders.filter((p) => p.methods?.includes('apikey'))
+export const keyCards = (authProviders, on) => {
+  const list = authProviders.some((p) => p.value === 'groq') ? authProviders : [...authProviders, GROQ_KEY_META];
+  return list.filter((p) => p.methods?.includes('apikey'))
     .flatMap((p) => keyKinds(p).map(([id, name, billing]) => ({ id, name, billing, connected: !!on(id), link: KEY_LINKS[id] ?? null })));
+};

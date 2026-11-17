@@ -10,7 +10,7 @@ assert.match(mac, /lives in the menu bar at the top of the screen/);
 assert.match(mac, /Show J.A.R.V.I.S, Ask J.A.R.V.I.S…, Ask About an Area…, Stop, Save Diagnostics…, Quit J.A.R.V.I.S/);
 assert.match(mac, /Memory: two tabs, What I Remember/);
 assert.match(mac, /Wake word \(say "Hey Jarvis"/);
-assert.match(mac, /Voice Provider: Fish Audio, Gemini or VoiceStudio/);
+assert.match(mac, /Voice Provider: Fish Audio, Gemini, ElevenLabs or VoiceStudio/);
 assert.match(win, /bottom right of the taskbar/);
 assert.match(win, /Wake word \(say "Hey Jarvis"/);
 assert.ok(!/Ask About an Area|Cursor, a little arrow/.test(win), 'features this copy lacks are left out');

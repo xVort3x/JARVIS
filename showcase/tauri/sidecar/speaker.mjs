@@ -9,6 +9,8 @@
 //   S2.1 Pro → free) with everything said so far, and one that works is kept from then on; if it fails after
 //   audio, the rest stays text only.
 // - Each reply has its own id, so audio from one that was stopped can never play over the next.
+// - ElevenLabs: the reply's voice is the one J.A.R.V.I.S uses (a voice id the user made and pasted, or the demo
+//   voice), the model the pick names (most expressive first, the fast one in it); its websocket streams the audio.
 // - Beats: when something slow starts (a web search, a page, the screen) and the model hasn't said anything,
 //   a short line ("One sec.", "On it." and 32 more, picked at random) plays so it's never silent. They're made once
 //   in the voice and kept, so they play instantly.
@@ -16,6 +18,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DEFAULT_VOICE, FISH_MODELS, FREE_MODEL, FishVoice, RATE, fishAccount } from './fish.mjs';
+// - ElevenLabs: the reply's voice is the one J.A.R.V.I.S uses (a voice id the user made and pasted, or the demo
+//   voice), the model the pick names (most expressive first, the fast one in it); its websocket streams the audio.
+import { ELEVEN_API, ELEVEN_LIVE, ELEVEN_MODELS, ELEVEN_MODEL, ELEVEN_RATE, ELEVEN_VOICES, ELEVEN_DEFAULT_VOICE, ElevenVoice, elevenAccount } from './eleven.mjs';
 import { StudioVoice, studioStatus } from './voicestudio.mjs';
 import { GEMINI_DEFAULT_VOICE, GEMINI_MODEL, GEMINI_MODELS, GEMINI_PITCH, GEMINI_RATE, GeminiVoice, geminiAccount } from './gemini.mjs';
 
@@ -26,6 +31,7 @@ import { GEMINI_DEFAULT_VOICE, GEMINI_MODEL, GEMINI_MODELS, GEMINI_PITCH, GEMINI
 export const PROVIDERS = {
   fish: { id: 'fish', name: 'Fish Audio', Voice: FishVoice, account: fishAccount, models: FISH_MODELS, freeModel: FREE_MODEL, rate: RATE, defaultVoice: DEFAULT_VOICE },
   gemini: { id: 'gemini', name: 'Gemini', Voice: GeminiVoice, account: geminiAccount, models: GEMINI_MODELS, pick: GEMINI_MODEL, freeModel: null, rate: GEMINI_RATE, play: Math.round(GEMINI_RATE * GEMINI_PITCH), defaultVoice: GEMINI_DEFAULT_VOICE, warmDelay: 15_000 },
+  eleven: { id: 'eleven', name: 'ElevenLabs', Voice: ElevenVoice, account: elevenAccount, models: ELEVEN_MODELS, pick: ELEVEN_MODEL, freeModel: null, rate: ELEVEN_RATE, defaultVoice: ELEVEN_DEFAULT_VOICE },
 };
 
 // Silence trimmed from both ends (a little kept), so a beat starts the moment it plays.

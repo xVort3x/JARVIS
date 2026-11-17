@@ -44,13 +44,15 @@ import { faviconFor } from './draw.mjs';
 import { QUESTIONS, openNote, answerTurn, wantsSkip, endsChat, splitTurn, plain, stripNote, tourBeats, goalFrom, showcaseBeats } from './intro.mjs';
 import { SpeechText, CueFilter, VOICE_CUES, endsWithQuestion } from './speech.mjs';
 import { createSpeaker } from './speaker.mjs';
+import { ELEVEN_DEFAULT_VOICE, ELEVEN_MODEL, ELEVEN_MODELS } from './eleven.mjs';
 import { FISH_CHOICES } from './fish.mjs';
+import { GROQ_BASE_URL, GROQ_MODELS, GROQ_DEFAULT_MODEL } from './groq.mjs';
 import { GEMINI_CHOICES, GEMINI_DEFAULT_VOICE, GEMINI_LOOK_VOICES, GEMINI_MODEL, GEMINI_VOICES } from './gemini.mjs';
 import { createSecrets, retryLoad, runInput } from './secrets.mjs';
 import { showTrayIcon } from './wintray.mjs';
 import { createActivity } from './activity.mjs';
 import { canCircle, canSnap, cleanMics, talkChords, hasHands, hasHotkeys, hasVoice, linuxSession, micTrouble, needsVoiceModel, platformLine, sameChoice, samePair, seesPointer, writeChoices, writeChord } from './platform.mjs';
-import { accountKeys, keyCards, keyKinds, seesImages, signInCards } from './providers.mjs';
+import { accountKeys, GROQ_KEY_META, keyCards, keyKinds, seesImages, signInCards } from './providers.mjs';
 import { OLLAMA, connectLocal, contextNote, downNote, forgetLocal, newServer, noModelsNote, serverFor, serverList, syncLocal as syncServers, withWindow } from './local.mjs';
 import { activityLogs, buildReport, redact, reportDir, reportName, reveal, run, scrubConfig, tail } from './diagnostics.mjs';
 import { detailsText, explain } from './errors.mjs';
@@ -93,17 +95,17 @@ const OAUTH = {
   // The current sign-in's ID token skips OpenAI's account picker.
   openai: async (cb, signal) => { const previous = await auth.getCredentials(OPENAI_CHATGPT_KEY).catch(() => null); return loginChatGPT(cb, { ...(previous ? { previous } : {}), signal }); },
 };
-const PROVIDER_LABELS = { ...Object.fromEntries(AUTH_PROVIDERS.map((p) => [p.value, p.label])), local: 'Local models' };
+const PROVIDER_LABELS = { groq: 'Groq', ...Object.fromEntries(AUTH_PROVIDERS.map((p) => [p.value, p.label])), local: 'Local models' };
 // What a sign-in is called (the product), where the provider's label is the company.
 const SIGNIN_NAMES = { anthropic: 'Claude', openai: 'ChatGPT' };
-const MENU_PROVIDERS = ['anthropic', 'openai', ...AUTH_PROVIDERS.map((p) => p.value), 'local'].filter((v, i, a) => a.indexOf(v) === i);
-const FAST = { anthropic: 'claude-haiku-5-5', openai: 'gpt-6-luna', gemini: 'gemini-3.8-flash' };
+const MENU_PROVIDERS = ['groq', 'anthropic', 'openai', ...AUTH_PROVIDERS.map((p) => p.value), 'local'].filter((v, i, a) => a.indexOf(v) === i);
+const FAST = { groq: GROQ_DEFAULT_MODEL, anthropic: 'claude-haiku-5-5', openai: 'gpt-6-luna', gemini: 'gemini-3.8-flash' };
 
 // ---------- config ----------
 // On Windows, Ctrl+Alt is AltGr on many keyboards (Ctrl+Alt+S types "ś" in Polish), so it uses Ctrl+Shift.
 const DEFAULT_KEYS = process.platform === 'win32'
-  ? { talk: ['control', 'option'], summon: 'Control+Shift+KeyS', snap: 'Control+Shift+KeyA', list: 'Control+Shift+KeyL', write: 'F7' }
-  : { talk: ['control', 'option'], summon: 'Control+Alt+KeyS', snap: 'Control+Alt+KeyA', list: 'Control+Alt+KeyL' };
+  ? { talk: ['control', 'option'], summon: 'off', snap: 'Control+Shift+KeyA', list: 'Control+Shift+KeyL', write: 'F7' }
+  : { talk: ['control', 'option'], summon: 'off', snap: 'Control+Alt+KeyA', list: 'Control+Alt+KeyL' };
 const DEFAULTS = {
   schemaVersion: 2,
   provider: null, model: null, sound: false, allowActions: false, voice: true,
@@ -116,11 +118,13 @@ const DEFAULTS = {
   awareMode: 'front', // 'front' (the window you're working in) or 'screen'
   awarePrivate: false, // private mode: nothing is seen until it's switched off
   awareExclusions: null, // null = the defaults (password managers, the lock screen, private windows)
-  tts: 'fish', // which one speaks: 'fish' (Fish Audio), 'gemini' or 'voicestudio' (the VoiceStudio app on this computer)
+  tts: 'fish', // which one speaks: 'fish' (Fish Audio), 'gemini' or 'elevenlabs' (ElevenLabs), or 'voicestudio' (the VoiceStudio app on this computer)
   studioVoices: {}, // the VoiceStudio voice for J.A.R.V.I.S (a saved profile id; none: the selected engine's default voice)
   fishModel: FISH_CHOICES[0].id, // Drama 3 (most expressive) or S2.1 Pro (natural pace, cheaper)
   geminiVoices: {}, // the Gemini voice J.A.R.V.I.S speaks in, where picked in the setup guide or the panel
   geminiModel: GEMINI_MODEL, // Flash Lite (quick, cheaper) or Flash (studio quality)
+  elevenVoice: null, // the ElevenLabs voice J.A.R.V.I.S speaks in (a voice id the user made; null: the demo voice)
+  elevenModel: ELEVEN_MODEL, // ElevenLabs: most expressive first, or the fast model
 };
 const LINUX = process.platform === 'linux';
 // Linux: "x11" or "wayland" (the app says which). Wayland keeps apps from seeing the pointer over other apps and
@@ -196,13 +200,14 @@ const saveConfig = () => writeJson(CONFIG_PATH, config, { backup: true });
 const TTS = {
   fish: { id: 'fish', name: 'Fish Audio', secret: 'fish-audio', site: 'fish.audio' },
   gemini: { id: 'gemini', name: 'Gemini', secret: 'gemini-tts', site: 'aistudio.google.com' },
+  elevenlabs: { id: 'elevenlabs', name: 'ElevenLabs', secret: 'elevenlabs', site: 'elevenlabs.io' },
   // On this computer: no key, never falls back to a paid service when it isn't running.
   voicestudio: { id: 'voicestudio', name: 'VoiceStudio', local: true },
 };
 const tts = () => TTS[config.tts] ?? TTS.fish;
 // Which have a key to speak with: 'own' (saved for the voice), 'shared' (Gemini only: the AI's Gemini key, from the
 // Model page, when no key was saved just for the voice) or false. For the one in use, speech.on says.
-const ttsKeys = { fish: false, gemini: false };
+const ttsKeys = { fish: false, gemini: false, elevenlabs: false };
 const hasVoiceKey = (id) => (id === tts().id ? speech.on : !!ttsKeys[id]);
 // The key the AI uses for Gemini, if it's an API key (the same Google AI Studio key speaks too).
 const brainGeminiKey = () => auth.resolveApiKey('gemini').then((c) => c?.accessToken || null).catch(() => null);
@@ -250,6 +255,7 @@ function aimSpeaker(id) {
   speech.setProvider(id);
   if (TTS[id]?.local) speech.setLocalVoice(studioVoice());
   else if (id === 'gemini') { speech.setVoice(geminiVoice()); speech.setModel(config.geminiModel); }
+  else if (id === 'eleven') { speech.setVoice(config.elevenVoice || ELEVEN_DEFAULT_VOICE); speech.setModel(config.elevenModel ?? ELEVEN_MODEL); }
   else { speech.setVoice(lookVoice()); speech.setModel(config.fishModel); }
 }
 // The same, with its key: the one given, else the saved one.
@@ -457,7 +463,7 @@ function ensureModel() {
   if (config.provider && getModel(config.model) && canRun(config.provider, config.model)) return true;
   // A local model stays picked while its server is closed; the request says to open it.
   if (config.provider === 'local' && parseLocalModelId(config.model ?? '') && signedIn.get('local')) return true;
-  const p = ['anthropic', 'openai', 'gemini', ...MENU_PROVIDERS].find((x) => runnable(x).length);
+  const p = ['groq', ...MENU_PROVIDERS].find((x) => runnable(x).length);
   if (!p) return false;
   config.provider = p;
   config.model = [FAST[p], getDefaultModel(p).id].find((id) => id && canRun(p, id)) ?? runnable(p)[0].id;
@@ -472,7 +478,7 @@ function fallbackModel(failed) {
     const list = runnable(p);
     return list.find((m) => m.id === FAST[p])?.id ?? list[0]?.id ?? null;
   };
-  const other = ['anthropic', 'openai', 'gemini', ...MENU_PROVIDERS]
+  const other = ['groq', ...MENU_PROVIDERS]
     .filter((p, i, a) => p !== 'local' && p !== failed.provider && a.indexOf(p) === i)
     .map((p) => ({ provider: p, model: preferred(p) }))
     .filter((c) => c.model);
@@ -675,7 +681,7 @@ const livePrompt = (context = '') => {
   const turn = `Live state (current as of this moment):
 ${frontNow ? `${frontNow}\n` : ''}${focusLine()}- Editing files, running commands and controlling other apps: ${config.allowActions ? 'ALLOWED' : `switched OFF (tell the user to turn on "Allow File Edits & Commands" on the General page in ${PANEL} if they want it)`}.
 ${VOICE_OK ? `- Voice: ${!config.voice ? 'off' : voiceReady() ? `on; ${HOTKEYS_OK ? `${userName} holds ${talkWords()} to talk` : `${userName} presses the key they bound to ${BIND.talk} to start talking and again to send (a pause sends too)`}${config.autoListen ? '. Auto-listen is on: when your reply to a spoken question ends with a question, the mic opens by itself for their answer' : ''}${(MAC || WIN) && config.wakeWord ? `. Wake word is on: ${userName} can also say "Hey ${wakeName(config)}" to start talking hands-free, and what they say right after it is the request (a request that still starts with "Hey ${wakeName(config)}" is them waking you, not calling you by another name: never correct it)${config.wakeName ? ` (they chose "${config.wakeName}" as the wake word; your own name is unchanged)` : ''}` : ''}` : `on, but the speech model isn't downloaded yet (${voiceModel.status === 'downloading' ? 'downloading now' : `the Voice page in ${PANEL}`})`}.` : ''}
-- Shortcuts: ${HOTKEYS_OK ? `${keys().write ? `type a question to you: ${typeof keys().write === 'string' ? `press ${keys().write} to start typing, which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)` : `a quick tap of ${writeWords()} (press both and let go), which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)`}` : `the tap that opens a text field to type a question is turned off (the Ask button in ${PANEL} still opens it; the Shortcuts page there turns the tap back on)`}; show or hide you ${keyWords(keys().summon)}` : `on this Wayland desktop no app can have global shortcuts, so ${userName} binds keys to these commands in their desktop's keyboard settings: ${BIND.summon} (show or hide you), ${BIND.ask} (ask you), ${BIND.list} (the list), ${BIND.talk} (talk) and ${BIND.panel} (the panel)`}${SNAP_OK ? `; ask about an area ${keyWords(keys().snap)}` : ''}${CIRCLE_OK ? "; while holding the talk keys, moving the cursor round something circles it (no clicking; it snaps shut with a click when the circle closes, and loose lines don't count) and you'll see what they circled" : ''}${HOTKEYS_OK ? `; show the list ${keyWords(keys().list)}` : ''}.${HANDS_OK ? '' : ' Asking about an area, reading app windows, finding things on screen by their words and working other apps need the J.A.R.V.I.S app, which isn\'t running here; draw there with x, y from a screenshot.'}`;
+- Shortcuts: ${HOTKEYS_OK ? `${keys().write ? `type a question to you: ${typeof keys().write === 'string' ? `press ${keys().write} to start typing, which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)` : `a quick tap of ${writeWords()} (press both and let go), which opens a text field beside the cursor (Enter sends, Shift+Enter adds a line, Esc or another tap closes it)`}` : `the tap that opens a text field to type a question is turned off (the Ask button in ${PANEL} still opens it; the Shortcuts page there turns the tap back on)`}; show or hide you ${keys().summon === 'off' ? 'the wake word' : keyWords(keys().summon)}` : `on this Wayland desktop no app can have global shortcuts, so ${userName} binds keys to these commands in their desktop's keyboard settings: ${BIND.summon} (show or hide you), ${BIND.ask} (ask you), ${BIND.list} (the list), ${BIND.talk} (talk) and ${BIND.panel} (the panel)`}${SNAP_OK ? `; ask about an area ${keyWords(keys().snap)}` : ''}${CIRCLE_OK ? "; while holding the talk keys, moving the cursor round something circles it (no clicking; it snaps shut with a click when the circle closes, and loose lines don't count) and you'll see what they circled" : ''}${HOTKEYS_OK ? `; show the list ${keyWords(keys().list)}` : ''}.${HANDS_OK ? '' : ' Asking about an area, reading app windows, finding things on screen by their words and working other apps need the J.A.R.V.I.S app, which isn\'t running here; draw there with x, y from a screenshot.'}`;
   const memory = `${open ? `Open commitments:\n${open}` : 'No open commitments.'}${done ? `\nDone today (ticked off on the list or by you; still shown struck through until midnight):\n${done}` : ''}
 ${facts.length ? `What you know about ${userName}${total > facts.length ? ` (${facts.length} most relevant of ${total})` : ''}:\n${facts.map((f) => `- ${f.id}: ${f.text}`).join('\n')}` : `You don't know anything lasting about ${userName} yet.`}${preferences.length ? `\nHow they want it:\n${preferences.map((p) => `- ${p.id}: ${p.text}`).join('\n')}` : ''}${recent.length ? `\nRecent work:\n${recent.map((r) => `- ${dateLine(r.at)}: ${r.digest}`).join('\n')}` : ''}${working ? `\n${working}` : ''}`;
   return { turn, memory };
@@ -1433,7 +1439,19 @@ async function oauthLogin(provider, id = `l${++loginSeq}`) {
 async function apiKeyLogin(id, given) {
   const provider = storageKeyProvider(id);
   const meta = AUTH_PROVIDERS.find((p) => p.value === provider);
-  if (!meta?.methods?.includes('apikey')) return;
+  if (!meta?.methods?.includes('apikey')) {
+    if (!meta) {
+      // Groq isn't in gg-core's catalogue yet: its key is saved on Groq's own endpoint, like the others' baseUrl.
+      const key = given ?? (await ask({ prompt: `Paste your ${PROVIDER_LABELS[provider] ?? provider} API key`, placeholder: 'API key', mask: true }));
+      if (!key?.trim()) return;
+      await auth.setCredentials(provider, { accessToken: key.trim(), refreshToken: '', expiresAt: Date.now() + 100 * 365 * 864e5, baseUrl: GROQ_BASE_URL });
+      await refreshAuth(); ensureModel(); agent = null;
+      menu();
+      if (onboarding) { ob({ kind: 'login', provider: id, phase: 'done' }); obState(); }
+      else say(`Got it. ${PROVIDER_LABELS[provider] ?? provider} is connected.`, 'happy');
+    }
+    return;
+  }
   const variant = meta.apiKeyVariants?.find((v) => v.key === id) ?? (id === provider ? meta.apiKeyVariants?.[0] : null);
   if (variant === null) return;
   const key = given ?? (await ask({ prompt: `Paste your ${PROVIDER_LABELS[provider] ?? provider} API key`, placeholder: 'API key', mask: true }));
@@ -1827,7 +1845,7 @@ function menu() {
     { id: 'status', label: status, enabled: false },
     { sep: true },
     { id: 'panel', label: 'Open Panel…' },
-    { id: 'show', label: `Show ${lookName()}`, ...(HOTKEYS_OK ? { accel: keys().summon } : {}) },
+    { id: 'show', label: `Show ${lookName()}`, ...(HOTKEYS_OK && keys().summon !== 'off' ? { accel: keys().summon } : {}) },
     { id: 'ask', label: `Ask ${lookName()}…`, enabled: !busy },
     ...(SNAP_OK ? [{ id: 'snap', label: 'Ask About an Area…', accel: keys().snap }] : []),
     { id: 'stop', label: 'Stop', enabled: busy },
@@ -1881,10 +1899,10 @@ function panelState() {
       const on = !!signedIn.get(p);
       return {
         id: p, label: PROVIDER_LABELS[p] ?? p, on,
-        method: p === 'local' ? 'local' : OAUTH[p] && (!meta || meta.methods.includes('oauth')) ? 'oauth' : meta?.methods?.includes('apikey') ? 'key' : null,
-        key: !!meta?.methods?.includes('apikey'), // also takes an API key (Claude and ChatGPT next to their sign-in)
+        method: p === 'local' ? 'local' : OAUTH[p] && (!meta || meta.methods.includes('oauth')) ? 'oauth' : meta?.methods?.includes('apikey') || !meta ? 'key' : null,
+        key: !!meta?.methods?.includes('apikey') || !meta, // also takes an API key (Claude and ChatGPT next to their sign-in)
         // How it's connected, for the Change key and Remove links: signed in, and/or a key saved.
-        signedIn: !!oauthOn.get(p), keySaved: !!meta && apiKeyStorageKeys(p).some((k) => storedKeys.has(k)),
+        signedIn: !!oauthOn.get(p), keySaved: !!meta ? !!meta.methods?.includes('apikey') && apiKeyStorageKeys(p).some((k) => storedKeys.has(k)) : storedKeys.has(p),
         // Kimi and Xiaomi: which kind of key is being added (plan or pay-per-token).
         kinds: meta && keyKinds(meta).length > 1 ? keyKinds(meta).map(([id, label, billing]) => ({ id, label, billing })) : null,
         models: on ? runnable(p).map((mm) => ({ id: mm.id, name: mm.name })) : [],
@@ -2355,7 +2373,7 @@ function obState() {
     snap: SNAP_OK, circle: CIRCLE_OK, session: SESSION, bind: HOTKEYS_OK ? null : BIND, sizes: SIZES,
     step: config.onboardStep ?? 0,
     oauth: signInCards(Object.keys(OAUTH), (id) => oauthOn.get(id), PROVIDER_LABELS),
-    apikey: keyCards(AUTH_PROVIDERS, (id) => keyOn.get(id)),
+    apikey: keyCards([...AUTH_PROVIDERS, GROQ_KEY_META], (id) => (id === 'groq' ? !!signedIn.get('groq') : !!keyOn.get(id))),
     connected: current && signedIn.get(config.provider) ? { provider: PROVIDER_LABELS[config.provider] ?? config.provider, model: current.name } : null,
     keys: keys(),
     actions: config.allowActions,
@@ -2461,7 +2479,8 @@ createInterface({ input: process.stdin }).on('line', (line) => {
     ui({ kind: 'size', size: sizeNow() });
     ui({ kind: 'look', look: config.look ?? 'classic' });
     ui({ kind: 'aware', on: !!config.alwaysAware && !config.awarePrivate, private: !!config.awarePrivate });
-    if (config.onboarded) ui({ kind: 'greet' });
+    // Arrival: voice-only, nothing opens. The greeting is spoken, never animated as an intro beat.
+    if (config.onboarded && VOICE_ON()) ui({ kind: 'greet' });
     agents.sync();
   } else if (m.type?.startsWith('ob_') || m.type?.startsWith('chat_') || m.type === 'set_keys' || m.type === 'set_actions' || m.type === 'set_login' || m.type === 'keybind_error') onGuide(m).catch((e) => console.error('guide', e));
   else if (m.type?.startsWith('voice')) onVoice(m);
