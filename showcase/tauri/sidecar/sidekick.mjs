@@ -44,7 +44,7 @@ import { faviconFor } from './draw.mjs';
 import { QUESTIONS, openNote, answerTurn, wantsSkip, endsChat, splitTurn, plain, stripNote, tourBeats, goalFrom, showcaseBeats } from './intro.mjs';
 import { SpeechText, CueFilter, VOICE_CUES, endsWithQuestion } from './speech.mjs';
 import { createSpeaker } from './speaker.mjs';
-import { ELEVEN_DEFAULT_VOICE, ELEVEN_MODEL, ELEVEN_MODELS } from './eleven.mjs';
+import { ELEVEN_DEFAULT_VOICE, ELEVEN_MODEL, ELEVEN_MODELS, ELEVEN_VOICES } from './eleven.mjs';
 import { FISH_CHOICES } from './fish.mjs';
 import { GROQ_BASE_URL, GROQ_MODELS, GROQ_DEFAULT_MODEL } from './groq.mjs';
 import { GEMINI_CHOICES, GEMINI_DEFAULT_VOICE, GEMINI_LOOK_VOICES, GEMINI_MODEL, GEMINI_VOICES } from './gemini.mjs';
@@ -193,7 +193,7 @@ let shellInfo = null; // resolves the shell's reply to it: screens, tray, panel,
 }
 const saveConfig = () => writeJson(CONFIG_PATH, config, { backup: true });
 
-// ---------- spoken replies (Fish Audio, Gemini or VoiceStudio) ----------
+// ---------- spoken replies (Fish Audio, Gemini, ElevenLabs or VoiceStudio) ----------
 // The key is the user's own: in the Keychain (macOS), DPAPI-encrypted (Windows) or the desktop's keyring (Linux),
 // never in the config or logs.
 // Each service has its own: secret is its name in that store, site is where a key comes from.
@@ -255,7 +255,7 @@ function aimSpeaker(id) {
   speech.setProvider(id);
   if (TTS[id]?.local) speech.setLocalVoice(studioVoice());
   else if (id === 'gemini') { speech.setVoice(geminiVoice()); speech.setModel(config.geminiModel); }
-  else if (id === 'eleven') { speech.setVoice(config.elevenVoice || ELEVEN_DEFAULT_VOICE); speech.setModel(config.elevenModel ?? ELEVEN_MODEL); }
+  else if (id === 'elevenlabs') { speech.setVoice(config.elevenVoice || ELEVEN_DEFAULT_VOICE); speech.setModel(config.elevenModel ?? ELEVEN_MODEL); }
   else { speech.setVoice(lookVoice()); speech.setModel(config.fishModel); }
 }
 // The same, with its key: the one given, else the saved one.
@@ -1529,7 +1529,7 @@ function speakLine(text, mood = 'happy') {
   if (v) { v.say(text); v.end(); }
 }
 
-// Fish Audio or Gemini. One without a key yet speaks once it has one (the panel and the guide ask for it).
+// Fish Audio, Gemini or ElevenLabs. One without a key yet speaks once it has one (the panel and the guide ask for it).
 async function setTts(id) {
   if (!TTS[id] || id === tts().id) return;
   await voiceKeysLoaded;
@@ -1577,6 +1577,24 @@ function setGeminiVoice(v) {
   menu(); if (onboarding) obState();
   if (tts().id === 'gemini' && VOICE_ON()) speakLine('This is how I sound.');
 }
+// J.A.R.V.I.S's ElevenLabs voice: one of the curated library voices, a voice the user made (its id), or
+// nothing (back to the demo voice). The id is what /v1/text-to-speech takes.
+const ELEVEN_ID = /^[A-Za-z0-9_-]{6,64}$/;
+function setElevenVoice(v) {
+  const id = typeof v === 'string' ? v.trim() : '';
+  const next = ELEVEN_ID.test(id) && id !== ELEVEN_DEFAULT_VOICE ? id : null; // empty or the demo voice: back to the demo
+  if (next === config.elevenVoice) return;
+  config.elevenVoice = next; saveConfig();
+  if (tts().id === 'elevenlabs') speech.setVoice(next || ELEVEN_DEFAULT_VOICE);
+  menu(); if (onboarding) obState();
+  if (tts().id === 'elevenlabs' && VOICE_ON()) speakLine('This is how I sound.');
+}
+function setElevenModel(m) {
+  if (!ELEVEN_MODELS.includes(m)) return;
+  config.elevenModel = m; saveConfig();
+  if (tts().id === 'elevenlabs') speech.setModel(m);
+  menu(); if (onboarding) obState();
+}
 
 async function removeVoiceKey(id = tts().id) {
   const t = TTS[id];
@@ -1592,7 +1610,7 @@ async function removeVoiceKey(id = tts().id) {
   say(`${t.name} key removed.${ttsKeys[id] === 'shared' ? " I'll use the Gemini key from the Model page." : used ? ' Replies are text only.' : ''}`, 'happy');
 }
 
-// A key for Fish Audio or Gemini: checked, saved, and that service is then the one that speaks.
+// A key for Fish Audio, Gemini or ElevenLabs: checked, saved, and that service is then the one that speaks.
 // note(text, bad, problem): typed into the panel or the setup guide, so how it went shows there too, next to the field.
 const KEY_STORE = MAC ? 'Keychain' : LINUX ? 'keyring' : '';
 async function voiceKeyLogin({ provider = tts().id, thenVoice = false, given = null, note = null } = {}) {
@@ -1923,10 +1941,12 @@ function panelState() {
     commitments: openCommitments().map((c) => ({ id: c.id, text: c.text, due: c.due ?? null, when: c.due ? `${fmtWhen(c.due)}${c.repeat ? ` · repeats ${repeatLabel(c.repeat)}` : ''}` : '', overdue: !!(c.due && c.due < Date.now()), repeat: c.repeat ?? null })),
     look: config.look ?? 'classic', looks: LOOKS.map(([id, label]) => [id, label]), name: lookName(),
     size: sizeNow(), sizes: SIZES,
-    replies: VOICE_ON() ? 'voice' : 'text', tts: tts().id, fishKey: hasVoiceKey('fish'), geminiKey: hasVoiceKey('gemini'),
+    replies: VOICE_ON() ? 'voice' : 'text', tts: tts().id, fishKey: hasVoiceKey('fish'), geminiKey: hasVoiceKey('gemini'), elevenlabsKey: hasVoiceKey('elevenlabs'),
     fishModel: config.fishModel, fishModels: FISH_CHOICES, fishFree: tts().id === 'fish' && speech.on && speech.model.endsWith('-free'),
     geminiVoice: geminiVoice(), geminiVoices: GEMINI_VOICES, geminiShared: ttsKeys.gemini === 'shared',
     geminiModel: config.geminiModel, geminiModels: GEMINI_CHOICES,
+    elevenVoice: config.elevenVoice || ELEVEN_DEFAULT_VOICE, elevenVoiceCustom: !!config.elevenVoice, elevenVoices: ELEVEN_VOICES,
+    elevenModel: config.elevenModel ?? ELEVEN_MODEL, elevenModels: ELEVEN_MODELS,
     studio: tts().local ? studioState() : null,
     voice: VOICE_OK ? {
       on: !!config.voice, keys: HOTKEYS_OK ? talkSymbols() : null, ready: voiceReady(), mac: MAC, mute: config.muteWhileTalking !== false, autoListen: !!config.autoListen, snoozeListen: !!config.snoozeListen, wakeWord: !!config.wakeWord, wakeName: wakeName(config), wakeProblem,
@@ -2130,6 +2150,9 @@ async function onMenu(id, via) {
   else if (id === 'fishkey_remove') removeVoiceKey('fish');
   else if (id === 'geminikey') voiceKeyLogin({ provider: 'gemini' });
   else if (id === 'geminikey_remove') removeVoiceKey('gemini');
+  else if (id === 'elevenlabskey_remove') removeVoiceKey('elevenlabs');
+  else if (id.startsWith('elevenvoice:')) setElevenVoice(id.slice(12));
+  else if (id.startsWith('elevenmodel:')) setElevenModel(id.slice(12));
   else if (id.startsWith('tts:')) setTts(id.slice(4));
   else if (id.startsWith('geminivoice:')) setGeminiVoice(id.slice(12));
   else if (id.startsWith('studiovoice:')) setStudioVoice(id.slice(12));
@@ -2471,8 +2494,10 @@ createInterface({ input: process.stdin }).on('line', (line) => {
       .catch((e) => { const p = problem('key', e, { store: KEY_STORE }); panelNote(p.text, true, p); });
   } else if (m.type === 'panel_local_add' && typeof m.label === 'string' && typeof m.baseUrl === 'string') {
     addServer({ label: m.label.slice(0, 200), baseUrl: m.baseUrl.slice(0, 500), key: typeof m.key === 'string' ? m.key.trim().slice(0, 1000) : '', images: m.images === true }).catch((e) => console.error('add server', e));
-  } else if ((m.type === 'panel_fishkey' || m.type === 'panel_geminikey') && typeof m.key === 'string') voiceKeyLogin({ provider: m.type === 'panel_geminikey' ? 'gemini' : 'fish', given: m.key.slice(0, 1000), note: panelNote }).catch((e) => console.error('voice key', e));
-  else if (m.type === 'answer') { pending.get(m.id)?.(m.text ?? null); pending.delete(m.id); }
+  } else if ((m.type === 'panel_fishkey' || m.type === 'panel_geminikey' || m.type === 'panel_elevenlabskey') && typeof m.key === 'string') {
+    const provider = { panel_fishkey: 'fish', panel_geminikey: 'gemini', panel_elevenlabskey: 'elevenlabs' }[m.type];
+    voiceKeyLogin({ provider, given: m.key.slice(0, 1000), note: panelNote }).catch((e) => console.error('voice key', e));
+  } else if (m.type === 'answer') { pending.get(m.id)?.(m.text ?? null); pending.delete(m.id); }
   else if (m.type === 'ui_ready') {
     retired.then((notes) => { if (notes.length) { retired = Promise.resolve([]); say(`${notes.join(' ')} Do it on the Model page in ${PANEL}.`, 'concerned'); } });
     ui({ kind: 'sound', on: config.sound });

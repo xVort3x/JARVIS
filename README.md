@@ -18,7 +18,7 @@ at, explain or operate what is on screen when you allow it.
 
 - **Talk, don't type.** Hold ⌃⌥ (Ctrl+Alt on Windows and Linux), say it, let go. On macOS and Windows, circle something with the cursor while you talk and it sees what you mean.
 - **Or type.** Tap ⌥⌘ (Ctrl+Shift on Windows and Linux) and a small text field opens beside your cursor. Type, press Enter.
-- **It talks back.** Spoken replies through [Fish Audio](https://fish.audio), or in a Gemini voice you pick with your own [Google AI Studio](https://aistudio.google.com/apikey) key.
+- **It talks back.** Spoken replies through [ElevenLabs](https://elevenlabs.io) (a library voice or your own), [Fish Audio](https://fish.audio), or in a Gemini voice you pick with your own [Google AI Studio](https://aistudio.google.com/apikey) key.
 - **It remembers.** What you said you'd do, reminders down to the second (or on repeat: "every weekday at 9", "every 2 hours"), and what matters to you.
 - **It draws on your screen.** Rings the exact button to click, walks you through each step, and sketches answers beside what you're reading.
 - **It thinks with you.** Ask it to weigh a real choice: the options side by side, what matters most, the trade-offs, and one recommendation on a card.
@@ -59,18 +59,21 @@ quizzes you answer with a click.
 | ---------------------- | -------------------------- | --------------------------- | ---------------------------------- |
 | Talk to it             | Yes, best on macOS 26+     | Yes, speech runs on your PC | Yes, speech runs on your PC        |
 | Circle while talking   | Yes                        | Yes                         | No                                 |
-| Spoken replies         | Fish Audio or Gemini key   | Fish Audio or Gemini key    | Fish Audio or Gemini key           |
+| Spoken replies         | ElevenLabs, Fish Audio or Gemini key | ElevenLabs, Fish Audio or Gemini key | ElevenLabs, Fish Audio or Gemini key |
 | Memory and reminders   | Yes                        | Yes                         | Yes                                |
 | Read windows and point | Yes                        | Yes                         | Points from screenshots only       |
 | Cards and diagrams     | Yes                        | Yes                         | Yes                                |
 | Click and type in apps | Yes                        | Yes                         | No                                 |
 | Ask about an area      | Yes (⌃⌥A)                  | Yes (Ctrl+Shift+A)          | No                                 |
-| Show or hide           | ⌃⌥S                        | Ctrl+Shift+S                | Ctrl+Alt+S, or a key you bind\*    |
+| Show or hide           | Off by default†             | Off by default†             | Off by default†             |
 | Talk shortcut          | Hold ⌃⌥                    | Hold Ctrl+Alt               | Hold Ctrl+Alt, or a key you bind\* |
 | Type shortcut          | Tap ⌥⌘                     | Tap Ctrl+Shift              | Tap Ctrl+Shift, or a key you bind\* |
 
 <sub>\* On Wayland (the default on Ubuntu, Fedora and KDE), apps can't grab keys, so you bind J.A.R.V.I.S' commands to keys
 in your desktop's keyboard settings. [Linux (beta)](#linux-beta) shows how.</sub>
+
+<sub>† Since 0.7.0 the show-or-hide hotkey is off by default — the wake word is the summon path. The same is true on
+macOS, Windows and Linux; turn the key back on (and pick your keys) on the panel's **Shortcuts** page.</sub>
 
 <sub>Before macOS 26, talking uses Apple's older speech recognizer, which needs Siri or Dictation turned on.</sub>
 
@@ -93,6 +96,7 @@ On the panel's **Listening** page you pick how you talk to me:
   you pause — or tap again to send early. My voice talks over you politely and stops the moment you start yours.
 - **Push to talk:** hold the talk keys, speak, let go. I answer the moment you release.
 - **Text only:** no microphone, no spoken replies. I read and write like any chat.
+- **Wake word** (macOS and Windows, off by default): say “Hey Jarvis” and I'm listening; whatever you say right after it is your request. Turn it on on the **Listening** page; the phrase can be changed. While it's on, the microphone stays open and the system shows its mic dot.
 
 Two settings shape hands-free: **Pause to send** (Short, Normal about 1.5 s, Long) and **Mic sensitivity** (Low, Normal, High).
 Esc stops a reply mid-sentence, and talking over me stops me too.
@@ -238,7 +242,7 @@ commands, and Open at Login.
 - Walkthroughs play their steps one after another instead of waiting for your clicks.
 - Screenshots go through your desktop's screenshot portal, which may ask you to allow them.
 
-On X11 sessions the shortcuts work as on Windows (hold Ctrl+Alt to talk, Ctrl+Alt+S to show or hide).
+On X11 sessions the talk keys work as on Windows (hold Ctrl+Alt to talk). The show-or-hide key is off by default; bind one in the panel's Shortcuts page, or say the wake word.
 
 **Troubleshooting:**
 
@@ -264,7 +268,7 @@ about the screen, go to the AI provider you pick. [PRIVACY.md](PRIVACY.md) lists
 1. Turn off **Open at login** (panel > Behavior), then quit J.A.R.V.I.S from the menu bar.
 2. Drag J.A.R.V.I.S from Applications to the Trash.
 3. Delete `~/.gg/sidekick` and `~/.gg/sidekick.json`. Keep `~/.gg/auth.json` if you use GG Coder.
-4. Open Keychain Access, search for "J.A.R.V.I.S" and delete the Fish Audio and Gemini voice keys.
+4. Open Keychain Access, search for "J.A.R.V.I.S" and delete the Fish Audio, Gemini and ElevenLabs voice keys.
 
 **Windows:**
 
@@ -278,7 +282,7 @@ about the screen, go to the AI provider you pick. [PRIVACY.md](PRIVACY.md) lists
 2. Remove the package (`sudo apt remove roamies` or `sudo dnf remove roamies`), or delete the AppImage.
 3. Delete `~/.gg/sidekick` (the voice model is in `~/.gg/sidekick/models`) and `~/.gg/sidekick.json`. Keep
    `~/.gg/auth.json` if you use GG Coder.
-4. Delete the Fish Audio key: `secret-tool clear service com.kenkai.roamies account fish-audio`.
+4. Delete the Fish Audio key: `secret-tool clear service com.kenkai.roamies account fish-audio`, and the ElevenLabs key: `secret-tool clear service com.kenkai.roamies account elevenlabs`.
 
 ## Build with the framework
 

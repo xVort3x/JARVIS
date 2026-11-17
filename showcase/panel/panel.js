@@ -185,6 +185,8 @@
     'gemini-3.8-flash-tts': "Google's best voice quality, with more feeling in it.",
   };
   const geminiPrice = (c) => `About $${(c.per10s * 120).toFixed(2)} per 100 replies, billed to your Google AI Studio account (it has a free tier).`;
+  // ElevenLabs bills characters too; the counts their console shows you are the truth for your account.
+  const ELEVEN_WHY = { eleven_v4: 'Most expressive. Costs the most.', eleven_flash_v2_5: 'The fast one. Costs less.', eleven_multilingual_v2: 'One voice, every language.' };
   const where = () => (state?.os === 'mac' ? 'your Keychain' : state?.os === 'win' ? 'Windows, encrypted for your account' : state?.os === 'linux' ? 'your keyring' : 'this computer');
 
   // ---------------------------------------------------------------- header
@@ -559,7 +561,7 @@
       ) : null,
     ];
   }
-  const TTS_NAMES = { fish: 'Fish Audio', gemini: 'Gemini', voicestudio: 'VoiceStudio' };
+  const TTS_NAMES = { fish: 'Fish Audio', gemini: 'Gemini', voicestudio: 'VoiceStudio', elevenlabs: 'ElevenLabs' };
   function speakingPage() {
     // The service that speaks, each with its own key: Fish Audio's voice is the look's and it has models to pick
     // from; Gemini has a list of voices and two models; VoiceStudio runs on this computer and needs no key.
@@ -578,7 +580,7 @@
         picks('Voice provider', Object.entries(TTS_NAMES), tts, (x) => {
           if (x !== 'voicestudio' && !state[`${x}Key`]) { ui.key = x; note(`Add a ${TTS_NAMES[x]} key to hear me talk.`); } // its key field opens with it
           act(`tts:${x}`);
-        }, 'tts', { fish: "J.A.R.V.I.S's voice, acted out with feeling. Billed to your Fish Audio account.", gemini: "Google's voices: pick one of 30. Billed to your Google AI Studio account.", voicestudio: 'The free VoiceStudio app on this computer, in the engine and voices you set up there. Nothing leaves your computer.' }),
+        }, 'tts', { fish: "J.A.R.V.I.S's voice, acted out with feeling. Billed to your Fish Audio account.", gemini: "Google's voices: pick one of 30. Billed to your Google AI Studio account.", voicestudio: 'The free VoiceStudio app on this computer, in the engine and voices you set up there. Nothing leaves your computer.', elevenlabs: "J.A.R.V.I.S's ElevenLabs voice: a library voice, or your own created voice. Billed to your ElevenLabs account." }),
         local ? el('div', { className: 'reveal', 'data-anim': 'studio' }, studioRows()) : null,
         tts === 'gemini' && hasKey && state.geminiVoices?.length ? el('div', { className: 'reveal', 'data-anim': 'gemini-voice' },
           el('p', { className: 'sub', textContent: `Voice for ${state.name}` }),
@@ -597,6 +599,23 @@
           picks('Voice model', state.fishModels.map((c) => [c.id, c.name]), state.fishModel, (x) => act(`fishmodel:${x}`), 'fishmodel',
             Object.fromEntries(state.fishModels.map((c) => [c.id, `${WHY_LONG[c.id] ?? ''} ${price(c)}`.trim()]))),
           el('p', { className: `why${state.fishFree ? ' late' : ''}`, textContent: state.fishFree ? "No credit left, so it's on Fish's free tier" : WHY[state.fishModel] ?? '' }),
+        ) : null,
+        tts === 'elevenlabs' && hasKey && state.elevenVoices?.length ? el('div', { className: 'reveal', 'data-anim': 'eleven-voice' },
+          el('p', { className: 'sub', textContent: `Voice for ${state.name}` }),
+          el('span', { className: 'px field select' },
+            el('select', { 'aria-label': 'ElevenLabs voice', 'data-k': 'elevenvoice', on: { change: (e) => act(`elevenvoice:${e.target.value}`) } },
+              [...(state.elevenVoiceCustom ? [{ id: state.elevenVoice, name: 'My own voice' }] : []), ...state.elevenVoices]
+                .map((v) => el('option', { value: v.id, textContent: v.name, selected: v.id === state.elevenVoice })))),
+        ) : null,
+        tts === 'elevenlabs' && hasKey ? el('div', { className: 'reveal', 'data-anim': 'eleven-custom' },
+          el('p', { className: 'sub', textContent: 'Your own voice id' }),
+          el('span', { className: 'px field' },
+            el('input', { type: 'text', 'aria-label': 'ElevenLabs voice id', placeholder: 'Voice id from elevenlabs.io', spellcheck: 'false', autocomplete: 'off', maxLength: 128, on: { keydown: (e) => { if (e.key === 'Enter') { const v = e.target.value.trim(); act(`elevenvoice:${v}`); e.target.value = ''; } } } })),
+          el('p', { className: 'why', textContent: 'Open your voice on elevenlabs.io and copy its Voice ID. Paste it here and press Enter; clear the field and press Enter to use the demo voice again.' })) : null,
+        tts === 'elevenlabs' && hasKey && state.elevenModels?.length ? el('div', { className: 'reveal', 'data-anim': 'eleven-model' },
+          el('p', { className: 'sub', textContent: 'Voice model' }),
+          picks('Voice model', state.elevenModels.map((c) => [c, c]), state.elevenModel, (x) => act(`elevenmodel:${x}`), 'elevenmodel',
+            Object.fromEntries(state.elevenModels.map((c) => [c, ELEVEN_WHY[c] ?? '']))),
         ) : null,
         local ? null : el('div', { className: 'setting' },
           el('span', {}, `${T} key`, el('small', { textContent: shared ? 'Shared with the Model page' : hasKey ? `Saved in ${where()}` : 'Needed for spoken replies' })),
@@ -967,13 +986,17 @@
       name: 'J.A.R.V.I.S', look: 'jarvis', looks: [['jarvis', 'J.A.R.V.I.S']],
       size: 'default', sizes: [['default', 'Default'], ['small', 'Small'], ['cursor', 'Cursor']],
       replies: 'voice', fishKey: true, fishModel: 'drama-3', fishFree: false,
-      // ?tts=gemini: Gemini as the voice, its key saved.
-      tts: new URLSearchParams(location.search).get('tts') === 'gemini' ? 'gemini' : 'fish', geminiKey: new URLSearchParams(location.search).get('tts') === 'gemini', geminiVoice: 'Kore',
+      // ?tts=gemini / ?tts=elevenlabs: that one as the voice, its key saved.
+      tts: ['gemini', 'elevenlabs'].includes(q.get('tts')) ? q.get('tts') : 'fish', geminiKey: q.get('tts') === 'gemini', geminiVoice: 'Kore',
       geminiVoices: [['Zephyr', 'Bright'], ['Puck', 'Upbeat'], ['Charon', 'Informative'], ['Kore', 'Firm']].map(([id, style]) => ({ id, style })),
       // &shared: speaking with the AI's Gemini key, none saved for the voice.
       geminiShared: new URLSearchParams(location.search).has('shared'), geminiModel: 'gemini-3.8-flash-lite-tts',
       geminiModels: [{ id: 'gemini-3.8-flash-lite-tts', name: 'Flash Lite', per10s: 0.0015 }, { id: 'gemini-3.8-flash-tts', name: 'Flash', per10s: 0.00225 }],
       fishModels: [{ id: 'drama-3', name: 'Drama 3', perM: 50, promo: { perM: 10, until: '2026-12-01T08:00:00Z' } }, { id: 's2.1-pro', name: 'S2.1 Pro', perM: 15 }],
+      elevenlabsKey: q.get('tts') === 'elevenlabs',
+      elevenVoice: 'JBFqnCBsd6RMkjVDRZzb', elevenVoiceCustom: false,
+      elevenVoices: [['JBFqnCBsd6RMkjVDRZzb', 'Rachel'], ['21mEOyWgAeX44s3Mkmmk', 'Domi'], ['EXAVITQu4vr4xnSDxMaL', 'Antoni']].map(([id, name]) => ({ id, name })),
+      elevenModel: 'eleven_v4', elevenModels: ['eleven_v4', 'eleven_flash_v2_5', 'eleven_multilingual_v2'],
       voice: { on: true, keys: 'Ctrl+Alt', ready: true, mac: false, mute: true, mics: [{ id: 'BuiltIn', name: 'MacBook Pro Microphone' }, { id: 'airpods', name: 'AirPods Pro' }], mic: '', micAuto: 'MacBook Pro Microphone', wakeWord: false, wakeName: 'Jarvis', wakeProblem: false, download: null, mode: 'handsfree', vad: { pause: 1.5, sensitivity: 'normal' } }, askKeys: '⌥⌘', aware: { on: true, mode: 'front', private: false, exclusions: ['1password', 'logonui', 'InPrivate', 'my bank'] }, brief: { on: true, todoist: false, canTodoist: true }, focus: { until: null, task: '', list: ['YouTube', 'Reddit', 'X', 'Steam', 'Netflix'], custom: false }, sync: { dir: '', at: null, error: null, paused: false }, shortcuts: { talk: { value: 'control+option', pairs: [['control+option', 'Control+Option'], ['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] }, keys: [{ id: 'summon', words: 'Control+Option+S' }, { id: 'snap', words: 'Control+Option+A' }, { id: 'list', words: 'Control+Option+L' }] }, writeKeys: { value: 'option+command', pairs: [['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] },
       sound: false, actions: false, login: { on: true },
       intro: false,
