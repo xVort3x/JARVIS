@@ -16,13 +16,17 @@ assert.ok(groq.length >= 2, 'Groq’s curated models are in the registry');
 assert.ok(groq.some((m) => m.id === GROQ_DEFAULT_MODEL), 'the default brain’s model is registered');
 assert.equal(getModel(GROQ_DEFAULT_MODEL)?.provider, 'groq');
 
-// Groq 400s on these two OpenAI-only fields; the wire rewriter must remove them and change nothing else.
-const body = { model: 'qwen/qwen3.8-27b', prompt_cache_key: 'ggcoder', messages: [
+// Groq 400s on these OpenAI-only fields; the wire rewriter must remove the prompt_cache_* family and reasoning_content,
+// and change nothing else.
+const body = { model: 'qwen/qwen3.8-27b', prompt_cache_key: 'ggcoder', prompt_cache_retention: '24h', prompt_cache_options: { mode: 'implicit', ttl: '30m' }, stream_options: { include_usage: true }, messages: [
   { role: 'user', content: 'hi' },
   { role: 'assistant', content: 'hello', reasoning_content: 'thought' },
 ] };
 const clean = forGroq(structuredClone(body));
 assert.equal('prompt_cache_key' in clean, false, 'prompt_cache_key is stripped for Groq');
+assert.equal('prompt_cache_retention' in clean, false, 'prompt_cache_retention is stripped for Groq');
+assert.equal('prompt_cache_options' in clean, false, 'prompt_cache_options is stripped for Groq');
+assert.deepEqual(clean.stream_options, { include_usage: true }, 'stream_options survives');
 assert.equal(clean.messages[1].reasoning_content, undefined, 'reasoning_content is stripped from assistant turns');
 assert.equal(clean.messages[0].content, 'hi', 'other message fields survive');
 assert.equal(clean.model, body.model, 'the model survives');

@@ -19,11 +19,12 @@ registerRuntimeModels([
   groqModel(GROQ_MODELS[3], 'Llama 3.3 70B Versatile', 32_768, 'low'),
 ]);
 
-// Groq's OpenAI-compatible endpoint rejects two OpenAI-only fields that the transport adds to every request:
-// prompt_cache_key, and reasoning_content on assistant turns. Strip them at the wire.
+// Groq's OpenAI-compatible endpoint rejects the OpenAI-only fields gg-ai adds for provider "openai": prompt_cache_key,
+// prompt_cache_options, prompt_cache_retention (added when cache retention is long), and reasoning_content on
+// assistant turns. Strip them at the wire.
 export function forGroq(body) {
   if (!body || typeof body !== 'object') return body;
-  delete body.prompt_cache_key;
+  for (const k of Object.keys(body)) if (k.startsWith('prompt_cache_')) delete body[k];
   for (const m of body.messages ?? []) if (m && typeof m === 'object') delete m.reasoning_content;
   return body;
 }
