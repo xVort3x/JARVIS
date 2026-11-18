@@ -5,6 +5,7 @@
 <title>J.A.R.V.I.S</title>
 <link rel="stylesheet" href="../onboarding/onboarding.css">
 <link rel="stylesheet" href="panel.css">
+<link rel="stylesheet" href="raycast.css">
 </head>
 <body>
 <div class="frame shut" id="frame">
@@ -25,6 +26,12 @@
     <p class="saying" id="saying" aria-hidden="true"></p>
   </div>
 </header>
+
+<div class="jump" role="search">
+  <span class="jump-ico" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2 14 14"/></svg></span>
+  <input id="jump" type="search" placeholder="Search settings and pages" aria-label="Search settings and pages" autocomplete="off" spellcheck="false">
+  <kbd>Ctrl K</kbd>
+</div>
 
 <div class="split">
   <!-- One page per concern: what's going on, what it remembers, then a page for each group of settings. -->

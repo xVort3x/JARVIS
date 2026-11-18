@@ -12,6 +12,10 @@ showcase/tauri/src-tauri/gen/
 # Dependencies
 node_modules/
 
+# Secrets (the ElevenLabs CLI writes .env.local)
+.env.local
+.env*.local
+
 # OS / editor / logs
 .DS_Store
 *.log

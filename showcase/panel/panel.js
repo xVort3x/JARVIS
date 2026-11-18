@@ -186,7 +186,7 @@
   };
   const geminiPrice = (c) => `About $${(c.per10s * 120).toFixed(2)} per 100 replies, billed to your Google AI Studio account (it has a free tier).`;
   // ElevenLabs bills characters too; the counts their console shows you are the truth for your account.
-  const ELEVEN_WHY = { eleven_v4: 'Most expressive. Costs the most.', eleven_flash_v2_5: 'The fast one. Costs less.', eleven_multilingual_v2: 'One voice, every language.' };
+  const ELEVEN_WHY = { eleven_flash_v2_5: 'The fast one. Lowest latency and cost.', eleven_multilingual_v2: 'One voice, every language.' };
   const where = () => (state?.os === 'mac' ? 'your Keychain' : state?.os === 'win' ? 'Windows, encrypted for your account' : state?.os === 'linux' ? 'your keyring' : 'this computer');
 
   // ---------------------------------------------------------------- header
@@ -610,8 +610,12 @@
         tts === 'elevenlabs' && hasKey ? el('div', { className: 'reveal', 'data-anim': 'eleven-custom' },
           el('p', { className: 'sub', textContent: 'Your own voice id' }),
           el('span', { className: 'px field' },
-            el('input', { type: 'text', 'aria-label': 'ElevenLabs voice id', placeholder: 'Voice id from elevenlabs.io', spellcheck: 'false', autocomplete: 'off', maxLength: 128, on: { keydown: (e) => { if (e.key === 'Enter') { const v = e.target.value.trim(); act(`elevenvoice:${v}`); e.target.value = ''; } } } })),
-          el('p', { className: 'why', textContent: 'Open your voice on elevenlabs.io and copy its Voice ID. Paste it here and press Enter; clear the field and press Enter to use the demo voice again.' })) : null,
+            el('input', { type: 'text', 'aria-label': 'ElevenLabs voice id', placeholder: 'Voice id from elevenlabs.io', spellcheck: 'false', autocomplete: 'off', maxLength: 128, on: {
+              keydown: (e) => { if (e.key === 'Enter') { const v = e.target.value.trim(); act(`elevenvoice:${v}`); e.target.value = ''; } },
+              // Applying on blur too, so pasting and tabbing away (or clicking Play) never leaves it unapplied.
+              blur: (e) => { const v = e.target.value.trim(); if (v) act(`elevenvoice:${v}`); e.target.value = ''; },
+            } })),
+          el('p', { className: 'why', textContent: 'Open your voice on elevenlabs.io and copy its Voice ID. Paste it here and press Enter (or click away); clear it and press Enter to use the demo voice again.' })) : null,
         tts === 'elevenlabs' && hasKey && state.elevenModels?.length ? el('div', { className: 'reveal', 'data-anim': 'eleven-model' },
           el('p', { className: 'sub', textContent: 'Voice model' }),
           picks('Voice model', state.elevenModels.map((c) => [c, c]), state.elevenModel, (x) => act(`elevenmodel:${x}`), 'elevenmodel',
@@ -845,6 +849,23 @@
   }
   document.querySelector('.side').addEventListener('animationend', (e) => e.target.classList.remove('ping'));
   for (const t of TABS) navi(t).addEventListener('click', () => show(t));
+  // The search field: filter the sidebar as you type, Enter opens the first match, Esc clears it (and only it).
+  const jump = $('jump');
+  const jumpItems = [...document.querySelectorAll('.navi')];
+  const filterJump = () => {
+    const q = jump.value.trim().toLowerCase();
+    for (const b of jumpItems) b.closest('li').hidden = !!q && !b.textContent.toLowerCase().includes(q);
+  };
+  jump.addEventListener('input', filterJump);
+  jump.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const first = jumpItems.find((b) => !b.closest('li').hidden);
+      if (first) { show(first.dataset.page, true); jump.value = ''; filterJump(); }
+    } else if (e.key === 'Escape') { e.stopPropagation(); jump.value = ''; filterJump(); jump.blur(); }
+  });
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); jump.focus(); jump.select(); }
+  });
   // Up and down walk the sidebar (Home and End jump to its ends); Tab goes on into the page.
   document.querySelector('.side').addEventListener('keydown', (e) => {
     const i = TABS.indexOf(e.target.dataset?.page);
@@ -995,8 +1016,8 @@
       fishModels: [{ id: 'drama-3', name: 'Drama 3', perM: 50, promo: { perM: 10, until: '2026-12-01T08:00:00Z' } }, { id: 's2.1-pro', name: 'S2.1 Pro', perM: 15 }],
       elevenlabsKey: q.get('tts') === 'elevenlabs',
       elevenVoice: 'JBFqnCBsd6RMkjVDRZzb', elevenVoiceCustom: false,
-      elevenVoices: [['JBFqnCBsd6RMkjVDRZzb', 'Rachel'], ['21mEOyWgAeX44s3Mkmmk', 'Domi'], ['EXAVITQu4vr4xnSDxMaL', 'Antoni']].map(([id, name]) => ({ id, name })),
-      elevenModel: 'eleven_v4', elevenModels: ['eleven_v4', 'eleven_flash_v2_5', 'eleven_multilingual_v2'],
+      elevenVoices: [['JBFqnCBsd6RMkjVDRZzb', 'George · warm British narration'], ['EXAVITQu4vr4xnSDxMaL', 'Sarah · soft American'], ['onwK4e9ZLuTAKqWW03F9', 'Daniel · authoritative British']].map(([id, name]) => ({ id, name })),
+      elevenModel: 'eleven_flash_v2_5', elevenModels: ['eleven_flash_v2_5', 'eleven_multilingual_v2'],
       voice: { on: true, keys: 'Ctrl+Alt', ready: true, mac: false, mute: true, mics: [{ id: 'BuiltIn', name: 'MacBook Pro Microphone' }, { id: 'airpods', name: 'AirPods Pro' }], mic: '', micAuto: 'MacBook Pro Microphone', wakeWord: false, wakeName: 'Jarvis', wakeProblem: false, download: null, mode: 'handsfree', vad: { pause: 1.5, sensitivity: 'normal' } }, askKeys: '⌥⌘', aware: { on: true, mode: 'front', private: false, exclusions: ['1password', 'logonui', 'InPrivate', 'my bank'] }, brief: { on: true, todoist: false, canTodoist: true }, focus: { until: null, task: '', list: ['YouTube', 'Reddit', 'X', 'Steam', 'Netflix'], custom: false }, sync: { dir: '', at: null, error: null, paused: false }, shortcuts: { talk: { value: 'control+option', pairs: [['control+option', 'Control+Option'], ['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] }, keys: [{ id: 'summon', words: 'Control+Option+S' }, { id: 'snap', words: 'Control+Option+A' }, { id: 'list', words: 'Control+Option+L' }] }, writeKeys: { value: 'option+command', pairs: [['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] },
       sound: false, actions: false, login: { on: true },
       intro: false,

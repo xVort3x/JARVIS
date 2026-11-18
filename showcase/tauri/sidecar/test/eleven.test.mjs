@@ -21,11 +21,11 @@ const run = (opts = {}) => {
 { // The curated catalogue: most expressive first, the default in it, every pick is a real model.
   assert.ok(ELEVEN_MODELS.length >= 2);
   assert.ok(ELEVEN_MODELS.includes(ELEVEN_MODEL));
-  assert.equal(ELEVEN_MODELS[0], 'eleven_v4');
+  assert.equal(ELEVEN_MODELS[0], 'eleven_flash_v2_5', 'stream-input cannot take v3/v4, so Flash is the default');
 }
 
 { // J.A.R.V.I.S's own voice is first in the list the user picks from.
-  assert.deepEqual(ELEVEN_VOICES.map((v) => v.id), ['JBFqnCBsd6RMkjVDRZzb', '21mEOyWgAeX44s3Mkmmk', 'EXAVITQu4vr4xnSDxMaL']);
+  assert.deepEqual(ELEVEN_VOICES.map((v) => v.id), ['JBFqnCBsd6RMkjVDRZzb', 'EXAVITQu4vr4xnSDxMaL', 'onwK4e9ZLuTAKqWW03F9'], 'premade voices a free plan can use');
 }
 
 { // The reply: an init, then each sentence's text and flush, then the close that ends the stream; audio in, PCM out.
@@ -108,11 +108,11 @@ const run = (opts = {}) => {
   const out = [], problems = [];
   const sp = createSpeaker({
     emit: (m) => out.push(m), onProblem: (p) => problems.push(p), FishVoiceImpl: FakeVoice, account: async () => ({ ok: true, credit: null }),
-    providers: { eleven: { ...PROVIDERS.eleven, Voice: FakeVoice, account: async () => ({ ok: true, credit: null }) } }, beatPhrases: [], bundled: () => null,
+    providers: { elevenlabs: { ...PROVIDERS.elevenlabs, Voice: FakeVoice, account: async () => ({ ok: true, credit: null }) } }, beatPhrases: [], bundled: () => null,
   });
   assert.equal(sp.provider, 'fish');
-  sp.setProvider('eleven');
-  assert.equal(sp.provider, 'eleven'); assert.equal(sp.on, false);
+  sp.setProvider('elevenlabs');
+  assert.equal(sp.provider, 'elevenlabs'); assert.equal(sp.on, false);
   sp.setKey('e-key');
   const r = sp.start();
   const v = made[0];

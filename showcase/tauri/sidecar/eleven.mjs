@@ -6,16 +6,17 @@ import { CUE, speakable } from './speech.mjs';
 
 export const ELEVEN_API = 'https://api.elevenlabs.io';
 export const ELEVEN_LIVE = (voice) => `wss://api.elevenlabs.io/v1/text-to-speech/${voice}/stream-input`;
-// The curated picks, most expressive first (the reply that fails falls to the next, never pricier).
-export const ELEVEN_MODELS = ['eleven_v4', 'eleven_flash_v2_5', 'eleven_multilingual_v2'];
-export const ELEVEN_MODEL = 'eleven_v4';
+// The picks for the stream-input socket: it does not take eleven_v3 or eleven_v4 (those need the Text to Dialogue
+// socket), so the fast Flash model is the default and the stable long-form one the fallback.
+export const ELEVEN_MODELS = ['eleven_flash_v2_5', 'eleven_multilingual_v2'];
+export const ELEVEN_MODEL = 'eleven_flash_v2_5';
 export const ELEVEN_RATE = 24000;
-// J.A.R.V.I.S's own voice: the demo voice for now, until the user makes and pastes theirs.
-export const ELEVEN_DEFAULT_VOICE = 'JBFqnCBsd6RMkjVDRZzb';
+// Premade voices a free plan can use through the API (voice-library voices need a paid plan): George is the default.
+export const ELEVEN_DEFAULT_VOICE = 'JBFqnCBsd6RMkjVDRZzb'; // George · warm British narration
 export const ELEVEN_VOICES = [
-  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'Rachel' },
-  { id: '21mEOyWgAeX44s3Mkmmk', name: 'Domi' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Antoni' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George · warm British narration' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah · soft American' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel · authoritative British' },
 ];
 export const ELEVEN_SETTINGS = { stability: 0.5, similarity_boost: 0.75, use_speaker_boost: true, speed: 1 };
 // Low latency: the shortest chunk schedule the API allows (the default buffers up to 120 characters).

@@ -88,6 +88,9 @@ const VERSION = process.env.JARVIS_VERSION || process.env.ROAMIES_VERSION || '0.
 const HOME = os.homedir();
 // ROAMIES_DATA_DIR (tests and benchmarks): config, sessions and memory go there instead; sign-in stays in ~/.gg.
 const CONFIG_PATH = process.env.ROAMIES_DATA_DIR ? path.join(process.env.ROAMIES_DATA_DIR, 'sidekick.json') : path.join(HOME, '.gg', 'sidekick.json');
+// The ElevenLabs CLI saves the key to .env.local; the app reads the same file, so the key it created is used without
+// anyone pasting it. A key saved in the panel wins (voiceKey checks the secret store first).
+try { process.loadEnvFile(path.join(path.dirname(CONFIG_PATH), '.env.local')); } catch { /* no file: the panel's key is the only one */ }
 // The only sign-ins: Claude runs through Claude Code (downloaded once, about 140 MB; it keeps the token, auth.json
 // a marker), ChatGPT is Continue with ChatGPT. Everything else, Kimi, Grok and Gemini included, takes an API key.
 const OAUTH = {
@@ -124,7 +127,7 @@ const DEFAULTS = {
   geminiVoices: {}, // the Gemini voice J.A.R.V.I.S speaks in, where picked in the setup guide or the panel
   geminiModel: GEMINI_MODEL, // Flash Lite (quick, cheaper) or Flash (studio quality)
   elevenVoice: null, // the ElevenLabs voice J.A.R.V.I.S speaks in (a voice id the user made; null: the demo voice)
-  elevenModel: ELEVEN_MODEL, // ElevenLabs: most expressive first, or the fast model
+  elevenModel: ELEVEN_MODEL, // ElevenLabs: the fast Flash model (stream-input cannot take v3/v4)
 };
 const LINUX = process.platform === 'linux';
 // Linux: "x11" or "wayland" (the app says which). Wayland keeps apps from seeing the pointer over other apps and
@@ -215,7 +218,8 @@ const brainGeminiKey = () => auth.resolveApiKey('gemini').then((c) => c?.accessT
 async function voiceKey(id) {
   // Linux: reading the keyring can pop up an "unlock your keyring" dialog (an auto-login desktop leaves it locked),
   // so it's only read once a key has been saved there (fishKeySaved, geminiKeySaved).
-  const own = LINUX && !config[`${id}KeySaved`] ? null : await secrets.get(TTS[id].secret);
+  const saved = LINUX && !config[`${id}KeySaved`] ? null : await secrets.get(TTS[id].secret);
+  const own = saved || (id === 'elevenlabs' ? process.env.ELEVENLABS_API_KEY : null);
   if (own) return [own, 'own'];
   const shared = id === 'gemini' ? await brainGeminiKey() : null;
   return shared ? [shared, 'shared'] : [null, false];

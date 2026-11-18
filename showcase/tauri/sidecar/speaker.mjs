@@ -31,7 +31,7 @@ import { GEMINI_DEFAULT_VOICE, GEMINI_MODEL, GEMINI_MODELS, GEMINI_PITCH, GEMINI
 export const PROVIDERS = {
   fish: { id: 'fish', name: 'Fish Audio', Voice: FishVoice, account: fishAccount, models: FISH_MODELS, freeModel: FREE_MODEL, rate: RATE, defaultVoice: DEFAULT_VOICE },
   gemini: { id: 'gemini', name: 'Gemini', Voice: GeminiVoice, account: geminiAccount, models: GEMINI_MODELS, pick: GEMINI_MODEL, freeModel: null, rate: GEMINI_RATE, play: Math.round(GEMINI_RATE * GEMINI_PITCH), defaultVoice: GEMINI_DEFAULT_VOICE, warmDelay: 15_000 },
-  eleven: { id: 'eleven', name: 'ElevenLabs', Voice: ElevenVoice, account: elevenAccount, models: ELEVEN_MODELS, pick: ELEVEN_MODEL, freeModel: null, rate: ELEVEN_RATE, defaultVoice: ELEVEN_DEFAULT_VOICE },
+  elevenlabs: { id: 'elevenlabs', name: 'ElevenLabs', Voice: ElevenVoice, account: elevenAccount, models: ELEVEN_MODELS, pick: ELEVEN_MODEL, freeModel: null, rate: ELEVEN_RATE, defaultVoice: ELEVEN_DEFAULT_VOICE },
 };
 
 // Silence trimmed from both ends (a little kept), so a beat starts the moment it plays.
