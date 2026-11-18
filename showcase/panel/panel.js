@@ -853,8 +853,11 @@
   const jump = $('jump');
   const jumpItems = [...document.querySelectorAll('.navi')];
   const filterJump = () => {
-    const q = jump.value.trim().toLowerCase();
-    for (const b of jumpItems) b.closest('li').hidden = !!q && !b.textContent.toLowerCase().includes(q);
+    const words = jump.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    for (const b of jumpItems) {
+      const hay = `${b.textContent} ${b.dataset.search ?? ''}`.toLowerCase();
+      b.closest('li').hidden = words.some((w) => !hay.includes(w));
+    }
   };
   jump.addEventListener('input', filterJump);
   jump.addEventListener('keydown', (e) => {
