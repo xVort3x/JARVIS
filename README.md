@@ -24,6 +24,8 @@ at, explain or operate what is on screen when you allow it.
 - **It thinks with you.** Ask it to weigh a real choice: the options side by side, what matters most, the trade-offs, and one recommendation on a card.
 - **It does the clicking.** Opens apps, sites and files, and on macOS and Windows clicks or types in other apps for you when you turn that on.
 - **Your subscriptions.** Sign in with Claude or ChatGPT, or use an API key (Gemini, Grok, Kimi Code and more).
+- **Launch it with your voice.** "Open YouTube and search for lofi beats", "Play the first result", "Open the first video" — sites, searches and videos open in your default browser.
+- **Deep search.** Say "do a deep search on …" and J.A.R.V.I.S runs several angles, reads the pages, and answers with the sources. "Verify that" cross-checks a claim against the web and flags mismatches.
 
 ## J.A.R.V.I.S shows you how
 

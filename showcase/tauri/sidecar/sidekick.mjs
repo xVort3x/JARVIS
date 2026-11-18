@@ -2544,6 +2544,7 @@ createInterface({ input: process.stdin }).on('line', (line) => {
     ui({ kind: 'aware', on: !!config.alwaysAware && !config.awarePrivate, private: !!config.awarePrivate });
     // Arrival: voice-only, nothing opens. The greeting is spoken, never animated as an intro beat.
     if (config.onboarded && VOICE_ON()) ui({ kind: 'greet' });
+    ui({ kind: 'talk_keys', keys: talkSymbols() });
     agents.sync();
   } else if (m.type?.startsWith('ob_') || m.type?.startsWith('chat_') || m.type === 'set_keys' || m.type === 'set_actions' || m.type === 'set_login' || m.type === 'keybind_error') onGuide(m).catch((e) => console.error('guide', e));
   else if (m.type?.startsWith('voice')) onVoice(m);

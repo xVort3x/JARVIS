@@ -96,6 +96,11 @@ assert.match(side, /setInterval\(\(\) => desk\.tick\(\), 1000\)/, 'the news desk
 assert.match(side, /const along = desk\.along\(text, \{ intro: !!intro, news: !!news, agentish \}\);/, 'their message carries untold news');
 assert.match(side, /if \(!retried\) desk\.started\(news\);\r?\n  if \(notReady\)/, 'a news turn counts as told before anything can fail');
 assert.match(side, /const agentish = !intro && !news && wantsAgent\(text\);/, 'a news turn never hatches an agent');
+// The "Where the answer lives" paragraph also carries the voice-first research modes.
+assert.match(side, /Deep search: when they ask for one properly/, 'deep search mode is in the prompt');
+assert.match(side, /Fact check: when they ask to check or verify a claim/, 'fact check mode is in the prompt');
+assert.match(side, /- Brief mode: they want answers short and sharp/, 'Brief Mode is switched on from the General page');
+assert.match(side, /time zone and region are not shared/, 'Local awareness can be turned off');
 console.log('prompt tests: passed');
 // The chat's web tools are GG Coder's: it names both, and never the old fetch_url.
 assert.match(side, /search the web \(web_search\) and read pages \(web_fetch, with offset to read on\)/, 'the prompt names both web tools');

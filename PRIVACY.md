@@ -17,9 +17,10 @@ data J.A.R.V.I.S handles and where it goes.
 key) receives:
 
 - your messages and the conversation so far
-- a "live state" block: the date and time, your time zone, the name or title of the app and window in front,
-  and the facts and commitments J.A.R.V.I.S has saved in memory
+- a "live state" block: the date and time, the name or title of the app and window in front, and the facts and
+  commitments J.A.R.V.I.S has saved in memory
 - screenshots or window text, when J.A.R.V.I.S looks at your screen to answer
+- your time zone and locale, unless you turn off **Local awareness** on the General page (Settings → General)
 
 **Fish Audio, Google or ElevenLabs**, whichever you pick as the voice, receives the text of each reply to speak it, only if spoken replies are on. It uses your own key for that service (for Gemini, the Gemini key you added for the AI is used unless you save a separate one for the voice).
 
