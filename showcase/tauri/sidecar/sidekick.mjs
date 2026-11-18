@@ -47,6 +47,7 @@ import { createSpeaker } from './speaker.mjs';
 import { ELEVEN_DEFAULT_VOICE, ELEVEN_MODEL, ELEVEN_MODELS, ELEVEN_VOICES } from './eleven.mjs';
 import { FISH_CHOICES } from './fish.mjs';
 import { GROQ_BASE_URL, GROQ_MODELS, GROQ_DEFAULT_MODEL } from './groq.mjs';
+import { GEMINI_FREE_MODEL } from './gemini-models.mjs';
 import { GEMINI_CHOICES, GEMINI_DEFAULT_VOICE, GEMINI_LOOK_VOICES, GEMINI_MODEL, GEMINI_VOICES } from './gemini.mjs';
 import { createSecrets, retryLoad, runInput } from './secrets.mjs';
 import { showTrayIcon } from './wintray.mjs';
@@ -101,8 +102,11 @@ const OAUTH = {
 const PROVIDER_LABELS = { groq: 'Groq', ...Object.fromEntries(AUTH_PROVIDERS.map((p) => [p.value, p.label])), local: 'Local models' };
 // What a sign-in is called (the product), where the provider's label is the company.
 const SIGNIN_NAMES = { anthropic: 'Claude', openai: 'ChatGPT' };
-const MENU_PROVIDERS = ['groq', 'anthropic', 'openai', ...AUTH_PROVIDERS.map((p) => p.value), 'local'].filter((v, i, a) => a.indexOf(v) === i);
-const FAST = { groq: GROQ_DEFAULT_MODEL, anthropic: 'claude-haiku-5-5', openai: 'gpt-6-luna', gemini: 'gemini-3.8-flash' };
+// Order: Groq (default brain) → Gemini 3.6 Flash (the free advanced reasoning option on the Google AI Studio key;
+// thinking, vision and tools) → Claude → ChatGPT → the rest, local servers last.
+const MENU_PROVIDERS = ['groq', 'gemini', 'anthropic', 'openai', ...AUTH_PROVIDERS.map((p) => p.value), 'local'].filter((v, i, a) => a.indexOf(v) === i);
+// Groq first (default brain), then Gemini 3.6 Flash — the free advanced reasoning option on the Google AI Studio key.
+const FAST = { groq: GROQ_DEFAULT_MODEL, anthropic: 'claude-haiku-5-5', openai: 'gpt-6-luna', gemini: GEMINI_FREE_MODEL };
 
 // ---------- config ----------
 // On Windows, Ctrl+Alt is AltGr on many keyboards (Ctrl+Alt+S types "ś" in Polish), so it uses Ctrl+Shift.
