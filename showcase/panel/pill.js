@@ -18,7 +18,7 @@
       const ts = t / 1000;
       // Orb.
       const s = orbC.width, cx = s / 2;
-      orbC.clearRect(0, 0, s, s);
+      o.clearRect(0, 0, s, s);
       const pulse = 1 + 0.11 * Math.sin(ts * 2.3) * env + 0.05 * Math.sin(ts * 6.1) * env;
       const glow = o.createRadialGradient(cx, cx, 8, cx, cx, 31);
       glow.addColorStop(0, 'rgba(255,255,255,0.72)');
