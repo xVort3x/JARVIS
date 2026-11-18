@@ -24,6 +24,10 @@ key) receives:
 
 **Fish Audio, Google or ElevenLabs**, whichever you pick as the voice, receives the text of each reply to speak it, only if spoken replies are on. It uses your own key for that service (for Gemini, the Gemini key you added for the AI is used unless you save a separate one for the voice).
 
+**Gmail** is connected only when you set it up (an app password, stored encrypted on your computer). It receives
+only the asks you make of it: reading a message sends that message's text to the model provider; sending or
+replying happens only after you confirm it in the app.
+
 **GitHub** is used only when you download a new version yourself. The app does not check for updates or contact
 GitHub on its own.
 

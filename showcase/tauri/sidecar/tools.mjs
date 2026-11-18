@@ -267,7 +267,7 @@ export function sideSearchFor(route) {
 // Every request and redirect hop of web_fetch goes through safety.mjs, by name and by the addresses it resolves to.
 export const guardFetch = async (url) => { const v = await checkFetch(url); return v.level === BLOCK ? `Blocked for safety: ${v.reason}` : null; };
 
-export function createTools({ allowActions, ui, ask, openUrl, onCommitments, focus = null, firedReminders = () => [], showList, fmtWhen, commitmentsText, userName, onPlan = () => {}, speak = () => false, onHandoff = () => {}, watchClicks = () => {}, onInkGone = () => {}, askShell = async () => ({ ok: false, error: 'J.A.R.V.I.S isn\'t running.' }), workdir = HOME, own = null, sideSearch = async () => null, pointScale = () => 'pixels', assistantName = 'J.A.R.V.I.S', aware = null, onPanelAction = null }) {
+export function createTools({ allowActions, ui, ask, openUrl, onCommitments, focus = null, firedReminders = () => [], showList, fmtWhen, commitmentsText, userName, onPlan = () => {}, speak = () => false, onHandoff = () => {}, watchClicks = () => {}, onInkGone = () => {}, askShell = async () => ({ ok: false, error: 'J.A.R.V.I.S isn\'t running.' }), workdir = HOME, own = null, sideSearch = async () => null, pointScale = () => 'pixels', assistantName = 'J.A.R.V.I.S', aware = null, onPanelAction = null, gmail = () => null, onGmailSetup = null }) {
   // The assistant's name, for the cards it signs. Live, so a rename carries through.
   const assistant = typeof assistantName === 'function' ? assistantName : () => assistantName;
   // Relative paths (and run_command) start in workdir: the home folder for the chat, its own folder for an agent.
@@ -967,6 +967,65 @@ A drawing stays until the user clears it or the window changes; your next drawin
         const problems = thinkProblems(args);
         if (problems.length) throw new Error(problems.join('\n'));
         return draw({ beats: thinkBeats(args, assistant()) }, ctx);
+      },
+    },
+    {
+      name: 'gmail_setup', description: 'Connect a Gmail account so the assistant can read the inbox and send mail. A Gmail app password (16 characters) is required; you can make one at myaccount.google.com/apppasswords (needs 2-Step Verification).',
+      parameters: z.object({}),
+      execute: async () => {
+        const email = await ask({ prompt: 'Which Gmail address?', placeholder: 'name@gmail.com' });
+        if (!email?.trim()) return 'No address given.';
+        const pass = await ask({ prompt: 'Paste the 16-character Gmail app password ("abcd efgh ijkl mnop").', placeholder: 'xxxx xxxx xxxx xxxx', mask: true });
+        if (!String(pass ?? '').trim()) return 'No app password given.';
+        await onGmailSetup(email.trim(), String(pass).trim());
+        return 'Gmail connected — you can read the inbox and send now.';
+      },
+    },
+    {
+      name: 'gmail_inbox', description: 'Read the newest messages in the inbox: sender, subject, date, unread flag. unread: only unread messages.',
+      parameters: z.object({ count: z.number().int().min(1).max(30).optional(), unread: z.boolean().optional() }),
+      execute: async ({ count, unread }) => {
+        const g = gmail();
+        if (!g) throw new Error('Set up Gmail first — ask me to connect Gmail.');
+        return g.inbox({ count, unread });
+      },
+    },
+    {
+      name: 'gmail_search', description: 'Search the inbox for mail matching a phrase (subject, sender, body).',
+      parameters: z.object({ query: z.string().min(1).max(120) }),
+      execute: async ({ query }) => {
+        const g = gmail();
+        if (!g) throw new Error('Set up Gmail first — ask me to connect Gmail.');
+        return g.search({ query });
+      },
+    },
+    {
+      name: 'gmail_read', description: 'Read one message in full (sender, date, subject, body).',
+      parameters: z.object({ id: z.number().int().min(1) }),
+      execute: async ({ id }) => {
+        const g = gmail();
+        if (!g) throw new Error('Set up Gmail first — ask me to connect Gmail.');
+        return g.read({ id });
+      },
+    },
+    {
+      name: 'gmail_send', description: 'Send an email from the connected account. Asks for confirmation first.',
+      parameters: z.object({ to: z.string().min(3), subject: z.string(), body: z.string().min(1) }),
+      execute: async (args, ctx) => {
+        const g = gmail();
+        if (!g) throw new Error('Set up Gmail first — ask me to connect Gmail.');
+        if (!(await confirm(`Send this email to ${args.to} with the subject “${args.subject}”?`, ctx))) return 'Not sent.';
+        return g.sendMessage(args);
+      },
+    },
+    {
+      name: 'gmail_reply', description: 'Reply to one message in its thread (same subject "Re: …", in-reply-to). Asks for confirmation first.',
+      parameters: z.object({ id: z.number().int().min(1), body: z.string().min(1) }),
+      execute: async (args, ctx) => {
+        const g = gmail();
+        if (!g) throw new Error('Set up Gmail first — ask me to connect Gmail.');
+        if (!(await confirm(`Send this reply (id ${args.id})?`, ctx))) return 'Not sent.';
+        return g.reply(args);
       },
     },
     {

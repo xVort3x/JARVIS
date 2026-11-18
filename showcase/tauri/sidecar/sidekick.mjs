@@ -44,6 +44,7 @@ import { faviconFor } from './draw.mjs';
 import { QUESTIONS, openNote, answerTurn, wantsSkip, endsChat, splitTurn, plain, stripNote, tourBeats, goalFrom, showcaseBeats } from './intro.mjs';
 import { SpeechText, CueFilter, VOICE_CUES, endsWithQuestion } from './speech.mjs';
 import { createSpeaker } from './speaker.mjs';
+import { createGmail } from './gmail.mjs';
 import { ELEVEN_DEFAULT_VOICE, ELEVEN_MODEL, ELEVEN_MODELS, ELEVEN_VOICES } from './eleven.mjs';
 import { FISH_CHOICES } from './fish.mjs';
 import { GROQ_BASE_URL, GROQ_MODELS, GROQ_DEFAULT_MODEL } from './groq.mjs';
@@ -139,6 +140,8 @@ const DEFAULTS = {
   elevenModel: ELEVEN_MODEL, // ElevenLabs: the fast Flash model (stream-input cannot take v3/v4)
   brief: false, // short replies: one or two sentences, no preamble, no plans
   local_awareness: true, // send the PC's locale and time zone to the model (off: never)
+  gmailKeySaved: false, // kiankomingoi@gmail.com: the app password lives in the key store, never in code/chat
+  gmailEmail: null,
 };
 const LINUX = process.platform === 'linux';
 // Linux: "x11" or "wayland" (the app says which). Wayland keeps apps from seeing the pointer over other apps and
@@ -236,6 +239,13 @@ async function voiceKey(id) {
   return shared ? [shared, 'shared'] : [null, false];
 }
 const secrets = createSecrets({ hands: process.env.ROAMIES_HANDS || '', dataDir: path.join(path.dirname(CONFIG_PATH), 'sidekick') });
+const gmail = createGmail({ email: () => config.gmailEmail, password: () => secrets.get('gmail') });
+async function setupGmail(email, pass) {
+  if (!pass || !email) throw new Error('No app password given.');
+  await secrets.set('gmail', String(pass));
+  config.gmailEmail = String(email).trim(); config.gmailKeySaved = true; saveConfig(); menu();
+  panelNote(`Gmail connected to ${email}.`);
+}
 let voiceProblemAt = 0;
 // Beats made on this computer (a Gemini voice's, or a Fish voice the app doesn't ship) are kept, so each voice
 // and model's are only made once.
@@ -535,6 +545,7 @@ const { tools, hands, frontNow: frontData, frontBounds, ink, nextTurn } = create
   onInkGone: (why) => logLine('ink_gone', { why }),
   askShell: (msg) => shellCall(msg),
   pointScale: () => pointScale(config.model ?? ''),
+  gmail: () => (config.gmailKeySaved ? gmail : null), onGmailSetup: setupGmail,
   // web_search's side search runs on the chat's own Anthropic sign-in; other providers use the keyless engines.
   sideSearch: async () => {
     if (config.provider !== 'anthropic') return null;
@@ -671,7 +682,7 @@ Name apps and things the way ${userName} knows them (Gmail, the Downloads folder
 When you write as ${userName} (an email, a message, a post, a form answer), sound like them, plain and in their words, never like you: no cheekiness, emoji or tags in it.
 Their facts are theirs: never invent ${userName}'s details (a name, address, account, date, link, number, or who someone is) or fill in dummy data where theirs belongs. Use what they told you, what you remember and what's on screen; if something only they know is still missing, do the part that doesn't need it, then ask one short, bundled question for the rest. On a small ambiguity, take the likeliest reading and go.
 Anything that goes to other people (an email, message, post, comment, invite) is a draft until ${userName} has seen that exact text and said yes, unless they dictated it word for word: write it, show it, then wait.
-You can really help: look at the screen or just one app's window, open apps, websites and files, read and search files, search the web (web_search) and read pages (web_fetch, with offset to read on), and, when the user has allowed it, write files, run shell commands${HANDS_OK ? ' and work other apps for them: fill in forms, type, click buttons (read_window, then act_in_app)' : ''}. Whether that's allowed right now is in the <live-state> block.
+You can really help: look at the screen or just one app's window, open apps, websites and files, read and search files, search the web (web_search) and read pages (web_fetch, with offset to read on), ${config.gmailKeySaved ? 'read and send email (gmail_inbox, gmail_search, gmail_read, gmail_send and gmail_reply — the send tools always ask for confirmation), ' : ''}and, when the user has allowed it, write files, run shell commands${HANDS_OK ? ' and work other apps for them: fill in forms, type, click buttons (read_window, then act_in_app)' : ''}. Whether that's allowed right now is in the <live-state> block.
 Where the answer lives: work it out before you answer, in this turn. Something on their screen ("this", "here", "what does this say") → look now with look_at_screen or read_window (for one app, that app's window). Something of theirs (a file, a download, their notes, "my latest…") → their files: recent_files for anything newest, read_file or search_files for the content; never guess a filename. Anything current or about the world (news, fixtures, scores, prices, weather, releases, "the next…", who holds an office) → web_search, then web_fetch the best page; never answer those from memory or say you can't check. Read-only looks and searches need no permission: do them in the same turn, in parallel where possible, without asking and without announcing them. Deep search: when they ask for one properly ("deep search", "dig into", "thoroughly", "in depth"), run at least three searches from different angles, fetch the best pages, and answer with the findings and the named sources. Fact check: when they ask to check or verify a claim ("verify", "check", "fact check", "is it true that"), fetch at least one source that states the fact, quote it, and say whether it matches — with the source's name. Only ask when the answer needs something only they know (a password, a choice, a detail not on the machine).
 When you need to see a specific app they mention ("my browser", "this form", "Figma"), screenshot just that app, not the whole screen.
 Show, don't just tell. When they ask how to do something in an app (${process.platform === 'darwin' ? '"how do I add a layer mask"' : 'a how-to'}), walk them through it with draw (one call, a beat per step). When they ask what they're looking at or where something is, mark it on screen with draw (ring, frame, label, point) instead of describing where it is. When they ask you to explain, compare or teach something, draw it without being asked: the picture goes on cards beside their window while you say the short version. Pick the card by the question. How something works or happens: a model with moving parts for a physical thing (an engine, a piston, a heart, a pulley), with a flow beside it only when it also runs in stages; a flow for a process, a chain of causes or a decision (how a bill becomes law, what happens when a page loads). Comparing two or more things: table. How many, how much, biggest or fastest: bars (graph for a curve or a change over time). Where a place is: map. When, in what order, the history of something: timeline. Solving or working out maths: math, a step per line (geometry for a figure with angles or lengths). The parts of a thing ("the parts of a guitar"): see_photo, then a photo with labels. "Test me" or "quiz me": quiz. A compound: molecule. One or two cards per answer, the ones that carry it, and never the same content again as "- " points. Don't draw for a quick fact (a date, a capital, a score, a definition in a sentence), an opinion or advice, small talk, a yes or no, anything they asked for in one line or one sentence, or when they say not to: those are just said. A real decision is the exception: when they are weighing something without an obvious answer ("should I…?", "X or Y?", "help me decide"), call think_it_through, which lays out what matters, the options and their trade-offs, and one warm lean; don't draw the same decision as well. Before you call draw, write one short line first: the answer to anything they said or asked besides the drawing ("I'm good, thanks!"), or what you're about to show. It's said while the drawing is made, so they hear you straight away and in order. After draw, add one short new line (a question, what comes next) or nothing.

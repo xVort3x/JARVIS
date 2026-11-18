@@ -3,10 +3,7 @@
 import { build } from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-
-const WEB_EXT = ['@huggingface/transformers', 'ogg-opus-decoder', '@mozilla/readability', 'turndown', 'turndown-plugin-gfm', 'unpdf'];
+const WEB_EXT = ['@huggingface/transformers', 'ogg-opus-decoder', '@mozilla/readability', 'turndown', 'turndown-plugin-gfm', 'unpdf', 'imapflow', 'nodemailer', 'postal-mime'];
 
 function bundle(entry, outfile, externals) {
   return build({
@@ -29,7 +26,7 @@ await bundle('agentrun.mjs', 'dist/agentrun.mjs', ['@huggingface/transformers', 
 
 // The readers and their dependencies, laid out as npm installed them (a nested copy travels with its parent).
 // One that's missing only costs web_fetch its Markdown: it falls back to plain text.
-const names = ['linkedom', '@mozilla/readability', 'turndown', 'turndown-plugin-gfm', 'unpdf'];
+const names = ['linkedom', '@mozilla/readability', 'turndown', 'turndown-plugin-gfm', 'unpdf', 'imapflow', 'nodemailer', 'postal-mime'];
 const done = new Set();
 function copy(name, from) {
   for (let dir = from; ; dir = path.dirname(dir)) {
