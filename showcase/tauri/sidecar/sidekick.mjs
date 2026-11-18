@@ -88,8 +88,8 @@ const VERSION = process.env.JARVIS_VERSION || process.env.ROAMIES_VERSION || '0.
 const HOME = os.homedir();
 // ROAMIES_DATA_DIR (tests and benchmarks): config, sessions and memory go there instead; sign-in stays in ~/.gg.
 const CONFIG_PATH = process.env.ROAMIES_DATA_DIR ? path.join(process.env.ROAMIES_DATA_DIR, 'sidekick.json') : path.join(HOME, '.gg', 'sidekick.json');
-// The ElevenLabs CLI saves the key to .env.local; the app reads the same file, so the key it created is used without
-// anyone pasting it. A key saved in the panel wins (voiceKey checks the secret store first).
+// The app reads a key the ElevenLabs CLI saved in .env.local, from the same folder the config lives in (copy the repo's
+// to ~/.gg/.env.local on this install). A key saved in the panel wins (voiceKey checks the secret store first).
 try { process.loadEnvFile(path.join(path.dirname(CONFIG_PATH), '.env.local')); } catch { /* no file: the panel's key is the only one */ }
 // The only sign-ins: Claude runs through Claude Code (downloaded once, about 140 MB; it keeps the token, auth.json
 // a marker), ChatGPT is Continue with ChatGPT. Everything else, Kimi, Grok and Gemini included, takes an API key.
@@ -390,6 +390,8 @@ async function refreshAuth() {
     for (const [id] of kinds) keyOn.set(id, await (kinds.length > 1 ? auth.hasCredentials(id) : auth.hasApiKey(id)).catch(() => false));
     for (const k of apiKeyStorageKeys(meta.value)) if (await auth.hasCredentials(k).catch(() => false)) storedKeys.add(k); else storedKeys.delete(k);
   }
+  // Groq isn't in gg-core's catalogue: its key is one stored key, named after the provider.
+  if (await auth.hasCredentials('groq').catch(() => false)) storedKeys.add('groq'); else storedKeys.delete('groq');
   for (const k of servers().map((x) => `local:${x.id}`)) if (await auth.hasCredentials(k).catch(() => false)) storedKeys.add(k); else storedKeys.delete(k);
 }
 // The local servers: Ollama, LM Studio and the ones the user added. Their models are found when they're connected:
@@ -467,7 +469,7 @@ function ensureModel() {
   if (config.provider && getModel(config.model) && canRun(config.provider, config.model)) return true;
   // A local model stays picked while its server is closed; the request says to open it.
   if (config.provider === 'local' && parseLocalModelId(config.model ?? '') && signedIn.get('local')) return true;
-  const p = ['groq', ...MENU_PROVIDERS].find((x) => runnable(x).length);
+  const p = MENU_PROVIDERS.find((x) => runnable(x).length);
   if (!p) return false;
   config.provider = p;
   config.model = [FAST[p], getDefaultModel(p).id].find((id) => id && canRun(p, id)) ?? runnable(p)[0].id;
@@ -482,7 +484,7 @@ function fallbackModel(failed) {
     const list = runnable(p);
     return list.find((m) => m.id === FAST[p])?.id ?? list[0]?.id ?? null;
   };
-  const other = ['groq', ...MENU_PROVIDERS]
+  const other = MENU_PROVIDERS
     .filter((p, i, a) => p !== 'local' && p !== failed.provider && a.indexOf(p) === i)
     .map((p) => ({ provider: p, model: preferred(p) }))
     .filter((c) => c.model);

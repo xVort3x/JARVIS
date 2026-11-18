@@ -22,7 +22,7 @@ export const KEY_LINKS = {
   groq: 'https://console.groq.com/keys',
 };
 // Groq isn't in gg-core's catalogue yet, so its key card is described here (console.groq.com is where keys are made).
-export const GROQ_KEY_META = { value: 'groq', label: 'Groq', methods: ['apikey'], apiKeyLabel: 'Groq', methodDetails: { apikey: { method: 'apikey', label: 'Groq API key', billing: 'Pay-per-token from console.groq.com credits.', when: '' } } };
+export const GROQ_KEY_META = { value: 'groq', label: 'Groq', methods: ['apikey'], apiKeyLabel: 'Groq', methodDetails: { apikey: { method: 'apikey', label: 'Groq API key', billing: 'Free plan at console.groq.com (30 requests/min, 1,000/day for the models in this list). No card needed.', when: '' } } };
 const SIGN_IN_NAMES = { anthropic: ['Claude', 'Anthropic'], openai: ['ChatGPT', 'OpenAI'] };
 // Short enough for a one-line card; gg-core's labels ("Token Plan") don't say whose.
 const KEY_NAMES = { 'kimi-code': 'Kimi Code', moonshot: 'Moonshot', xiaomi: 'MiMo Plan', 'xiaomi-credits': 'MiMo Credits', 'opencode-go': 'OpenCode Go', opencode: 'OpenCode' };

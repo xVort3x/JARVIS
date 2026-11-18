@@ -18,9 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DEFAULT_VOICE, FISH_MODELS, FREE_MODEL, FishVoice, RATE, fishAccount } from './fish.mjs';
-// - ElevenLabs: the reply's voice is the one J.A.R.V.I.S uses (a voice id the user made and pasted, or the demo
-//   voice), the model the pick names (most expressive first, the fast one in it); its websocket streams the audio.
-import { ELEVEN_API, ELEVEN_LIVE, ELEVEN_MODELS, ELEVEN_MODEL, ELEVEN_RATE, ELEVEN_VOICES, ELEVEN_DEFAULT_VOICE, ElevenVoice, elevenAccount } from './eleven.mjs';
+import { ELEVEN_MODELS, ELEVEN_MODEL, ELEVEN_RATE, ELEVEN_DEFAULT_VOICE, ElevenVoice, elevenAccount } from './eleven.mjs';
 import { StudioVoice, studioStatus } from './voicestudio.mjs';
 import { GEMINI_DEFAULT_VOICE, GEMINI_MODEL, GEMINI_MODELS, GEMINI_PITCH, GEMINI_RATE, GeminiVoice, geminiAccount } from './gemini.mjs';
 
