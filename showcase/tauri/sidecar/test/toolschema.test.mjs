@@ -7,6 +7,15 @@ const noop = async () => {};
 const { tools } = createTools({ allowActions: false, ui: () => {}, ask: async () => false, openUrl: noop, onCommitments: noop, showList: noop, fmtWhen: String, commitmentsText: () => '', userName: 'Test', focus: { start: () => 'ok', stop: () => 'ok' } });
 // Focus mode's tools are there where the window in front can be read (focus given), and checked below with the rest.
 assert.ok(tools.some((t) => t.name === 'start_focus') && tools.some((t) => t.name === 'stop_focus'), 'focus tools');
+{
+  let got = null;
+  const created = createTools({ allowActions: false, ui: () => {}, ask: async () => false, openUrl: noop, onCommitments: noop, showList: noop, fmtWhen: String, commitmentsText: () => '', userName: 'Test', focus: { start: () => 'ok', stop: () => 'ok' }, onPanelAction: (a) => { got = a; } });
+  const p = created.tools.find((t) => t.name === 'panel_action');
+  assert.ok(p, 'panel_action is a tool');
+  await p.execute({ action: 'brief' }, {});
+  assert.equal(got, 'brief', 'the bridge fired');
+  await assert.rejects(p.execute({ action: 'nuke' }, {}), /isn't voice-reachable/, 'unknown actions fail');
+}
 
 // Regression: the old fetch_url's url had format "uri", which OpenAI strict schemas reject, failing every OpenAI request.
 const formats = [];

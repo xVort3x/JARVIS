@@ -267,7 +267,7 @@ export function sideSearchFor(route) {
 // Every request and redirect hop of web_fetch goes through safety.mjs, by name and by the addresses it resolves to.
 export const guardFetch = async (url) => { const v = await checkFetch(url); return v.level === BLOCK ? `Blocked for safety: ${v.reason}` : null; };
 
-export function createTools({ allowActions, ui, ask, openUrl, onCommitments, focus = null, firedReminders = () => [], showList, fmtWhen, commitmentsText, userName, onPlan = () => {}, speak = () => false, onHandoff = () => {}, watchClicks = () => {}, onInkGone = () => {}, askShell = async () => ({ ok: false, error: 'J.A.R.V.I.S isn\'t running.' }), workdir = HOME, own = null, sideSearch = async () => null, pointScale = () => 'pixels', assistantName = 'J.A.R.V.I.S', aware = null }) {
+export function createTools({ allowActions, ui, ask, openUrl, onCommitments, focus = null, firedReminders = () => [], showList, fmtWhen, commitmentsText, userName, onPlan = () => {}, speak = () => false, onHandoff = () => {}, watchClicks = () => {}, onInkGone = () => {}, askShell = async () => ({ ok: false, error: 'J.A.R.V.I.S isn\'t running.' }), workdir = HOME, own = null, sideSearch = async () => null, pointScale = () => 'pixels', assistantName = 'J.A.R.V.I.S', aware = null, onPanelAction = null }) {
   // The assistant's name, for the cards it signs. Live, so a rename carries through.
   const assistant = typeof assistantName === 'function' ? assistantName : () => assistantName;
   // Relative paths (and run_command) start in workdir: the home folder for the chat, its own folder for an agent.
@@ -384,7 +384,7 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
   // Always-Aware's look on demand: the front window or the whole screen, fresh from now. Works with Always-Aware
   // off too (asking is consent) — except on the lock screen and excluded apps, which are off limits regardless.
   // If nothing has changed since the last picture in this conversation, no image is sent again.
-  async function lookAtScreen({ target = 'front' } = {}) {
+  async function lookAtScreen({ target = 'front', display } = {}) {
     const t = String(target || 'front').trim().toLowerCase();
     if (t !== 'front' && t !== 'screen') return `I look at the front window (“front”, default) or the whole screen (“screen”), not “${t}”.`;
     const f = await frontNow();
@@ -392,7 +392,7 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
     const hit = excluded(f, exclusionsOf(aware?.current?.()));
     if (hit) return `That’s one of the apps or windows I never look at (it matches “${hit}” in Screen exclusions).`;
     const before = { hash: lastScreen.hash, at: lastScreen.at };
-    const shot = await screenshot({ target: t });
+    const shot = await screenshot({ target: t, display });
     if (before.hash && lastScreen.hash === before.hash && Date.now() - before.at < 120_000) {
       return 'The screen is unchanged since the last picture I sent you earlier in this conversation; use that one.';
     }
@@ -400,12 +400,15 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
   }
   // target: "screen", "front" (the window you're working in), an app name ("browser", "Safari", "Figma"),
   // or "window:<id>" from list_windows. Apps that are open but hidden or minimised are brought forward.
-  async function screenshot({ target = 'screen' } = {}, ctx) {
+  // display: which monitor to capture, 0-based (Windows only).
+  async function screenshot({ target = 'screen', display } = {}, ctx) {
     const file = path.join(os.tmpdir(), `sidekick-${Date.now()}.jpg`);
+    const dispInt = Number.isInteger(display) && display >= 0 && display <= 7 ? display : undefined;
+    if (dispInt !== undefined && process.platform !== 'win32') throw new Error('Capturing a specific display is Windows-only for now; ask me for the whole screen.');
     // Windows without the helper (or when it fails on the whole screen): PowerShell's screenshot below.
     const viaHands = process.platform === 'darwin' || (process.platform === 'win32' && HANDS);
     const t = String(target || 'screen').trim();
-    const shot = viaHands ? await handsShot(file, t).catch((e) => { if (process.platform === 'win32' && t === 'screen') return null; throw e; }) : null;
+    const shot = viaHands && dispInt === undefined ? await handsShot(file, t).catch((e) => { if (process.platform === 'win32' && t === 'screen') return null; throw e; }) : null;
     if (shot) return shot;
     if (process.platform === 'win32') {
       // DPI-aware (or scaled displays capture only the top-left part), shrunk to Claude's 1568 px cap, and the
@@ -414,7 +417,7 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
         'Add-Type -AssemblyName System.Windows.Forms,System.Drawing',
         "Add-Type -Name D -Namespace RoamiesWin -MemberDefinition '[DllImport(\"user32.dll\")] public static extern bool SetProcessDPIAware();'",
         '[RoamiesWin.D]::SetProcessDPIAware() | Out-Null',
-        '$b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds',
+        `$b=${dispInt === undefined ? '[System.Windows.Forms.Screen]::PrimaryScreen.Bounds' : `[System.Windows.Forms.Screen]::AllScreens[${dispInt}].Bounds`}`,
         '$i=New-Object System.Drawing.Bitmap $b.Width,$b.Height',
         '[System.Drawing.Graphics]::FromImage($i).CopyFromScreen($b.Location,[System.Drawing.Point]::Empty,$b.Size)',
         '$s=[Math]::Min(1.0,1568.0/[Math]::Max($b.Width,$b.Height))',
@@ -426,7 +429,7 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
       ].join(';');
       // -EncodedCommand (UTF-16LE base64): no quoting for Windows' command line to mangle.
       const r = await run('powershell', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(ps, 'utf16le').toString('base64')], { env: { ...process.env, ROAMIES_SHOT: file } });
-      if (r.err) throw new Error('Screen capture failed.');
+      if (r.err) throw new Error(dispInt === undefined ? 'Screen capture failed.' : `Screen capture failed — "display ${dispInt}" might not exist (display 0 is the main one; outputs count from 0).`);
       const [pw, ph, iw, ih, sc] = r.stdout.trim().split(/\s+/).map(Number);
       const scale = pointScale();
       lastShot = pw && iw && sc ? { ...shotMap([0, 0, pw / sc, ph / sc], iw, ih, scale), bounds: [0, 0, pw / sc, ph / sc], win: null, turn } : null;
@@ -795,13 +798,13 @@ export function createTools({ allowActions, ui, ask, openUrl, onCommitments, foc
   const tools = [
     {
       name: 'take_screenshot',
-      description: "Look at the user's screen. target: 'front' = just the window they're working in (best default when they say 'this' or 'here'), an app name like 'browser', 'Safari', 'Figma' or 'Notes' (works even if it's hidden behind other windows), 'window:<id>' from list_windows, or 'screen' for everything.",
-      parameters: z.object({ target: z.string().optional() }), execute: screenshot,
+      description: "Look at the user's screen. target: 'front' = just the window they're working in (best default when they say 'this' or 'here'), an app name like 'browser', 'Safari', 'Figma' or 'Notes' (works even if it's hidden behind other windows), 'window:<id>' from list_windows, or 'screen' for everything. display: which monitor to capture, 0 = primary (Windows only; counted from Same origin), or 'front' for the one the user's working in.",
+      parameters: z.object({ target: z.string().optional(), display: z.number().int().min(0).max(7).optional() }), execute: screenshot,
     },
     {
       name: 'look_at_screen',
-      description: "Look at what's on the user's screen right now, without them picking an area: target 'front' (the window they're working in, default) or 'screen' (everything). Fresh from this moment. If nothing changed since the last picture earlier in this conversation, the reply says so instead of sending the image again. Password fields are blacked out; excluded apps and the lock screen are never seen.",
-      parameters: z.object({ target: z.string().optional() }), execute: lookAtScreen,
+      description: "Look at what's on the user's screen right now, without them picking an area: target 'front' (the window they're working in, default) or 'screen' (everything). display: which monitor to capture, 0 = primary (Windows only). Fresh from this moment. If nothing changed since the last picture earlier in this conversation, the reply says so instead of sending the image again. Password fields are blacked out; excluded apps and the lock screen are never seen.",
+      parameters: z.object({ target: z.string().optional(), display: z.number().int().min(0).max(7).optional() }), execute: lookAtScreen,
     },
     // The hands helper's tools: on macOS always (they explain what's missing), elsewhere when the helper is there.
     ...(process.platform === 'darwin' || HANDS ? [
@@ -964,6 +967,17 @@ A drawing stays until the user clears it or the window changes; your next drawin
         const problems = thinkProblems(args);
         if (problems.length) throw new Error(problems.join('\n'));
         return draw({ beats: thinkBeats(args, assistant()) }, ctx);
+      },
+    },
+    {
+      name: 'panel_action', description: `Trigger one of the app's own settings from the voice. Actions: 'brief' (Brief mode on/off), 'localawareness' (share locale/timezone), 'studiolisten' (dictate to the Studio page), 'actions' (allow file edits & commands), 'sound' (sound effects), 'panel' (open the panel), 'new' (new conversation), 'stop' (stop what I'm doing), 'replies:text' / 'replies:voice', 'tts:fish' / 'tts:gemini' / 'tts:voicestudio' / 'tts:elevenlabs' (switch the voice). One action per call; unknown ids fail.`,
+      parameters: z.object({ action: z.string() }),
+      execute: async ({ action }) => {
+        const PANEL_ACTIONS = new Set(['brief', 'localawareness', 'studiolisten', 'actions', 'sound', 'panel', 'new', 'stop', 'replies:text', 'replies:voice', 'tts:fish', 'tts:gemini', 'tts:voicestudio', 'tts:elevenlabs']);
+        if (!PANEL_ACTIONS.has(action)) throw new Error(`That action isn't voice-reachable. Known: ${[...PANEL_ACTIONS].join(', ')}.`);
+        if (!onPanelAction) throw new Error('The panel isn\'t running.');
+        onPanelAction(action);
+        return 'Done.';
       },
     },
     {

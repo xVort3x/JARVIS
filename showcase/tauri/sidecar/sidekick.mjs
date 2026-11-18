@@ -530,6 +530,7 @@ const { tools, hands, frontNow: frontData, frontBounds, ink, nextTurn } = create
   showList: () => showList({ seconds: 20 }),
   fmtWhen: (ms) => fmtWhen(ms),
   onPlan: (args) => trail.plan(args),
+  onPanelAction: (id) => send({ type: 'menu', id }),
   watchClicks: (on) => send({ type: 'watch_clicks', on: !!on }),
   onInkGone: (why) => logLine('ink_gone', { why }),
   askShell: (msg) => shellCall(msg),
