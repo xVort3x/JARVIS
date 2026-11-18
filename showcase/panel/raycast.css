@@ -90,3 +90,12 @@
 /* A picked option: accent frame, solid dark keycap, accent label (the stock cap fill is translucent,
    so over the accent frame it turned the whole pill blue and the label vanished). */
 .chord[aria-checked="true"] .cap { --fill: #24252c; }
+
+/* Prompt Studio: a calm canvas you say into. */
+.studio-canvas {
+  width: 100%; min-height: 190px; resize: vertical; outline: none;
+  background: #15161b; color: var(--ink); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px 14px; font: 400 12.5px/1.65 var(--display);
+}
+.studio-canvas:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99, 169, 255, 0.12); }
+.studio-actions { display: flex; gap: 12px; flex-wrap: wrap; }

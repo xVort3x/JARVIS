@@ -19,6 +19,8 @@
   const ui = { key: null, kind: {}, arm: null, add: { label: '', url: '', key: '', images: false }, addSent: null, pg: {}, per: {}, base: {}, rec: null, mtab: 'facts', q: '', bindShown: new Set() };
   let armTimer = 0;
   const disarm = () => { clearTimeout(armTimer); if (ui.arm) { ui.arm = null; return true; } return false; };
+  // Prompt Studio: the draft is owned by the sidecar (one file on disk); this is the panel's working copy.
+  let studioCache = '', studioSaveTimer = 0, studioBusy = false, studioNeedFill = false;
 
   const el = (tag, props = {}, ...kids) => {
     const n = document.createElement(tag);
@@ -754,12 +756,46 @@
           f.until ? link('Stop', () => act('focusstop'), { k: 'focusstop', aria: 'Stop the focus block' }) : link('Edit', () => act('distractions'), { k: 'distractions', aria: 'Edit the distraction list' })) : null),
     ];
   }
+  function studioPage() {
+    return [
+      group('Studio', 'Say it. It lands on the canvas as text — never as a command.', null,
+        toggle('Dictate', 'Your words become text, not commands', !!state.studioListening, () => act('studiolisten'), 'studiolisten'),
+        el('textarea', { className: 'studio-canvas', id: 'studio-canvas', 'aria-label': 'Prompt Studio canvas', spellcheck: 'false', value: studioCache, on: {
+          input: (e) => { studioCache = e.target.value; clearTimeout(studioSaveTimer); studioSaveTimer = setTimeout(() => send({ type: 'panel_studio_set', text: studioCache }), 250); },
+          keydown: (e) => { if (e.key === 'Tab') e.stopPropagation(); },
+        } })),
+        el('div', { className: 'studio-actions' },
+          link('Polish', () => refineStudio('Polish it: make it precise and convincing.'), { k: 'studio-polish', aria: 'Rewrite for precision and persuasion' }),
+          link('Shorten', () => refineStudio('Shorten it. Keep the meaning, drop the padding.'), { k: 'studio-shorten', aria: 'Rewrite shorter' }),
+          link('Formalise', () => refineStudio('Formalise the tone; keep the content.'), { k: 'studio-formalise', aria: 'Rewrite in a formal tone' }),
+          link('Export', () => { note('Saving…'); send({ type: 'panel_studio_export', text: studioCache }); }, { k: 'studio-export', aria: 'Save a copy to the Desktop' }),
+          link('Copy', () => { navigator.clipboard.writeText(studioCache).then(() => note('Copied.'), () => note("Couldn't copy it. Select and copy manually.", true)); }, { k: 'studio-copy', aria: 'Copy the canvas' })),
+      el('p', { className: 'why', textContent: 'Your draft lives at ~/.gg/studio-draft.md — it never leaves this computer.' }),
+    ];
+  }
+  function refineStudio(instruction) {
+    const ta = $('studio-canvas'), text = (ta?.value ?? studioCache).trim();
+    if (!text) return note('Nothing to work with yet — write or dictate something first.', true);
+    if (studioBusy) return;
+    studioBusy = true;
+    note('Working on it…');
+    send({ type: 'panel_studio_refine', instruction, text });
+  }
+  function studioReplaceSelection(text) {
+    const ta = $('studio-canvas');
+    if (!ta) { studioCache = text; return; }
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    if (s === e) { ta.value = text; studioCache = text; ta.focus(); return; }
+    ta.setRangeText(text, s, e, 'end'); studioCache = ta.value; ta.focus();
+  }
   // What I may do, and when I start.
   function generalPage() {
     return [
       group('General', 'What I may do, and when I start.', null,
         state.gameMode != null ? toggle('Game mode', 'In a fullscreen game, I move to a panel at the edge of the screen.', state.gameMode, () => act('gamemode'), 'gamemode') : null,
         toggle('Allow file edits and commands', 'Change files and run commands', state.actions, () => act('actions'), 'actions'),
+        toggle('Brief mode', 'Shorter, one- or two-sentence replies', state.brief, () => act('brief'), 'brief'),
+        toggle('Local awareness', 'Sharing your locale and time zone for local weather, news and events', state.localAwareness, () => act('localawareness'), 'localawareness'),
         state.login ? toggle('Open at login', null, state.login.on, () => act('login'), 'login') : null,
         state.sync ? el('div', { className: 'setting' },
           el('span', {}, 'Sync memory', el('small', { title: state.sync.dir, textContent: !state.sync.dir ? 'Share reminders and memory with your other computer' : state.sync.error ? `Not syncing: ${state.sync.error}` : `Via ${state.sync.dir.split(/[\\/]/).filter(Boolean).pop()}${state.sync.at ? ` · ${new Date(state.sync.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}` })),
@@ -781,7 +817,7 @@
   }
 
   // ---------------------------------------------------------------- render
-  const PANES = { home, memory, model: modelPage, appearance: appearancePage, speaking: speakingPage, listening: listeningPage, screen: screenPage, shortcuts: shortcutsPage, routines: routinesPage, general: generalPage, about: aboutPage };
+  const PANES = { home, memory, model: modelPage, appearance: appearancePage, speaking: speakingPage, listening: listeningPage, screen: screenPage, shortcuts: shortcutsPage, routines: routinesPage, studio: studioPage, general: generalPage, about: aboutPage };
   // focusKey: what to focus after (a data-k, or an element id); otherwise whatever had focus keeps it.
   function render(focusKey, animate = false) {
     if (!state) return;
@@ -842,6 +878,7 @@
       $(`pane-${t}`).hidden = t !== name;
     }
     $('pane-' + name).closest('.body').scrollTop = 0;
+    if (name === 'studio') send({ type: 'panel_studio_get' });
     render(null, changed);
     const t = navi(name);
     if (changed) { t.classList.remove('ping'); void t.offsetWidth; t.classList.add('ping'); }
@@ -962,6 +999,15 @@
       if (!m.ok && state?.bind?.[m.which]) { ui.bindShown.add(m.which); render(`bind-${m.which}`); }
       note(m.ok ? 'Copied. Paste it into a new custom shortcut.' : "Couldn't copy it. Select the command and copy it instead.", !m.ok);
     }
+    else if (m.kind === 'studio') { studioCache = m.text ?? ''; const ta = $('studio-canvas'); if (ta) ta.value = studioCache; }
+    else if (m.kind === 'studio_append' && m.text) {
+      const add = m.text.trim(), sep = studioCache && !/\s$/.test(studioCache) ? ' ' : '';
+      studioCache += sep + add + ' ';
+      const ta = $('studio-canvas'); if (ta) { ta.value = studioCache; ta.selectionStart = ta.selectionEnd = studioCache.length; }
+      send({ type: 'panel_studio_set', text: studioCache });
+    }
+    else if (m.kind === 'studio_refined') { studioBusy = false; studioReplaceSelection(m.text ?? ''); note('Done.'); send({ type: 'panel_studio_set', text: studioCache }); }
+    else if (m.kind === 'studio_export') { if (m.ok) note(`Saved as ${m.path.split(/[\\/]/).pop()} on your Desktop.`); else note("Couldn't save it to the Desktop.", true); }
   };
   send({ type: 'panel_open' });
   // The first show: the window was made hidden, so the switch-on is played here (main.rs's call may land
@@ -1022,7 +1068,7 @@
       elevenVoices: [['JBFqnCBsd6RMkjVDRZzb', 'George · warm British narration'], ['EXAVITQu4vr4xnSDxMaL', 'Sarah · soft American'], ['onwK4e9ZLuTAKqWW03F9', 'Daniel · authoritative British']].map(([id, name]) => ({ id, name })),
       elevenModel: 'eleven_flash_v2_5', elevenModels: ['eleven_flash_v2_5', 'eleven_multilingual_v2'],
       voice: { on: true, keys: 'Ctrl+Alt', ready: true, mac: false, mute: true, mics: [{ id: 'BuiltIn', name: 'MacBook Pro Microphone' }, { id: 'airpods', name: 'AirPods Pro' }], mic: '', micAuto: 'MacBook Pro Microphone', wakeWord: false, wakeName: 'Jarvis', wakeProblem: false, download: null, mode: 'handsfree', vad: { pause: 1.5, sensitivity: 'normal' } }, askKeys: '⌥⌘', aware: { on: true, mode: 'front', private: false, exclusions: ['1password', 'logonui', 'InPrivate', 'my bank'] }, brief: { on: true, todoist: false, canTodoist: true }, focus: { until: null, task: '', list: ['YouTube', 'Reddit', 'X', 'Steam', 'Netflix'], custom: false }, sync: { dir: '', at: null, error: null, paused: false }, shortcuts: { talk: { value: 'control+option', pairs: [['control+option', 'Control+Option'], ['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] }, keys: [{ id: 'summon', words: 'Control+Option+S' }, { id: 'snap', words: 'Control+Option+A' }, { id: 'list', words: 'Control+Option+L' }] }, writeKeys: { value: 'option+command', pairs: [['option+command', 'Option+Command'], ['control+command', 'Control+Command'], ['control+shift', 'Control+Shift'], ['option+shift', 'Option+Shift']] },
-      sound: false, actions: false, login: { on: true },
+      sound: false, actions: false, brief: false, localAwareness: true, studioListening: false, login: { on: true },
       intro: false,
     };
     if (q.has('busy')) Object.assign(s, { busy: true, status: { state: 'busy', text: 'Reading notes.md' } });

@@ -14,4 +14,8 @@ assert.ok(side.includes("...(HOTKEYS_OK && keys().summon !== 'off' ? { accel: ke
 assert.ok(side.includes("show or hide you ${keys().summon === 'off' ? 'the wake word' : keyWords(keys().summon)}"), 'the prompt stays truthful when the hotkey is off');
 // Arrival: voice-only. In text mode the launch is silent; nothing opens either way.
 assert.ok(side.includes("if (config.onboarded && VOICE_ON()) ui({ kind: 'greet' });"), 'the arrival greets by voice only (if any)');
+assert.ok(side.includes('brief: false, // short replies'), 'Brief Mode defaults off');
+assert.ok(side.includes('local_awareness: true, // send the'), 'Local awareness defaults on (with the opt-out)');
+assert.ok(side.includes("if (studioWriting) { ui({ kind: 'studio_append', text: m.text.trim() }); return; }"), 'dictation appends to the canvas, never to the agent');
+assert.ok(side.includes("else if (id === 'studiolisten') { studioWriting = !studioWriting; panel(); }"), 'the dictate toggle flips the flag');
 console.log('defaults tests: passed');
