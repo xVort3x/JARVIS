@@ -18,7 +18,8 @@ export const ELEVEN_VOICES = [
   { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah · soft American' },
   { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel · authoritative British' },
 ];
-export const ELEVEN_SETTINGS = { stability: 0.5, similarity_boost: 0.75, use_speaker_boost: true, speed: 1 };
+// stability 0.4 / similarity 0.85: looser delivery and a firmer tie to the human reference voice — reads less AI than the recommended defaults.
+export const ELEVEN_SETTINGS = { stability: 0.4, similarity_boost: 0.85, use_speaker_boost: true, speed: 1 };
 // Low latency: the shortest chunk schedule the API allows (the default buffers up to 120 characters).
 export const ELEVEN_GENERATION = { chunk_length_schedule: [50, 80, 110] };
 
