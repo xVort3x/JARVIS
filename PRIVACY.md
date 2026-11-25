@@ -119,4 +119,4 @@ Changes to this notice are made in this file on GitHub, so its history shows wha
 
 ## Questions
 
-Email the repository's issue tracker (below) or [open an issue](https://github.com/KenKaiii/Roamies/issues).
+Email the repository's issue tracker (below) or [open an issue](https://github.com/xVort3x/JARVIS/issues).

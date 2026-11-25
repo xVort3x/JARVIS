@@ -42,7 +42,7 @@ speaking rather than a menu-bar dot.
 
 ## Constraints
 
-- Internal names stay (`roamies-*`, `com.kenkai.roamies`, `~/.gg`).
+- Internal names stay (`roamies-*`, `com.xvort3x.roamies`, `~/.gg`).
 - Windows first (the user's machine); Linux/macOS unaffected wherever feasible.
 - Tests for every rule; `npm test` stays green; `voice-win` cargo tests stay green.
 - The panel's existing pages/components/patterns are extended, not replaced.

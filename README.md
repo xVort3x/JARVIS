@@ -136,11 +136,11 @@ transcript too), or everything at once.
 1. Install J.A.R.V.I.S from the **Assets** list on the release page. The *Source code* downloads there are the code,
    not the app, and won't run on their own.
 
-   **macOS (Apple silicon or Intel):** [Download the latest release](https://github.com/KenKaiii/Roamies/releases/latest) and open the `.dmg` for your Mac (`aarch64` for Apple silicon, `x64` for Intel). Requires macOS 13.5 or later.
+   **macOS (Apple silicon or Intel):** [Download the latest release](https://github.com/xVort3x/JARVIS/releases/latest) and open the `.dmg` for your Mac (`aarch64` for Apple silicon, `x64` for Intel). Requires macOS 13.5 or later.
 
-   **Windows:** [Download the latest release](https://github.com/KenKaiii/Roamies/releases/latest) and run `Jarvis_<version>_x64-setup.exe`. Requires Windows 10 or later. It isn't code-signed yet, so Windows shows a SmartScreen warning the first time: click **More info**, then **Run anyway**.
+   **Windows:** [Download the latest release](https://github.com/xVort3x/JARVIS/releases/latest) and run `Jarvis_<version>_x64-setup.exe`. Requires Windows 10 or later. It isn't code-signed yet, so Windows shows a SmartScreen warning the first time: click **More info**, then **Run anyway**.
 
-   **Linux (beta, x86_64):** [Download the latest release](https://github.com/KenKaiii/Roamies/releases/latest) and pick one:
+   **Linux (beta, x86_64):** [Download the latest release](https://github.com/xVort3x/JARVIS/releases/latest) and pick one:
    the `.deb` (Ubuntu, Debian, Mint, Pop!_OS: `sudo apt install ./Jarvis_*_amd64.deb`), the `.rpm` (Fedora,
    openSUSE: `sudo dnf install ./J.A.R.V.I.S-*.x86_64.rpm`), or the `.AppImage` (any distro: `chmod +x` it and run it).
    Needs glibc 2.38 or later: Ubuntu 24.04, Fedora 39, Debian 13 or newer. See
@@ -149,7 +149,7 @@ transcript too), or everything at once.
    **Development:** With Rust, Node.js 22+, the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) and, on macOS, the Xcode Command Line Tools installed:
 
    ```bash
-   git clone https://github.com/KenKaiii/Roamies.git
+   git clone https://github.com/xVort3x/JARVIS.git
    cd Roamies/showcase/tauri
    (cd sidecar && npm ci && npm test)
    ./build.sh dev        # debug build
@@ -284,16 +284,16 @@ about the screen, go to the AI provider you pick. [PRIVACY.md](PRIVACY.md) lists
 2. Remove the package (`sudo apt remove roamies` or `sudo dnf remove roamies`), or delete the AppImage.
 3. Delete `~/.gg/sidekick` (the voice model is in `~/.gg/sidekick/models`) and `~/.gg/sidekick.json`. Keep
    `~/.gg/auth.json` if you use GG Coder.
-4. Delete the Fish Audio key: `secret-tool clear service com.kenkai.roamies account fish-audio`, and the ElevenLabs key: `secret-tool clear service com.kenkai.roamies account elevenlabs`.
+4. Delete the Fish Audio key: `secret-tool clear service com.xvort3x.roamies account fish-audio`, and the ElevenLabs key: `secret-tool clear service com.xvort3x.roamies account elevenlabs`.
 
 ## Build with the framework
 
-J.A.R.V.I.S' brain is a [gg-framework](https://github.com/KenKaiii/gg-framework) agent running in a Node
+J.A.R.V.I.S' brain is a [gg-framework](https://github.com/xVort3x/gg-framework) agent running in a Node
 sidecar. Want to build your own? Install just what you need.
 
-- [**@kenkaiiii/gg-ai**](https://github.com/KenKaiii/gg-framework/blob/main/packages/gg-ai/README.md): Connect to AI providers and stream responses.
-- [**@kenkaiiii/gg-agent**](https://github.com/KenKaiii/gg-framework/blob/main/packages/gg-agent/README.md): Build agents that use your tools and work through tasks.
-- [**@kenkaiiii/gg-core**](https://github.com/KenKaiii/gg-framework/blob/main/packages/gg-core/README.md): Model selection, authentication, and local model discovery.
+- [**@kenkaiiii/gg-ai**](https://github.com/xVort3x/gg-framework/blob/main/packages/gg-ai/README.md): Connect to AI providers and stream responses.
+- [**@kenkaiiii/gg-agent**](https://github.com/xVort3x/gg-framework/blob/main/packages/gg-agent/README.md): Build agents that use your tools and work through tasks.
+- [**@kenkaiiii/gg-core**](https://github.com/xVort3x/gg-framework/blob/main/packages/gg-core/README.md): Model selection, authentication, and local model discovery.
 
 For your own agent, start here:
 
@@ -307,5 +307,5 @@ the same license.
 
 ## Contributing
 
-Bug reports, ideas and pull requests are welcome. [Open an issue](https://github.com/KenKaiii/Roamies/issues)
+Bug reports, ideas and pull requests are welcome. [Open an issue](https://github.com/xVort3x/JARVIS/issues)
 to get started, read [CONTRIBUTING.md](CONTRIBUTING.md) before a pull request, and report security problems as described in [SECURITY.md](SECURITY.md).

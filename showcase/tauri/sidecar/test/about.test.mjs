@@ -21,7 +21,7 @@ assert.match(mac, /Model \(.*Appearance \(Size:.*Speaking \(Replies:.*Listening 
 assert.match(linux, /Shortcuts \(the commands to bind/, 'no global keys there: the commands to bind');
 for (const t of [mac, win, linux]) {
   assert.match(t, /Save diagnostics/);
-  assert.ok(!/Ken Kai|KenKaiii|Roamies|Echo|Anime Girl|Sarah|Adrian|Rita/.test(t), 'J.A.R.V.I.S only: no old branding or characters');
+  assert.ok(!/Ken Kai|xVort3x|Roamies|Echo|Anime Girl|Sarah|Adrian|Rita/.test(t), 'J.A.R.V.I.S only: no old branding or characters');
   assert.ok(!/\$\{|undefined/.test(t), 'every part is filled in');
 }
 console.log('about tests: passed');

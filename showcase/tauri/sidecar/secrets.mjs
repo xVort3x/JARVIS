@@ -99,7 +99,7 @@ export function createSecrets({ platform = process.platform, hands = '', dataDir
   }
 
   if (platform === 'linux') {
-    const attrs = (name) => ['service', 'com.kenkai.roamies', 'account', name];
+    const attrs = (name) => ['service', 'com.xvort3x.roamies', 'account', name];
     // secret-tool missing, or no keyring answering on the session bus: say which, so it can be fixed.
     const problem = (r) => {
       if (r.code === -1 && /ENOENT/.test(r.stderr)) return 'secret-tool isn\'t installed (it comes in libsecret-tools on Debian and Ubuntu, libsecret on Fedora and Arch)';

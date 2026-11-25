@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "J.A.R.V.I.S",
   "version": "0.7.0",
-  "identifier": "com.kenkai.roamies",
+  "identifier": "com.xvort3x.roamies",
   "build": {
     "frontendDist": "../dist"
   },

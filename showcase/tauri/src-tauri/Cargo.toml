@@ -4,7 +4,7 @@ version = "0.7.0"
 edition = "2021"
 license = "AGPL-3.0-only"
 description = "J.A.R.V.I.S: a personal AI assistant on your desktop"
-repository = "https://github.com/KenKaiii/Roamies"
+repository = "https://github.com/xVort3x/JARVIS"
 
 [build-dependencies]
 tauri-build = { version = "=2.7.4", features = [] }

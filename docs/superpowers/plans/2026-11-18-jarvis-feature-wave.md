@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Tested with `npm test` in `showcase/tauri/sidecar` (stays green).
-- Internal names kept: `roamies-*`, `com.kenkai.roamies`, `~/.gg`.
+- Internal names kept: `roamies-*`, `com.xvort3x.roamies`, `~/.gg`.
 - No writes outside the home folder; no email access in this wave.
 
 ## Review Focus

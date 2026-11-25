@@ -6,11 +6,11 @@ them on, click and type in other apps, write files and run commands. Security re
 
 ## Supported versions
 
-Only the latest release gets security fixes: [latest GitHub release](https://github.com/KenKaiii/Roamies/releases/latest).
+Only the latest release gets security fixes: [latest GitHub release](https://github.com/xVort3x/JARVIS/releases/latest).
 
 ## Reporting a vulnerability
 
-Please **do not open a public issue**. Report privately through [GitHub security advisories](https://github.com/KenKaiii/Roamies/security/advisories/new).
+Please **do not open a public issue**. Report privately through [GitHub security advisories](https://github.com/xVort3x/JARVIS/security/advisories/new).
 
 Include:
 

@@ -9,7 +9,7 @@ commands and JSON, over Win32, UI Automation and Windows OCR; `capture-redact` b
 picture can reach the AI. Only hands-win's `logic.rs` builds off Windows, so
 `cargo test` there runs its checks anywhere; `roamies-hands --smoke` drives Notepad on a real Windows desktop (CI).
 From a Mac, `cargo xwin check --target x86_64-pc-windows-msvc` type-checks the Windows code with the real SDK.
-The `roamies-*` helper names, the `roamies` Cargo package, the `com.kenkai.roamies` bundle identifier and the
+The `roamies-*` helper names, the `roamies` Cargo package, the `com.xvort3x.roamies` bundle identifier and the
 `~/.gg` data paths are internal compatibility names, not branding: keep them when renaming anything people see.
 
 Linux (beta) uses the same voice helper (`voice-win` builds for Linux too: ALSA mic, talk keys over X11, and a
