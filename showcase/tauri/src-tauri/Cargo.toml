@@ -7,7 +7,7 @@ description = "J.A.R.V.I.S: a personal AI assistant on your desktop"
 repository = "https://github.com/xVort3x/JARVIS"
 
 [build-dependencies]
-tauri-build = { version = "=2.7.4", features = [] }
+tauri-build = { version = "=2.7.6", features = [] }
 
 [dependencies]
 tauri = { version = "=2.12.5", features = ["tray-icon", "macos-private-api"] }
