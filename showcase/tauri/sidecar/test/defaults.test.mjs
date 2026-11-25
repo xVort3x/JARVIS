@@ -16,6 +16,7 @@ assert.ok(side.includes("show or hide you ${keys().summon === 'off' ? 'the wake 
 assert.ok(side.includes("if (config.onboarded && VOICE_ON()) ui({ kind: 'greet' });"), 'the arrival greets by voice only (if any)');
 assert.ok(side.includes('brief: false, // short replies'), 'Brief Mode defaults off');
 assert.ok(side.includes('local_awareness: true, // send the'), 'Local awareness defaults on (with the opt-out)');
+assert.ok(side.includes('localAwareness: config.local_awareness !== false,'), 'Panel state carries local awareness so the toggle can turn it on');
 assert.ok(side.includes("if (studioWriting) { ui({ kind: 'studio_append', text: m.text.trim() }); return; }"), 'dictation appends to the canvas, never to the agent');
 assert.ok(side.includes("else if (id === 'studiolisten') { studioWriting = !studioWriting; panel(); }"), 'the dictate toggle flips the flag');
 console.log('defaults tests: passed');

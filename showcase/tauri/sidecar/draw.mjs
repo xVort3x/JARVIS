@@ -107,7 +107,7 @@ export function checkDraw(args) {
       if (m.kind === 'list') need(m.items?.length, 'items');
       if (m.kind === 'clip') need(m.title && m.text, 'title and text');
       if (m.kind === 'sources') need(m.sources?.length, 'sources');
-      if (m.kind === 'photo') need(m.query || m.url, 'query (a thing with a Wikipedia page) or url');
+      if (m.kind === 'photo') need(m.query || m.url, 'query (what the picture should show) or url');
       if (m.kind === 'scroll' && m.dir === 'right') out.push(`${where}: dir for scroll is up or down.`);
       // The kinds with a structure of their own: each says what is wrong in words the model can fix.
       const more = CHECKS[m.kind] ?? (m.kind === 'photo' && m.labels ? CHECKS.labels : null);
@@ -396,15 +396,36 @@ async function imageData(url, opts) {
   if (!IMAGE.test(type)) throw new Error("That link isn't a picture.");
   return `data:${type};base64,${buf.toString('base64')}`;
 }
-/** A named thing's picture: its Wikipedia summary thumbnail (query), or a picture URL the model already found. */
+/** A named thing's photograph from Openverse's free CC library: { src, title, credit } or null. */
+async function openversePhoto(query, fetchImpl) {
+  const api = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&page_size=6&mature=false`;
+  const { buf } = await getChecked(api, { fetchImpl, max: 400_000, accept: 'application/json' });
+  const j = JSON.parse(buf.toString('utf8'));
+  for (const r of j?.results ?? []) {
+    const pic = r.thumbnail || r.url;
+    if (!pic) continue;
+    try {
+      return {
+        src: await imageData(pic, { fetchImpl, max: LIMITS.photoBytes }),
+        title: r.title || query,
+        credit: [r.creator, r.source || 'Openverse'].filter(Boolean).join(' / ').slice(0, 60),
+      };
+    } catch { /* that result's file was too big or unreadable; try the next */ }
+  }
+  return null;
+}
+/** A named thing's picture: a real photo from Openverse (then Wikipedia), or a picture URL the model already found. */
 export async function photoFor({ query, url }, { fetchImpl = fetch } = {}) {
   if (url) return { src: await imageData(url, { fetchImpl, max: LIMITS.photoBytes }), credit: new URL(url).hostname.replace(/^www\./, '') };
+  const q = String(query).trim();
+  const open = await openversePhoto(q, fetchImpl).catch(() => null);
+  if (open) return open;
   // Titles are case-sensitive after the first letter, which Wikipedia always capitalises.
-  const title = String(query).trim().replace(/\s+/g, '_'), page = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.charAt(0).toUpperCase() + title.slice(1))}`;
+  const title = q.replace(/\s+/g, '_'), page = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.charAt(0).toUpperCase() + title.slice(1))}`;
   const { buf } = await getChecked(page, { fetchImpl, max: 200_000, accept: 'application/json' });
-  let j; try { j = JSON.parse(buf.toString('utf8')); } catch { throw new Error(`No Wikipedia page for "${query}".`); }
+  let j; try { j = JSON.parse(buf.toString('utf8')); } catch { throw new Error(`No page for "${query}".`); }
   const pic = j?.thumbnail?.source ?? j?.originalimage?.source;
-  if (!pic) throw new Error(`Wikipedia has no picture for "${query}".`);
+  if (!pic) throw new Error(`No picture for "${query}".`);
   return { src: await imageData(pic, { fetchImpl, max: LIMITS.photoBytes }), title: j.title ?? query, credit: 'Wikipedia' };
 }
 // What a model can be shown: not a drawing file (svg) or an icon.
@@ -418,7 +439,7 @@ export function createPhotos({ fetchImpl = fetch, max = 12 } = {}) {
   return {
     /** Fetches the picture a photo mark would show and returns it for the model to look at: { title, mediaType, data }. */
     async see({ query, url }) {
-      if (!query && !url) throw new Error('Give query (a thing with a Wikipedia page) or url (a link to a picture).');
+      if (!query && !url) throw new Error('Give query (what the picture should show) or url (a link to a picture).');
       const got = await photoFor({ query, url }, { fetchImpl }), m = /^data:([^;]+);base64,(.*)$/s.exec(got.src);
       if (!m || !LOOKABLE.test(m[1])) throw new Error("That picture is a kind that can't be looked at here (a drawing file or an icon). Try another picture, or show this one without labels.");
       const k = key({ query, url });

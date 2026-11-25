@@ -37,7 +37,6 @@ static SIDEKICK_OVERLAY: Mutex<Option<String>> = Mutex::new(None);
 static ONBOARDING: AtomicBool = AtomicBool::new(false);
 const ONBOARDING_LABEL: &str = "onboarding";
 const PANEL_LABEL: &str = "panel";
-const PILL_LABEL: &str = "pill";
 /// When the panel last hid because it lost focus: a click on the icon that caused it mustn't reopen it.
 static PANEL_BLURRED: Mutex<Option<Instant>> = Mutex::new(None);
 /// Counts opens, so a close that's still playing its animation can tell it was opened again and stay up.
@@ -117,12 +116,6 @@ fn to_overlays(app: &AppHandle, msg: &Value) {
 fn to_panel(app: &AppHandle, msg: &Value) {
     if let Some(w) = app.get_webview_window(PANEL_LABEL) {
         let _ = w.eval(format!("window.__panel&&__panel({msg})"));
-    }
-}
-
-fn to_pill(app: &AppHandle, msg: &Value) {
-    if let Some(w) = app.get_webview_window(PILL_LABEL) {
-        let _ = w.eval(format!("window.__roamieHost&&__roamieHost({msg})"));
     }
 }
 
@@ -716,37 +709,6 @@ pub(crate) fn hide_panel(app: &AppHandle, why: &'static str) {
         }
         to_sidecar(&app, &json!({ "type": "panel_closed", "why": why }));
     });
-}
-
-/// The speaking pill: the small glowing orb-and-wave at the bottom of the screen, visible only while
-/// J.A.R.V.I.S speaks. One transparent, undecorated window, always built before the sidecar starts.
-fn build_pill(app: &AppHandle) {
-    if app.get_webview_window(PILL_LABEL).is_some() { return; }
-    const PILL_W: f64 = 340.0;
-    const PILL_H: f64 = 86.0;
-    let b = WebviewWindowBuilder::new(app, PILL_LABEL, WebviewUrl::App("panel/pill.html".into()))
-        .title("J.A.R.V.I.S")
-        .inner_size(PILL_W, PILL_H)
-        .resizable(false)
-        .maximizable(false)
-        .minimizable(false)
-        .decorations(false)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .visible_on_all_workspaces(true)
-        .transparent(true)
-        .shadow(false);
-    let w = match b.build() {
-        Ok(w) => w,
-        Err(e) => { eprintln!("pill failed to build: {e}"); return; }
-    };
-    // Bottom, centred on the primary monitor.
-    if let Ok(Some(mon)) = w.primary_monitor() {
-        let scale = mon.scale_factor();
-        let pos = mon.position().to_logical::<f64>(scale);
-        let size = mon.size().to_logical::<f64>(scale);
-        let _ = w.set_position(tauri::LogicalPosition::new(pos.x + (size.width - PILL_W) / 2.0, pos.y + size.height - PILL_H - 28.0));
-    }
 }
 
 /// Opens the panel by the icon (or closes it if it's open). `toggle`: false from the menu's Open Panel, which
@@ -1545,7 +1507,6 @@ fn handle_sidecar(app: &AppHandle, msg: Value) {
         Some("ui") => {
             if let Some(m) = msg.get("msg") {
                 to_overlays(app, m);
-                to_pill(app, m);
             }
         }
         Some("panel") => {
@@ -1758,7 +1719,6 @@ fn main() {
                 eprintln!("could not register the area shortcut: {e}");
             }
             build_overlays(app.handle())?;
-            build_pill(app.handle());
             pump_cursor(app.handle().clone());
             watch_screens(app.handle().clone());
             #[cfg(target_os = "macos")]

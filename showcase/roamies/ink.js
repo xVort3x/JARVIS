@@ -9,10 +9,10 @@
 
   // ---------------------------------------------------------------- look
   const P = 4, MONO = '"Inter", ui-sans-serif, system-ui, sans-serif', DOTO = '"Doto", "Inter", ui-sans-serif, sans-serif';
-  const ACC = '#38b8ff', HOT = '#9bdcff', MID = '#1f86c9', DEEP = '#0b3a5c', EDGE = 'rgba(4,18,34,0.65)';
-  const GLASS = 'rgba(13,16,22,0.94)', TEXT = '#eef1f7', DIM = '#8b93a3', INKDARK = '#1b1204';
-  const TONES = { accent: ACC, amber: ACC, coral: '#ef5b52', lilac: '#b9a4ff', sky: '#7cc8ff', lime: '#b6f36b', red: '#ff6b6b', white: '#eef1f7' };
-  const LED = ['#070b12', '#0b3a5c', '#1f86c9', '#38b8ff', '#9bdcff'];
+  const ACC = '#d9b872', HOT = '#f3dcae', MID = '#8a6a35', DEEP = '#332a18', EDGE = 'rgba(16,12,6,0.68)';
+  const GLASS = 'rgba(15,14,11,0.94)', TEXT = '#f1ede3', DIM = '#908c83', INKDARK = '#171106';
+  const TONES = { accent: ACC, amber: ACC, coral: '#e06b5f', lilac: '#c0a9e6', sky: '#9fc3e0', lime: '#c2d98a', red: '#ef7b73', white: '#f1ede3' };
+  const LED = ['#0b0a08', '#332a18', '#7a5f2c', '#b9924c', '#f2ddab'];
   const B4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
   const tone = (t) => TONES[t] || ACC;
   const now = () => performance.now() / 1000;
@@ -859,7 +859,7 @@
       c.more = () => hits.map((q) => ({ ...q, part: m.part }));
     },
     async photo(m) {
-      const cells = [], cap = m.text || m.title || m.query || '';
+      const cap = m.text || m.title || m.query || '';
       // The picture first (at most 4 s), so the card takes its shape and nothing is cropped.
       const img = m.src && !m.missing ? await new Promise((res) => {
         const i = new Image(), t = setTimeout(() => res(null), 4000);
@@ -873,7 +873,7 @@
       const maxH = Math.min(300, maxCardH() - 150);
       if (iw > 360) { iw = 360; ih = iw / a; }
       if (ih > maxH) { ih = maxH; iw = ih * a; }
-      const gw = Math.max(1, Math.floor(iw / 3)), gh = Math.max(1, Math.floor(ih / 3)), pw = gw * 3, ph = gh * 3;
+      const pw = Math.max(1, Math.round(iw)), ph = Math.max(1, Math.round(ih));
       // Names for its parts (labels, as fractions of the picture): in a column each side of it, each on the side its
       // part is on and as near its height as the others allow, with a line to the part. Only when there's a picture.
       const cols = [0, 1].map((side) => (img ? m.labels ?? [] : []).filter((q) => (q.x >= 0.5 ? 1 : 0) === side).map((q) => ({ ...q, side, rows: wrapRows(q.text, 112, SMALL), p: 0 })).sort((a, q) => a.y - q.y));
@@ -900,20 +900,14 @@
       // 12 above the picture, 12 between it and the caption, as at its sides.
       const capY = 12 + ah + 12 + (long ? 12 : 15), credY = capRows.length ? capY + (capRows.length - 1) * capLh + 16 : 12 + ah + 12 + 10;
       const h = 26 + 12 + ah + 12 + capRows.length * capLh + credRows.length * 14 + 12;
-      let ready = false;
-      if (img) {
-        const cv = document.createElement('canvas'); cv.width = gw; cv.height = gh;
-        const c2 = cv.getContext('2d', { willReadFrequently: true });
-        c2.drawImage(img, 0, 0, gw, gh); // the frame has the picture's proportions: all of it, none cut off
-        const d = c2.getImageData(0, 0, gw, gh).data;
-        // Into the Sidekick's five LED levels with an ordered dither.
-        for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) { const i = (gy * gw + gx) * 4, lum = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255, v = clamp(lum + (B4[(gy % 4) * 4 + (gx % 4)] / 16 - 0.5) * 0.22, 0, 0.999); cells.push([gx, gy, Math.floor(v * 5)]); }
-        ready = true;
-      }
       const c = await card(m, w, h, function (b, l, t, x, y, age) {
-        const u = clamp(age / 1, 0, 1);
-        if (ready) for (const [gx, gy, v] of cells) { if ((B4[(gy % 4) * 4 + (gx % 4)] + 0.5) / 16 > u * 1.05) continue; b.fillStyle = LED[v]; b.fillRect(x + ix + gx * 3, y + 12 + gy * 3, 3, 3); }
-        else { b.fillStyle = 'rgba(92,58,14,0.25)'; b.fillRect(x + ix, y + 12, pw, ph); typed(b, 'no picture found', x + w / 2, y + 12 + ph / 2, SMALL, DIM, 1, { anchor: 'middle' }); }
+        if (img) {
+          // The real photograph, full colour and full resolution (the canvas is already DPR-scaled).
+          b.save(); b.globalAlpha *= clamp(age / 0.7, 0, 1);
+          b.drawImage(img, x + ix, y + 12, pw, ph);
+          b.strokeStyle = 'rgba(255,255,255,0.16)'; b.lineWidth = 1; b.strokeRect(x + ix + 0.5, y + 12.5, pw - 1, ph - 1);
+          b.restore();
+        } else { b.fillStyle = 'rgba(92,72,30,0.25)'; b.fillRect(x + ix, y + 12, pw, ph); typed(b, 'no picture found', x + w / 2, y + 12 + ph / 2, SMALL, DIM, 1, { anchor: 'middle' }); }
         capRows.forEach((r, i) => typed(b, r, x + w / 2, y + capY + i * capLh, CAPF, TEXT, (age - 0.6 - i * 0.15) / 0.5, { anchor: 'middle' }));
         credRows.forEach((r, i) => typed(b, r, x + w / 2, y + credY + i * 14, `400 10px ${MONO}`, DIM, (age - 0.8) / 0.4, { anchor: 'middle' }));
         named.forEach((q, i) => {

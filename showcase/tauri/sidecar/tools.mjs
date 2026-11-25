@@ -35,7 +35,46 @@ export const run = (cmd, args, { onLine, ...opts } = {}) => new Promise((res) =>
 // nothing in them is ever parsed as a command (cmd's start split URLs at "&", and quotes in names broke it). A
 // failure says "Unable to find application", as macOS's open does.
 const WIN_OPEN = "try { if ($env:ROAMIES_OPEN_APP) { Start-Process -FilePath $env:ROAMIES_OPEN_APP -ArgumentList ('\"' + $env:ROAMIES_OPEN + '\"') -ErrorAction Stop } else { Start-Process -FilePath $env:ROAMIES_OPEN -ErrorAction Stop } } catch { [Console]::Error.WriteLine('Unable to find application: ' + $_.Exception.Message); exit 1 }";
-export const winOpen = (target, app = '') => run('powershell', ['-NoProfile', '-NonInteractive', '-Command', WIN_OPEN], { env: { ...process.env, ROAMIES_OPEN: target, ROAMIES_OPEN_APP: app } });
+// ---------- Windows: apps by name ----------
+// Get-StartApps lists what the Start menu can launch (Store apps included), with the AppID shell:AppsFolder takes, so
+// "Spotify", "spotify app" or "calc" opens without the exact .exe. Listed once a run; installs are rare.
+const START_APPS = "Get-StartApps | ForEach-Object { $_.Name + [char]9 + $_.AppID }";
+export const parseStartApps = (text) => String(text ?? '').split(/\r?\n/).map((l) => { const i = l.indexOf('\t'); return i > 0 ? { name: l.slice(0, i), id: l.slice(i + 1) } : null; }).filter(Boolean);
+const appKey = (s) => String(s ?? '').toLowerCase().replace(/\.exe$/, '').replace(/\s+app$/, '').replace(/[^a-z0-9+]+/g, ' ').trim();
+/** The best Start-menu app for a name, from [{ name, id }]: the display name or .exe exactly, then one starting with
+ *  it, then one holding every word ("chrome" finds "Google Chrome"), then one holding it anywhere. Shortest wins. */
+export function matchStartApp(apps, name) {
+  const want = appKey(name);
+  if (!want) return null;
+  const words = want.split(' ');
+  let best = null;
+  for (const a of apps) {
+    const n = appKey(a.name), exe = appKey(String(a.id).split(/[\\/]/).pop());
+    const score = n === want || exe === want ? 0
+      : n.startsWith(want) || exe.startsWith(want) ? 1 + n.length - want.length
+      : words.every((w) => n.split(' ').includes(w)) ? 40 + n.length - want.length
+      : n.includes(want) ? 80 + n.indexOf(want) : Infinity;
+    if (score < (best?.score ?? Infinity)) best = { name: a.name, id: a.id, score };
+  }
+  return best;
+}
+let startApps = null;
+async function startAppList() {
+  if (startApps) return startApps;
+  const r = await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', START_APPS]);
+  if (!r.err) startApps = parseStartApps(r.stdout);
+  return startApps ?? [];
+}
+export const winOpen = async (target, app = '') => {
+  let t = String(target);
+  // A bare name is a Start-menu app first: its AppID launches Store and desktop apps alike, where Start-Process
+  // needs the exact executable.
+  if (!app && !/[/\\:]/.test(t)) {
+    const hit = matchStartApp(await startAppList(), t);
+    if (hit) t = `shell:AppsFolder\\${hit.id}`;
+  }
+  return run('powershell', ['-NoProfile', '-NonInteractive', '-Command', WIN_OPEN], { env: { ...process.env, ROAMIES_OPEN: t, ROAMIES_OPEN_APP: app } });
+};
 // run_command's shell. Windows: cmd /d /s /c "…" passed as is (what Node's shell: true does); handed over as a plain
 // argument, Node escaped its quotes as \" which cmd doesn't read, so any command with quotes in it broke.
 export const shellFor = (command, platform = process.platform, env = process.env) => (platform === 'win32'
@@ -255,6 +294,19 @@ export const copyText = (text, askShell) => (LINUX ? askShell({ type: 'clipboard
   p.stdin?.end(String(text));
 }));
 
+/** What the user last copied. -Raw keeps PowerShell's line breaks. */
+export async function readClipboard() {
+  const [cmd, args] = process.platform === 'win32' ? ['powershell', ['-NoProfile', '-NonInteractive', '-Command', 'Get-Clipboard -Raw']]
+    : process.platform === 'darwin' ? ['pbpaste', []] : ['wl-paste', ['-n']];
+  const r = await run(cmd, args);
+  if (!r.err) return r.stdout;
+  if (process.platform === 'linux') {
+    const x = await run('xclip', ['-selection', 'clipboard', '-o']);
+    if (!x.err) return x.stdout;
+  }
+  throw new Error('Could not read the clipboard.');
+}
+
 // askShell: Linux asks the app itself for screenshots and copying ({type:'screenshot'|'clipboard', …} → its answer).
 /** GG Coder's side search for the sign-in in use, so a search's result pages never fill the main model's context: Claude
  *  Code's WebSearch on a Claude sign-in ({ cc, cwd }), Anthropic's server search on an Anthropic key ({ apiKey, baseUrl }),
@@ -267,7 +319,7 @@ export function sideSearchFor(route) {
 // Every request and redirect hop of web_fetch goes through safety.mjs, by name and by the addresses it resolves to.
 export const guardFetch = async (url) => { const v = await checkFetch(url); return v.level === BLOCK ? `Blocked for safety: ${v.reason}` : null; };
 
-export function createTools({ allowActions, ui, ask, openUrl, onCommitments, focus = null, firedReminders = () => [], showList, fmtWhen, commitmentsText, userName, onPlan = () => {}, speak = () => false, onHandoff = () => {}, watchClicks = () => {}, onInkGone = () => {}, askShell = async () => ({ ok: false, error: 'J.A.R.V.I.S isn\'t running.' }), workdir = HOME, own = null, sideSearch = async () => null, pointScale = () => 'pixels', assistantName = 'J.A.R.V.I.S', aware = null, onPanelAction = null, gmail = () => null, onGmailSetup = null }) {
+export function createTools({ allowActions, ui, ask, openUrl, onCommitments, focus = null, firedReminders = () => [], showList, fmtWhen, commitmentsText, userName, onPlan = () => {}, speak = () => false, onHandoff = () => {}, watchClicks = () => {}, onInkGone = () => {}, askShell = async () => ({ ok: false, error: 'J.A.R.V.I.S isn\'t running.' }), workdir = HOME, own = null, sideSearch = async () => null, pointScale = () => 'pixels', assistantName = 'J.A.R.V.I.S', aware = null, onPanelAction = null, gmail = () => null, onGmailSetup = null, supadataKey = () => null, onSupadataSetup = null }) {
   // The assistant's name, for the cards it signs. Live, so a rename carries through.
   const assistant = typeof assistantName === 'function' ? assistantName : () => assistantName;
   // Relative paths (and run_command) start in workdir: the home folder for the chat, its own folder for an agent.
@@ -1029,6 +1081,73 @@ A drawing stays until the user clears it or the window changes; your next drawin
       },
     },
     {
+      name: 'supadata_setup', description: 'Connect a Supadata account so J.A.R.V.I.S can read video transcripts (YouTube, TikTok, Instagram, X/Twitter, Facebook and public video files) and answer questions about them. Needs a Supadata API key from dash.supadata.ai.',
+      parameters: z.object({ api_key: z.string().min(8).max(512).optional() }),
+      execute: async ({ api_key }) => {
+        let key = (api_key ?? '').trim();
+        if (!key) {
+          const given = await ask({ prompt: 'Paste your Supadata API key (from dash.supadata.ai).', placeholder: 'Supadata API key', mask: true });
+          key = String(given ?? '').trim();
+        }
+        if (!key) return 'No Supadata key given.';
+        if (!onSupadataSetup) throw new Error('Supadata setup is not available in this build.');
+        await onSupadataSetup(key);
+        return 'Supadata connected — I can now read video transcripts and answer questions about them.';
+      },
+    },
+    {
+      name: 'video_transcript', description: 'Get the transcript of a video so you can answer questions about it. Supports YouTube, TikTok, Instagram, X (Twitter), Facebook and public video file URLs. Use when the user asks about, summarises or quotes a video. Returns the transcript text (and available languages).',
+      parameters: z.object({
+        url: z.string().min(8).max(2000),
+        lang: z.string().min(2).max(10).optional(),
+        text: z.boolean().optional(),
+        mode: z.enum(['native', 'auto', 'generate']).optional(),
+      }),
+      execute: async ({ url, lang, text = true, mode = 'auto' }) => {
+        const key = await Promise.resolve(supadataKey?.()).catch(() => null);
+        if (!key) throw new Error('Connect Supadata first — ask me to set up Supadata (supadata_setup) with your API key.');
+        const base = 'https://api.supadata.ai/v1';
+        const params = new URLSearchParams({ url });
+        if (lang) params.set('lang', lang);
+        params.set('text', String(text));
+        if (mode) params.set('mode', mode);
+        const headers = { 'x-api-key': String(key) };
+        let res = await fetch(`${base}/transcript?${params.toString()}`, { headers });
+        if (!res.ok && res.status !== 202) {
+          const body = await res.text().catch(() => '');
+          throw new Error(`Supadata request failed (${res.status}): ${body.slice(0, 300) || res.statusText}`);
+        }
+        let data = await res.json();
+        // Async job: poll for completion.
+        if (data?.jobId) {
+          const jobId = data.jobId;
+          const deadline = Date.now() + 60_000;
+          while (Date.now() < deadline) {
+            await new Promise((r) => setTimeout(r, 1500));
+            const r2 = await fetch(`${base}/transcript/${encodeURIComponent(jobId)}`, { headers });
+            if (!r2.ok) throw new Error(`Supadata job poll failed (${r2.status}).`);
+            data = await r2.json();
+            if (data?.status === 'completed' || data?.status === 'failed') break;
+          }
+          if (data?.status === 'failed') throw new Error(`Supadata transcription failed: ${data?.error ?? 'unknown error'}`);
+          if (data?.jobId && !data?.content) throw new Error('Supadata job did not finish in time; try again in a moment.');
+        }
+        const content = data?.content;
+        const langOut = data?.lang;
+        const avail = Array.isArray(data?.availableLangs) ? data.availableLangs.join(', ') : '';
+        if (text) {
+          const t = typeof content === 'string' ? content : Array.isArray(content) ? content.map((c) => c?.text ?? '').join(' ') : '';
+          if (!t.trim()) return `No speech detected in the video. Available languages: ${avail || 'none'}.`;
+          return `Transcript (${langOut || 'unknown'}):\n${clip(t, 12000)}${avail ? `\nAvailable languages: ${avail}` : ''}`;
+        }
+        // timestamped chunks
+        const chunks = Array.isArray(content) ? content : [];
+        if (!chunks.length) return `No speech detected in the video. Available languages: ${avail || 'none'}.`;
+        const lines = chunks.map((c) => `[${Math.round((c?.offset ?? 0) / 1000)}s] ${c?.text ?? ''}`).join('\n');
+        return `Transcript (${langOut || 'unknown'}):\n${clip(lines, 12000)}${avail ? `\nAvailable languages: ${avail}` : ''}`;
+      },
+    },
+    {
       name: 'panel_action', description: `Trigger one of the app's own settings from the voice. Actions: 'brief' (Brief mode on/off), 'localawareness' (share locale/timezone), 'studiolisten' (dictate to the Studio page), 'actions' (allow file edits & commands), 'sound' (sound effects), 'panel' (open the panel), 'new' (new conversation), 'stop' (stop what I'm doing), 'replies:text' / 'replies:voice', 'tts:fish' / 'tts:gemini' / 'tts:voicestudio' / 'tts:elevenlabs' (switch the voice). One action per call; unknown ids fail.`,
       parameters: z.object({ action: z.string() }),
       execute: async ({ action }) => {
@@ -1150,6 +1269,18 @@ A drawing stays until the user clears it or the window changes; your next drawin
         if (r.err) throw new Error(r.stderr.trim() || `Couldn't open ${t}.`);
         if (lastShot) lastShot.used = true;
         return `Opened ${t}${inApp.length ? ` in ${app}` : ''}.`;
+      },
+    },
+    {
+      name: 'clipboard', description: "Read what the user last copied — an error message they ask about, a paragraph, a link — or put text on their clipboard by passing text. Reading changes nothing; writing replaces what was there.",
+      parameters: z.object({ text: z.string().optional() }),
+      execute: async ({ text }) => {
+        if (text !== undefined) {
+          if (!(await copyText(String(text), askShell))) throw new Error('Could not copy that to the clipboard.');
+          return 'Copied to the clipboard.';
+        }
+        const s = await readClipboard();
+        return s.trim() ? clip(s, 6000) : '(the clipboard is empty)';
       },
     },
     {

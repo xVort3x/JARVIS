@@ -197,8 +197,18 @@ console.log('shape radius tests: passed');
     'https://en.wikipedia.org/api/rest_v1/page/summary/Jet_engine': () => res(200, JSON.stringify({ title: 'Jet engine', thumbnail: { source: 'https://upload.wikimedia.org/jet.png' } }), { 'content-type': 'application/json' }),
     'https://upload.wikimedia.org/jet.png': () => res(200, png, { 'content-type': 'image/png' }),
   });
+  // A real photo first (Openverse's free library), with its maker credited; Wikipedia is only the fallback.
+  const open = fake({
+    'https://api.openverse.org/v1/images/?q=aurora&page_size=6&mature=false': () => res(200, JSON.stringify({ results: [{ title: 'Aurora over Norway', creator: 'Jane Doe', source: 'flickr', thumbnail: 'https://live.staticflickr.com/aurora.jpg' }] }), { 'content-type': 'application/json' }),
+    'https://live.staticflickr.com/aurora.jpg': () => res(200, png, { 'content-type': 'image/jpeg' }),
+  });
+  const o = await photoFor({ query: 'aurora' }, { fetchImpl: open });
+  assert.equal(o.title, 'Aurora over Norway');
+  assert.equal(o.credit, 'Jane Doe / flickr', 'the photographer and the site are credited');
+  assert.equal(o.src, `data:image/jpeg;base64,${png.toString('base64')}`);
   const p = await photoFor({ query: 'jet engine' }, { fetchImpl: wiki });
-  assert.equal(p.src, `data:image/png;base64,${png.toString('base64')}`, 'a data URL the overlay can dither');
+  assert.equal(p.src, `data:image/png;base64,${png.toString('base64')}`, 'a data URL the overlay can draw');
+  assert.equal(p.credit, 'Wikipedia', 'no Openverse hit: Wikipedia is still the fallback');
   assert.equal(p.title, 'Jet engine');
   await assert.rejects(photoFor({ url: 'http://192.168.0.2/cam.png' }, { fetchImpl: wiki }), /Blocked for safety/, 'local network');
   const bounce = fake({ 'https://example.com/a.png': () => res(302, '', { location: 'http://localhost/secret.png' }) });

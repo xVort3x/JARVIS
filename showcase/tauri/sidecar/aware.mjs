@@ -28,14 +28,16 @@ export const excluded = (front, list) => { const h = hay(front); return h ? ((li
 export function screenLine(front, config) {
   if (!config?.alwaysAware || config?.awarePrivate) return '';
   if (!front?.app || isLocked(front) || excluded(front, exclusionsOf(config))) return '';
-  return screenLineOf(front);
+  return screenLineOf(front, config);
 }
-const screenLineOf = (f) => {
+const screenLineOf = (f, config) => {
   const cut = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
   let url = '';
   try { if (f.url) { const u = new URL(f.url); url = /^https?:$/.test(u.protocol) ? cut(u.host + u.pathname.replace(/\/$/, ''), 120) : ''; } } catch { /* not a URL */ }
   const title = f.title ? ` — "${cut(String(f.title).replace(/\s+/g, ' ').trim(), 120)}"` : '';
-  return `- Right now they're in ${f.app}${title}${url ? ` (${url})` : ''}. This was just checked and overrides any app or page from earlier messages; they can still ask about something elsewhere.`;
+  // Which scope it's in: the front window, or the whole screen when the user picked "screen".
+  const lead = awareMode(config) === 'screen' ? `Right now they're on the whole screen` : `Right now they're in ${f.app}`;
+  return `- ${lead}${title}${url ? ` (${url})` : ''}. This was just checked and overrides any app or page from earlier messages; they can still ask about something elsewhere.`;
 };
 
 /** Whether the on-demand tool may look, and why not when it may not. Never true on exclusions or the lock screen. */

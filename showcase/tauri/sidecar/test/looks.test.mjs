@@ -32,6 +32,13 @@ assert.ok(!/roamies\/people\.js|roamies\/sfx\.js/.test(src('../../../desktop.htm
   assert.ok(at('glass.js') > 0 && at('glass.js') < at('agent.js') && at('glass.js') < at('agent-cards.js'), 'desktop.html loads glass.js before agent.js and agent-cards.js');
 }
 
+// No Vanta-style blue bar: no running light on the bubble, and no speaking pill window.
+{
+  const agent = src('../../../roamies/agent.js'), rust = src('../../src-tauri/src/main.rs');
+  assert.ok(!/running along the top edge|fillRect\(f\.x \+ 8 \+ run \* u/.test(agent), 'the bubble draws no streaming blue bar');
+  assert.ok(!/PILL_LABEL|build_pill|panel\/pill\.html/.test(rust), 'no speaking pill window');
+}
+
 // Regression: the hands trailed behind the body when it moved fast (they sprang after screen points, not body ones).
 {
   const kit = src('../../../roamies/10-dither.js');

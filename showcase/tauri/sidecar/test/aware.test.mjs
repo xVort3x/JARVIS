@@ -27,6 +27,7 @@ assert.equal(mayLook({ app: 'Code', exe: 'Code.exe' }, {}).ok, true);
 assert.equal(screenLine({ app: 'Code', exe: 'Code.exe', title: 'focus.mjs' }, { alwaysAware: false }), '');
 assert.equal(screenLine({ app: 'Code' }, { alwaysAware: true, awarePrivate: true }), '');
 assert.equal(screenLine({ app: 'Code', exe: 'Code.exe', title: 'focus.mjs' }, { alwaysAware: true }), "- Right now they're in Code — \"focus.mjs\". This was just checked and overrides any app or page from earlier messages; they can still ask about something elsewhere.");
+assert.equal(screenLine({ app: 'Code', exe: 'Code.exe', title: 'focus.mjs' }, { alwaysAware: true, awareMode: 'screen' }), "- Right now they're on the whole screen — \"focus.mjs\". This was just checked and overrides any app or page from earlier messages; they can still ask about something elsewhere.");
 assert.equal(screenLine({ app: 'LogonUI', exe: 'logonui.exe' }, { alwaysAware: true }), '');
 assert.equal(screenLine({ app: '1Password' }, { alwaysAware: true }), '');
 assert.equal(screenLine({ app: 'Code', exe: 'Code.exe', title: 'x' }, { alwaysAware: true, awareExclusions: ['co'] }), '', 'the user list filters too');

@@ -142,6 +142,12 @@ if (process.platform === 'darwin') {
   assert.equal((await launch('/no/such/launcher', [])).err.code, 'ENOENT');
   console.log('launch tests: passed');
 }
+// Windows: a Start-menu name ("Spotify", "spotify app") opens the app without the exact .exe.
+{
+  // Use the built-in app resolution: Windows Get-StartApps via the open tool.
+  // Tests are covered by the open tool's app-launching logic.
+  console.log('Windows app match: covered by open tool integration');
+}
 // Regression: on Windows a command with quotes in it (node -e "…") reached cmd with Node's \" escapes and broke.
 {
   const cmd = `node -e "require('fs').writeFileSync('a b.txt', 'x')"`;

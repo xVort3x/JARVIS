@@ -624,13 +624,6 @@
       }
       const tail = speechTail > 0.05 ? { side, at: across ? tip[0] : tip[1], to: tip, w: 14 * speechTail } : null;
       G.chrome(ctx, f.x, f.y, f.w, f.h, { tail });
-      // A light running along the top edge while words arrive or it waits for typing.
-      const streaming = bb.kind !== 'thought' && (bb.shown < bb.text.length || (bb.input?.focused && !bb.input.processing && !bb.closing));
-      if (streaming && f.w > 40) {
-        const run = f.w - 32, u = pen.reduced ? 0.4 : (now * 0.8) % 1;
-        ctx.save(); ctx.shadowColor = G.rgba(G.ACC, 0.8); ctx.shadowBlur = 6; ctx.fillStyle = G.HOT;
-        ctx.fillRect(f.x + 8 + run * u, f.y - 0.25, 16, 1.5); ctx.restore();
-      }
       // Thinking: three small squares, one lit at a time; before the words when there are any.
       if (bb.kind === 'thought' && bb.cloud.x > 0.3) {
         const dx = bb.text ? f.x + padX(bb) : f.x + (f.w - DOTS_W) / 2, cy = f.y + f.h / 2, lit = Math.floor(now * 5) % 3;
