@@ -1,21 +1,311 @@
-# J.A.R.V.I.S
+<p align="center">
+  <img src="showcase/tauri/src-tauri/icons/128x128@2x.png" width="128" alt="J.A.R.V.I.S icon">
+</p>
 
-Personal AI assistant — a Tauri 2 desktop app (Rust shell) with a Node sidecar agent, shared browser JS, and native helpers.
+<p align="center">
+  <strong>A voice-first personal AI that lives on your desktop.</strong>
+</p>
 
-## Build
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg?style=for-the-badge" alt="AGPL-3.0 License"></a>
+</p>
 
-```sh
-cd showcase/tauri/sidecar && npm ci && npm test
-cd .. && ./build.sh        # release bundle (installer on Windows, .app on macOS, AppImage/.deb/.rpm on Linux)
-./build.sh dev             # debug binary only
+J.A.R.V.I.S is a desktop assistant: hold the talk keys and speak, or type, and it answers out loud or on a card
+beside what you are doing. It remembers what you said you would do, reminds you when it is due, and can point
+at, explain or operate what is on screen when you allow it.
+
+## Why J.A.R.V.I.S
+
+- **Talk, don't type.** Hold ⌃⌥ (Ctrl+Alt on Windows and Linux), say it, let go. On macOS and Windows, circle something with the cursor while you talk and it sees what you mean.
+- **Or type.** Tap ⌥⌘ (Ctrl+Shift on Windows and Linux) and a small text field opens beside your cursor. Type, press Enter.
+- **It talks back.** Spoken replies through [ElevenLabs](https://elevenlabs.io) (a library voice or your own), [Fish Audio](https://fish.audio), or in a Gemini voice you pick with your own [Google AI Studio](https://aistudio.google.com/apikey) key.
+- **It remembers.** What you said you'd do, reminders down to the second (or on repeat: "every weekday at 9", "every 2 hours"), and what matters to you.
+- **It draws on your screen.** Rings the exact button to click, walks you through each step, and sketches answers beside what you're reading.
+- **It thinks with you.** Ask it to weigh a real choice: the options side by side, what matters most, the trade-offs, and one recommendation on a card.
+- **It does the clicking.** Opens apps, sites and files, and on macOS and Windows clicks or types in other apps for you when you turn that on.
+- **Your subscriptions.** Sign in with Claude or ChatGPT, or use an API key (Gemini, Grok, Kimi Code and more).
+- **Launch it with your voice.** "Open YouTube and search for lofi beats", "Play the first result", "Open the first video" — sites, searches and videos open in your default browser.
+- **Deep search.** Say "do a deep search on …" and J.A.R.V.I.S runs several angles, reads the pages, and answers with the sources. "Verify that" cross-checks a claim against the web and flags mismatches.
+
+## J.A.R.V.I.S shows you how
+
+<p align="center">
+  <img src="docs/art/jarvis-shows-you-how.gif" alt="Asked &quot;How do I export this as an MP4?&quot;, J.A.R.V.I.S turns into its reticle cursor, rings the Format menu, then MP4, then the Export button in a video editor, waiting for each click while a caption reads each step">
+</p>
+
+Ask how to do something in any app. J.A.R.V.I.S turns into its cursor, rings the exact button on your real screen,
+says the step out loud and waits for your click before showing the next one.
+
+## J.A.R.V.I.S explains anything
+
+<p align="center">
+  <img src="docs/art/jarvis-explains.gif" alt="Asked how black holes work while reading Wikipedia, J.A.R.V.I.S draws an answer card tied to the page, a turning 3D black hole with its glowing disk, underlines the key sentence and adds a discovery timeline">
+</p>
+
+Ask about whatever you're looking at. J.A.R.V.I.S sketches the answer right beside it while it talks: cards, graphs,
+timelines, photos, molecules and turning 3D models, all in its own blue ink. Ask it to change any part, or
+clear it all in one go. It also picks the picture that fits the question by itself: flow diagrams, tables, bar
+charts, maps, worked maths, geometry figures, photos with their parts named, 3D models whose parts move, and
+quizzes you answer with a click.
+
+## Also included
+
+- **The J.A.R.V.I.S panel:** click the menu bar or tray icon (on Linux, **Open Panel** in its menu) for what it's doing, what it remembers, and every setting.
+- **Safe by default:** file edits, commands and app control stay off until you turn them on, and risky steps always ask.
+- **Shows its work:** every tool plays its own animation, so you can see what it's doing.
+- **Where keys live:** your Fish Audio or Gemini voice key stays in the macOS Keychain (encrypted with Windows DPAPI on Windows, in your desktop's keyring on Linux). AI sign-ins are stored in `~/.gg/auth.json`, shared with GG Coder.
+- **Out of the way:** no Dock or taskbar button, a shortcut shows or hides it (see the table), Esc stops a reply.
+- **Quick setup:** permissions, sign-in and a short chat so it gets to know you.
+
+|                        | macOS                      | Windows                     | Linux (beta)                       |
+| ---------------------- | -------------------------- | --------------------------- | ---------------------------------- |
+| Talk to it             | Yes, best on macOS 26+     | Yes, speech runs on your PC | Yes, speech runs on your PC        |
+| Circle while talking   | Yes                        | Yes                         | No                                 |
+| Spoken replies         | ElevenLabs, Fish Audio or Gemini key | ElevenLabs, Fish Audio or Gemini key | ElevenLabs, Fish Audio or Gemini key |
+| Memory and reminders   | Yes                        | Yes                         | Yes                                |
+| Read windows and point | Yes                        | Yes                         | Points from screenshots only       |
+| Cards and diagrams     | Yes                        | Yes                         | Yes                                |
+| Click and type in apps | Yes                        | Yes                         | No                                 |
+| Ask about an area      | Yes (⌃⌥A)                  | Yes (Ctrl+Shift+A)          | No                                 |
+| Show or hide           | Off by default†             | Off by default†             | Off by default†             |
+| Talk shortcut          | Hold ⌃⌥                    | Hold Ctrl+Alt               | Hold Ctrl+Alt, or a key you bind\* |
+| Type shortcut          | Tap ⌥⌘                     | Tap Ctrl+Shift              | Tap Ctrl+Shift, or a key you bind\* |
+
+<sub>\* On Wayland (the default on Ubuntu, Fedora and KDE), apps can't grab keys, so you bind J.A.R.V.I.S' commands to keys
+in your desktop's keyboard settings. [Linux (beta)](#linux-beta) shows how.</sub>
+
+<sub>† Since 0.7.0 the show-or-hide hotkey is off by default — the wake word is the summon path. The same is true on
+macOS, Windows and Linux; turn the key back on (and pick your keys) on the panel's **Shortcuts** page.</sub>
+
+<sub>Before macOS 26, talking uses Apple's older speech recognizer, which needs Siri or Dictation turned on.</sub>
+
+<sub>On Windows, J.A.R.V.I.S reads other apps through UI Automation and finds words on screen with Windows' own text
+recognition (it needs a Windows language with text recognition, which most have). It can't type or click in apps
+running as administrator, and it borrows your cursor for real clicks, keys and scrolling, giving it back when it's done.
+Windows also leaves J.A.R.V.I.S out of every screen capture, so it won't show in your screenshots or screen shares.</sub>
+
+<sub>Spoken replies are billed to your own Fish Audio or Google AI Studio account; the panel shows what each voice model costs. Voice on
+Windows and Linux uses [NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)
+([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), in the ONNX export by
+[istupakov](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx), run with
+[parakeet-rs](https://github.com/altunenes/parakeet-rs). The model (about 670 MB) downloads once at setup and isn't bundled.</sub>
+
+## Talking to J.A.R.V.I.S
+
+On the panel's **Listening** page you pick how you talk to me:
+
+- **Hands-free** (default): tap the talk keys (Ctrl+Alt on Windows and Linux, ⌃⌥ on macOS), speak, and I send my answer when
+  you pause — or tap again to send early. My voice talks over you politely and stops the moment you start yours.
+- **Push to talk:** hold the talk keys, speak, let go. I answer the moment you release.
+- **Text only:** no microphone, no spoken replies. I read and write like any chat.
+- **Wake word** (macOS and Windows, off by default): say “Hey Jarvis” and I'm listening; whatever you say right after it is your request. Turn it on on the **Listening** page; the phrase can be changed. While it's on, the microphone stays open and the system shows its mic dot.
+
+Two settings shape hands-free: **Pause to send** (Short, Normal about 1.5 s, Long) and **Mic sensitivity** (Low, Normal, High).
+Esc stops a reply mid-sentence, and talking over me stops me too.
+
+## Always-Aware
+
+Optional, off by default. On the panel's **Screen** page, **Always-Aware** puts the app and window you're in on
+every request, so "what's this error?" works without you selecting an area. While it's on, a small dot in the
+corner of the screen shows it.
+
+- **What I see:** the front window (default, most private) or the whole screen.
+- **Screen exclusions:** windows I never look at — password managers, private browsing windows and the lock screen
+  are in the defaults; add your own (your bank, say) or take mine out.
+- **Private mode:** one flip and I see nothing at all until you flip it back. Same as Always-Aware off.
+
+Password fields are always blacked out of every picture that goes to the AI, from every source. No picture is
+ever kept: on a request one is taken, used and thrown away. J.A.R.V.I.S never says anything about your screen on its
+own — it just knows, when you ask. In the list of what leaves your computer: the AI provider you pick, and nothing
+else. [PRIVACY.md](PRIVACY.md) says exactly what.
+
+## What it remembers
+
+- **From your conversations:** lasting facts (who you are, what you're building, what matters to you), pulled out after each one.
+- **How you work:** your working preferences, kept separately — "run the tests before calling it done" — used in every answer.
+- **Recent work:** a one-line recap of the last few sessions, so "where were we?" works without you re-explaining.
+- **Your list:** commitments and reminders, as before.
+
+All of it stays on your computer in `~/.gg/sidekick/`. If you set up memory sync, facts and preferences travel
+with your other computers (encrypted, end to end — the passphrase never leaves your keyring). Forget anything in
+the panel's **Memory** page: facts, working preferences, past sessions (forgetting a session deletes the
+transcript too), or everything at once.
+
+## Get started
+
+1. Install J.A.R.V.I.S from the **Assets** list on the release page. The *Source code* downloads there are the code,
+   not the app, and won't run on their own.
+
+   **macOS (Apple silicon or Intel):** [Download the latest release](https://github.com/KenKaiii/Roamies/releases/latest) and open the `.dmg` for your Mac (`aarch64` for Apple silicon, `x64` for Intel). Requires macOS 13.5 or later.
+
+   **Windows:** [Download the latest release](https://github.com/KenKaiii/Roamies/releases/latest) and run `Jarvis_<version>_x64-setup.exe`. Requires Windows 10 or later. It isn't code-signed yet, so Windows shows a SmartScreen warning the first time: click **More info**, then **Run anyway**.
+
+   **Linux (beta, x86_64):** [Download the latest release](https://github.com/KenKaiii/Roamies/releases/latest) and pick one:
+   the `.deb` (Ubuntu, Debian, Mint, Pop!_OS: `sudo apt install ./Jarvis_*_amd64.deb`), the `.rpm` (Fedora,
+   openSUSE: `sudo dnf install ./J.A.R.V.I.S-*.x86_64.rpm`), or the `.AppImage` (any distro: `chmod +x` it and run it).
+   Needs glibc 2.38 or later: Ubuntu 24.04, Fedora 39, Debian 13 or newer. See
+   [Linux (beta)](#linux-beta) for what works and how to set up shortcuts.
+
+   **Development:** With Rust, Node.js 22+, the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) and, on macOS, the Xcode Command Line Tools installed:
+
+   ```bash
+   git clone https://github.com/KenKaiii/Roamies.git
+   cd Roamies/showcase/tauri
+   (cd sidecar && npm ci && npm test)
+   ./build.sh dev        # debug build
+   ./build.sh            # release bundle for this OS
+   ```
+
+   On Windows, run these in **Git Bash** (it comes with [Git for Windows](https://git-scm.com/download/win)), not PowerShell or
+   Command Prompt: `build.sh` is a Bash script, and Windows PowerShell 5 doesn't accept `&&`.
+
+2. Open the app, follow the setup guide, and hold ⌃⌥ (Ctrl+Alt on Windows and Linux) to say hi.
+
+<sub>The first time you sign in with Claude, J.A.R.V.I.S downloads Claude Code (about 140 MB). On Windows and Linux, the voice model (about 670 MB) downloads once at setup.</sub>
+
+## Local models
+
+J.A.R.V.I.S can run on a model on your own computer or server instead of a cloud provider: Ollama, LM Studio, or any
+OpenAI-compatible server (llama.cpp, vLLM, oMLX and others). Connect them on the panel's **Model** page.
+
+**What a model needs to work with J.A.R.V.I.S.** Only models that pass the first two show up in the model list:
+
+- **It sees images.** J.A.R.V.I.S looks at your screen through screenshots.
+- **It calls tools.** Everything J.A.R.V.I.S does, from clicking to drawing on screen, is a tool call.
+- **It points precisely.** To show you a button or click it, the model has to say where it is on a screenshot,
+  to within a few pixels. This is called GUI grounding, and it's where small models fall down: they read the screen
+  fine but point next to the thing, or at the wrong one.
+- **It has 32k tokens of context or more.** The instructions and tools alone take about 13k.
+
+**Models worth trying.** The Qwen3-VL family is the best at pointing that also chats and calls tools well. Third-party
+ScreenSpot-Pro results (a grounding test on real app screenshots) put them at about:
+
+| Model | ScreenSpot-Pro | Memory at 4-bit | Notes |
+| --- | --- | --- | --- |
+| Qwen3-VL 30B-A3B | ~60 | ~20 GB | Best pick if it fits: as fast as a 3B model |
+| Qwen3-VL 32B | ~58 | ~20 GB | Slower than 30B-A3B for about the same pointing |
+| Qwen3-VL 8B | ~55 | ~6 GB | The smallest worth using; expect it to miss small icons |
+
+Smaller models (4B and under) can chat about your screen but often point at the wrong place. Qwen3.5 and Qwen3.6
+models also work. Models made only for grounding (Holo2, MolmoPoint and the like) point better, but they
+can't hold a conversation or call tools, so they don't suit J.A.R.V.I.S.
+
+<sub>Qwen3-VL and Qwen3.5 give positions on a 0 to 1000 grid instead of in pixels. J.A.R.V.I.S knows this from the model's
+name and converts. A fine-tune with a different name may point in the wrong place.</sub>
+
+**Ollama:** install it from [ollama.com](https://ollama.com), run `ollama pull qwen3-vl:8b` (or `qwen3-vl:30b`), and
+press **Connect** next to Ollama. Give it enough context: in Ollama's settings set **Context length** to 32k or more,
+or start it with `OLLAMA_CONTEXT_LENGTH=32768`. J.A.R.V.I.S warns you if it's too small.
+
+**LM Studio:** install it from [lmstudio.ai](https://lmstudio.ai), download a vision model (Qwen3-VL 8B or larger),
+turn on its server (**Developer → Start Server**, or `lms server start`), load the model with **Context Length** set to
+32k or more, and press **Connect** next to LM Studio.
+
+**Any other server:** press **Add server** next to *Another server*, then give it a name, its address (for example
+`http://127.0.0.1:8080/v1`; J.A.R.V.I.S adds `/v1` if you leave it off), and its API key if it needs one. Most servers
+don't say whether a model can see images, so turn on **Its models can see images** when yours can (llama.cpp
+says so itself). The server has to answer before it's saved. Start it with tool calling, vision and enough context on:
+
+- **llama.cpp:** `llama-server -m model.gguf --mmproj mmproj.gguf --jinja -c 32768`
+- **vLLM:** `vllm serve Qwen/Qwen3-VL-8B-Instruct --enable-auto-tool-choice --tool-call-parser hermes --max-model-len 32768`
+
+<sub>With a model on your computer, your messages and screenshots stay on it. A server on another machine gets them
+over your network, so use `https://` or a network you trust. A server's key is saved with your other sign-ins in
+`~/.gg/auth.json` (shared with GG Coder), not in J.A.R.V.I.S' settings file.</sub>
+
+## Linux (beta)
+
+J.A.R.V.I.S on Linux is a beta: it runs on GNOME, KDE Plasma and other desktops, on Wayland or X11, but it's been tested
+far less than on macOS and Windows. Bug reports with your distro, desktop and session (`echo $XDG_SESSION_TYPE`) help.
+
+**What works:** the J.A.R.V.I.S overlay, the panel, typed and spoken questions (speech runs on your computer), spoken
+replies, memory and reminders, whole-screen screenshots and pointing at things on them, cards and diagrams, files and
+commands, and Open at Login.
+
+**Not yet:** reading or working other apps, Ask About an Area, circling while talking, and the Cursor size on Wayland.
+
+**Wayland** (the default on Ubuntu, Fedora and KDE) doesn't let apps grab keys or see the pointer over other apps, so:
+
+- Shortcuts are commands you bind to keys yourself. The panel's **Behavior** page lists them with a **Copy** button
+  (for an AppImage they start with its path instead of `roamies`):
+
+  | Command            | What it does                                        |
+  | ------------------ | --------------------------------------------------- |
+  | `roamies --talk`   | Start listening; press again (or pause) to send     |
+  | `roamies --summon` | Show or hide the overlay                            |
+  | `roamies --ask`    | Ask by typing                                       |
+  | `roamies --list`   | Show your list                                      |
+  | `roamies --panel`  | Open the panel                                      |
+
+  - **GNOME:** Settings › Keyboard › View and Customize Shortcuts › Custom Shortcuts › **+**, then the command and your keys.
+  - **KDE Plasma:** System Settings › Keyboard › Shortcuts › **Add New** › **Command or Script**.
+  - **Sway:** `bindsym Ctrl+Alt+space exec roamies --talk` in `~/.config/sway/config`.
+  - **Hyprland:** `bind = CTRL ALT, SPACE, exec, roamies --talk` in `~/.config/hypr/hyprland.conf`.
+- Walkthroughs play their steps one after another instead of waiting for your clicks.
+- Screenshots go through your desktop's screenshot portal, which may ask you to allow them.
+
+On X11 sessions the talk keys work as on Windows (hold Ctrl+Alt to talk). The show-or-hide key is off by default; bind one in the panel's Shortcuts page, or say the wake word.
+
+**Troubleshooting:**
+
+- **No tray icon on GNOME:** GNOME hides tray icons unless the
+  [AppIndicator extension](https://extensions.gnome.org/extension/615/appindicator-support/) is on (Ubuntu has it on
+  already). Without it, open J.A.R.V.I.S again from your apps (or run `roamies --panel`) to get the panel.
+- **The overlay draws black or not at all (often NVIDIA):** start J.A.R.V.I.S with `WEBKIT_DISABLE_DMABUF_RENDERER=1`.
+- **"Couldn't save the key" for Fish Audio:** J.A.R.V.I.S keeps it in your keyring with `secret-tool`. Install it
+  (`libsecret-tools` on Debian and Ubuntu, `libsecret` on Fedora and Arch) and make sure a keyring (GNOME Keyring,
+  KWallet or KeePassXC) is running.
+- **It can't hear you:** check the input device picked in your sound settings; J.A.R.V.I.S uses the default microphone.
+- **With fractional scaling** the overlay may look a little soft, and pointing a little off.
+
+## Privacy
+
+J.A.R.V.I.S has no analytics, and nothing is collected by the developer. Your messages, and screenshots when you ask
+about the screen, go to the AI provider you pick. [PRIVACY.md](PRIVACY.md) lists what's sent where.
+
+## Uninstall
+
+**macOS:**
+
+1. Turn off **Open at login** (panel > Behavior), then quit J.A.R.V.I.S from the menu bar.
+2. Drag J.A.R.V.I.S from Applications to the Trash.
+3. Delete `~/.gg/sidekick` and `~/.gg/sidekick.json`. Keep `~/.gg/auth.json` if you use GG Coder.
+4. Open Keychain Access, search for "J.A.R.V.I.S" and delete the Fish Audio, Gemini and ElevenLabs voice keys.
+
+**Windows:**
+
+1. Turn off **Open at login** (panel > Behavior), then uninstall J.A.R.V.I.S from Settings > Apps.
+2. Delete `%USERPROFILE%\.gg\sidekick` and `%USERPROFILE%\.gg\sidekick.json`. Keep `auth.json` if you use GG Coder.
+3. Delete the voice model folder, `%LOCALAPPDATA%\Jarvis\models`.
+
+**Linux:**
+
+1. Turn off **Open at login** (panel > Behavior), then quit J.A.R.V.I.S from its tray menu (or the panel's About page).
+2. Remove the package (`sudo apt remove roamies` or `sudo dnf remove roamies`), or delete the AppImage.
+3. Delete `~/.gg/sidekick` (the voice model is in `~/.gg/sidekick/models`) and `~/.gg/sidekick.json`. Keep
+   `~/.gg/auth.json` if you use GG Coder.
+4. Delete the Fish Audio key: `secret-tool clear service com.kenkai.roamies account fish-audio`, and the ElevenLabs key: `secret-tool clear service com.kenkai.roamies account elevenlabs`.
+
+## Build with the framework
+
+J.A.R.V.I.S' brain is a [gg-framework](https://github.com/KenKaiii/gg-framework) agent running in a Node
+sidecar. Want to build your own? Install just what you need.
+
+- [**@kenkaiiii/gg-ai**](https://github.com/KenKaiii/gg-framework/blob/main/packages/gg-ai/README.md): Connect to AI providers and stream responses.
+- [**@kenkaiiii/gg-agent**](https://github.com/KenKaiii/gg-framework/blob/main/packages/gg-agent/README.md): Build agents that use your tools and work through tasks.
+- [**@kenkaiiii/gg-core**](https://github.com/KenKaiii/gg-framework/blob/main/packages/gg-core/README.md): Model selection, authentication, and local model discovery.
+
+For your own agent, start here:
+
+```bash
+npm install @kenkaiiii/gg-ai @kenkaiiii/gg-agent
 ```
 
-Requires Rust, Node, and (on Windows) the voice/hands helpers built by `build.sh`.
+The package links above cover setup and usage. J.A.R.V.I.S is licensed under [AGPL-3.0](LICENSE): you can build
+on it, and if you distribute your changes or run them as a network service, you share their source under
+the same license.
 
-## Notes
+## Contributing
 
-- `roamies-*` helper names, the `roamies` package, `com.kenkai.roamies` bundle id and `~/.gg` data paths are internal compatibility names — kept as-is.
-- Memory, config and API keys live in `~/.gg` on your machine, never in this repo. Bring your own model/API keys.
-- CI: `.github/workflows/ci.yml`.
-
-J.A.R.V.I.S by xV0rt3_x
+Bug reports, ideas and pull requests are welcome. [Open an issue](https://github.com/KenKaiii/Roamies/issues)
+to get started, read [CONTRIBUTING.md](CONTRIBUTING.md) before a pull request, and report security problems as described in [SECURITY.md](SECURITY.md).
