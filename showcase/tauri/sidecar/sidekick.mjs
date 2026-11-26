@@ -132,7 +132,7 @@ const DEFAULTS = {
   awareMode: 'front', // 'front' (the window you're working in) or 'screen'
   awarePrivate: false, // private mode: nothing is seen until it's switched off
   awareExclusions: null, // null = the defaults (password managers, the lock screen, private windows)
-  tts: 'fish', // which one speaks: 'fish' (Fish Audio), 'gemini' or 'elevenlabs' (ElevenLabs), or 'voicestudio' (the VoiceStudio app on this computer)
+  tts: 'fish', // which one speaks: 'fish' (Fish Audio), 'gemini', 'openrouter' or 'elevenlabs' (ElevenLabs), or 'voicestudio' (the VoiceStudio app on this computer)
   studioVoices: {}, // the VoiceStudio voice for J.A.R.V.I.S (a saved profile id; none: the selected engine's default voice)
   fishModel: FISH_CHOICES[0].id, // Drama 3 (most expressive) or S2.1 Pro (natural pace, cheaper)
   geminiVoices: {}, // the Gemini voice J.A.R.V.I.S speaks in, where picked in the setup guide or the panel
@@ -219,17 +219,18 @@ const saveConfig = () => writeJson(CONFIG_PATH, config, { backup: true });
 const TTS = {
   fish: { id: 'fish', name: 'Fish Audio', secret: 'fish-audio', site: 'fish.audio' },
   gemini: { id: 'gemini', name: 'Gemini', secret: 'gemini-tts', site: 'aistudio.google.com' },
+  openrouter: { id: 'openrouter', name: 'OpenRouter', secret: 'openrouter-tts', site: 'openrouter.ai/settings/keys' },
   elevenlabs: { id: 'elevenlabs', name: 'ElevenLabs', secret: 'elevenlabs', site: 'elevenlabs.io' },
   // On this computer: no key, never falls back to a paid service when it isn't running.
   voicestudio: { id: 'voicestudio', name: 'VoiceStudio', local: true },
 };
 const tts = () => TTS[config.tts] ?? TTS.fish;
-// Which have a key to speak with: 'own' (saved for the voice), 'shared' (Gemini only: the AI's Gemini key, from the
-// Model page, when no key was saved just for the voice) or false. For the one in use, speech.on says.
-const ttsKeys = { fish: false, gemini: false, elevenlabs: false };
+// Which have a key to speak with: 'own' (saved for the voice), 'shared' (Gemini and OpenRouter: the AI's key for it,
+// from the Model page, when no key was saved just for the voice) or false. For the one in use, speech.on says.
+const ttsKeys = { fish: false, gemini: false, openrouter: false, elevenlabs: false };
 const hasVoiceKey = (id) => (id === tts().id ? speech.on : !!ttsKeys[id]);
-// The key the AI uses for Gemini, if it's an API key (the same Google AI Studio key speaks too).
-const brainGeminiKey = () => auth.resolveApiKey('gemini').then((c) => c?.accessToken || null).catch(() => null);
+// The key the AI uses for Gemini or OpenRouter, if it's an API key (the same key speaks too).
+const brainKey = (id) => auth.resolveApiKey(id).then((c) => c?.accessToken || null).catch(() => null);
 // A service's key and which kind it is. Throws while the secret store can't be read.
 async function voiceKey(id) {
   // Linux: reading the keyring can pop up an "unlock your keyring" dialog (an auto-login desktop leaves it locked),
@@ -237,7 +238,7 @@ async function voiceKey(id) {
   const saved = LINUX && !config[`${id}KeySaved`] ? null : await secrets.get(TTS[id].secret);
   const own = saved || (id === 'elevenlabs' ? process.env.ELEVENLABS_API_KEY : null);
   if (own) return [own, 'own'];
-  const shared = id === 'gemini' ? await brainGeminiKey() : null;
+  const shared = id === 'gemini' || id === 'openrouter' ? await brainKey(id) : null;
   return shared ? [shared, 'shared'] : [null, false];
 }
 const secrets = createSecrets({ hands: process.env.ROAMIES_HANDS || '', dataDir: path.join(path.dirname(CONFIG_PATH), 'sidekick') });
@@ -276,18 +277,20 @@ const speech = createSpeaker({
     say(what === 'key' ? `My ${tts().name} key isn't working, so replies are text for now.` : 'My voice isn\'t working right now, so replies are text for now.', 'concerned');
   },
 });
-// The Gemini voice speaks with the AI's Gemini key unless it has one of its own: after that key is added, changed or
-// removed on the Model page, the voice follows.
-async function syncGeminiVoiceKey() {
-  if (ttsKeys.gemini === 'own') return;
-  if (tts().id === 'gemini') await useTts('gemini');
-  else ttsKeys.gemini = (await voiceKey('gemini').catch(() => [null, false]))[1];
+// The voice service in use speaks with the AI's key for it (Gemini or OpenRouter) unless it has one of its own: after
+// that key is added, changed or removed on the Model page, the voice follows.
+async function syncSpeakingKey() {
+  const id = tts().id;
+  if (ttsKeys[id] === 'own') return;
+  if (id === 'gemini' || id === 'openrouter') await useTts(id);
+  else ttsKeys[id] = (await voiceKey(id).catch(() => [null, false]))[1];
 }
 // Point the speaker at a service, with its voice and model. Its key is set after (a change of service clears it).
 function aimSpeaker(id) {
   speech.setProvider(id);
   if (TTS[id]?.local) speech.setLocalVoice(studioVoice());
   else if (id === 'gemini') { speech.setVoice(geminiVoice()); speech.setModel(config.geminiModel); }
+  else if (id === 'openrouter') speech.setVoice(geminiVoice()); // Gemini's voices, its default model
   else if (id === 'elevenlabs') { speech.setVoice(config.elevenVoice || ELEVEN_DEFAULT_VOICE); speech.setModel(config.elevenModel ?? ELEVEN_MODEL); }
   else { speech.setVoice(lookVoice()); speech.setModel(config.fishModel); }
 }
@@ -1505,8 +1508,8 @@ async function apiKeyLogin(id, given) {
   await auth.setCredentials(variant?.key ?? provider, { accessToken: key.trim(), refreshToken: '', expiresAt: Date.now() + 100 * 365 * 864e5, ...(baseUrl ? { baseUrl } : {}) });
   await refreshAuth(); ensureModel(); agent = null;
   if (CATALOG_PROVIDERS.includes(provider)) refreshCatalogs(provider);
-  // A Gemini key for the AI speaks too, unless the voice has a key of its own.
-  if (provider === 'gemini') await syncGeminiVoiceKey();
+  // A Gemini or OpenRouter key for the AI speaks too, unless the voice has a key of its own.
+  await syncSpeakingKey();
   menu();
   if (onboarding) { ob({ kind: 'login', provider: id, phase: 'done' }); obState(); }
   else say(`Got it. ${PROVIDER_LABELS[provider]} is connected.`, 'happy');
@@ -1532,7 +1535,7 @@ async function signOut(provider) {
     say(text, 'concerned'); return panelNote(text, true);
   }
   await refreshAuth();
-  if (provider === 'gemini') await syncGeminiVoiceKey();
+  if (provider === 'gemini' || provider === 'openrouter') await syncSpeakingKey();
   if (config.provider === provider || !signedIn.get(config.provider)) { config.provider = null; config.model = null; ensureModel(); saveConfig(); }
   agent = null; menu();
   say(`${label} is removed.`, 'happy'); panelNote(`${label} is removed.`);
@@ -1618,9 +1621,9 @@ const studioState = () => {
 function setGeminiVoice(v) {
   if (!GEMINI_VOICES.some((x) => x.id === v) || v === geminiVoice()) return;
   config.geminiVoices = { ...config.geminiVoices, [config.look]: v }; saveConfig(); // this look's
-  if (tts().id === 'gemini') speech.setVoice(v);
+  if (tts().id === 'gemini' || tts().id === 'openrouter') speech.setVoice(v);
   menu(); if (onboarding) obState();
-  if (tts().id === 'gemini' && VOICE_ON()) speakLine('This is how I sound.');
+  if ((tts().id === 'gemini' || tts().id === 'openrouter') && VOICE_ON()) speakLine('This is how I sound.');
 }
 // J.A.R.V.I.S's ElevenLabs voice: one of the curated library voices, a voice the user made (its id), or
 // nothing (back to the demo voice). The id is what /v1/text-to-speech takes.
@@ -1652,7 +1655,7 @@ async function removeVoiceKey(id = tts().id) {
   else ttsKeys[id] = (await voiceKey(id).catch(() => [null, false]))[1];
   if (used && !speech.on && config.replies === 'voice') { config.replies = 'text'; saveConfig(); agentStale = true; }
   menu();
-  say(`${t.name} key removed.${ttsKeys[id] === 'shared' ? " I'll use the Gemini key from the Model page." : used ? ' Replies are text only.' : ''}`, 'happy');
+  say(`${t.name} key removed.${ttsKeys[id] === 'shared' ? ` I'll use the ${t.name} key from the Model page.` : used ? ' Replies are text only.' : ''}`, 'happy');
 }
 
 // A key for Fish Audio, Gemini or ElevenLabs: checked, saved, and that service is then the one that speaks.
@@ -1986,10 +1989,11 @@ function panelState() {
     commitments: openCommitments().map((c) => ({ id: c.id, text: c.text, due: c.due ?? null, when: c.due ? `${fmtWhen(c.due)}${c.repeat ? ` · repeats ${repeatLabel(c.repeat)}` : ''}` : '', overdue: !!(c.due && c.due < Date.now()), repeat: c.repeat ?? null })),
     look: config.look ?? 'classic', looks: LOOKS.map(([id, label]) => [id, label]), name: lookName(),
     size: sizeNow(), sizes: SIZES,
-    replies: VOICE_ON() ? 'voice' : 'text', tts: tts().id, fishKey: hasVoiceKey('fish'), geminiKey: hasVoiceKey('gemini'), elevenlabsKey: hasVoiceKey('elevenlabs'),
+    replies: VOICE_ON() ? 'voice' : 'text', tts: tts().id, fishKey: hasVoiceKey('fish'), geminiKey: hasVoiceKey('gemini'), openrouterKey: hasVoiceKey('openrouter'), elevenlabsKey: hasVoiceKey('elevenlabs'),
     fishModel: config.fishModel, fishModels: FISH_CHOICES, fishFree: tts().id === 'fish' && speech.on && speech.model.endsWith('-free'),
     geminiVoice: geminiVoice(), geminiVoices: GEMINI_VOICES, geminiShared: ttsKeys.gemini === 'shared',
     geminiModel: config.geminiModel, geminiModels: GEMINI_CHOICES,
+    openrouterVoice: geminiVoice(), openrouterVoices: GEMINI_VOICES, openrouterShared: ttsKeys.openrouter === 'shared',
     elevenVoice: config.elevenVoice || ELEVEN_DEFAULT_VOICE, elevenVoiceCustom: !!config.elevenVoice, elevenVoices: ELEVEN_VOICES,
     elevenModel: config.elevenModel ?? ELEVEN_MODEL, elevenModels: ELEVEN_MODELS,
     studio: tts().local ? studioState() : null,
@@ -2196,6 +2200,8 @@ async function onMenu(id, via) {
   else if (id === 'fishkey_remove') removeVoiceKey('fish');
   else if (id === 'geminikey') voiceKeyLogin({ provider: 'gemini' });
   else if (id === 'geminikey_remove') removeVoiceKey('gemini');
+  else if (id === 'openrouterkey') voiceKeyLogin({ provider: 'openrouter' });
+  else if (id === 'openrouterkey_remove') removeVoiceKey('openrouter');
   else if (id === 'elevenlabskey_remove') removeVoiceKey('elevenlabs');
   else if (id.startsWith('elevenvoice:')) setElevenVoice(id.slice(12));
   else if (id.startsWith('elevenmodel:')) setElevenModel(id.slice(12));
@@ -2459,8 +2465,8 @@ function obState() {
     look: config.look ?? 'classic',
     size: sizeNow(),
     replies: VOICE_ON() ? 'voice' : 'text', // voice only when it can really speak: a service picked without its key yet shows as text
-    tts: tts().id, fishKey: hasVoiceKey('fish'), geminiKey: hasVoiceKey('gemini'),
-    geminiVoice: geminiVoice(), geminiVoices: GEMINI_VOICES, geminiShared: ttsKeys.gemini === 'shared',
+    tts: tts().id, fishKey: hasVoiceKey('fish'), geminiKey: hasVoiceKey('gemini'), openrouterKey: hasVoiceKey('openrouter'),
+    geminiVoice: geminiVoice(), geminiVoices: GEMINI_VOICES, geminiShared: ttsKeys.gemini === 'shared', openrouterVoice: geminiVoice(), openrouterVoices: GEMINI_VOICES, openrouterShared: ttsKeys.openrouter === 'shared',
     studio: tts().local ? studioState() : null,
   });
 }
@@ -2543,8 +2549,8 @@ createInterface({ input: process.stdin }).on('line', (line) => {
       .catch((e) => { const p = problem('key', e, { store: KEY_STORE }); panelNote(p.text, true, p); });
   } else if (m.type === 'panel_local_add' && typeof m.label === 'string' && typeof m.baseUrl === 'string') {
     addServer({ label: m.label.slice(0, 200), baseUrl: m.baseUrl.slice(0, 500), key: typeof m.key === 'string' ? m.key.trim().slice(0, 1000) : '', images: m.images === true }).catch((e) => console.error('add server', e));
-  } else if ((m.type === 'panel_fishkey' || m.type === 'panel_geminikey' || m.type === 'panel_elevenlabskey') && typeof m.key === 'string') {
-    const provider = { panel_fishkey: 'fish', panel_geminikey: 'gemini', panel_elevenlabskey: 'elevenlabs' }[m.type];
+  } else if ((m.type === 'panel_fishkey' || m.type === 'panel_geminikey' || m.type === 'panel_openrouterkey' || m.type === 'panel_elevenlabskey') && typeof m.key === 'string') {
+    const provider = { panel_fishkey: 'fish', panel_geminikey: 'gemini', panel_openrouterkey: 'openrouter', panel_elevenlabskey: 'elevenlabs' }[m.type];
     voiceKeyLogin({ provider, given: m.key.slice(0, 1000), note: panelNote }).catch((e) => console.error('voice key', e));
   } else if (m.type === 'panel_studio_get') { fs.readFile(STUDIO_PATH, 'utf8').then((text) => ui({ kind: 'studio', text })).catch(() => ui({ kind: 'studio', text: '' })); }
   else if (m.type === 'panel_studio_set' && typeof m.text === 'string') { fs.writeFile(STUDIO_PATH, m.text.slice(0, 200_000), 'utf8').catch((e) => console.error('studio save', e)); }

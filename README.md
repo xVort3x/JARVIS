@@ -18,7 +18,7 @@ at, explain or operate what is on screen when you allow it.
 
 - **Talk, don't type.** Hold ⌃⌥ (Ctrl+Alt on Windows and Linux), say it, let go. On macOS and Windows, circle something with the cursor while you talk and it sees what you mean.
 - **Or type.** Tap ⌥⌘ (Ctrl+Shift on Windows and Linux) and a small text field opens beside your cursor. Type, press Enter.
-- **It talks back.** Spoken replies through [ElevenLabs](https://elevenlabs.io) (a library voice or your own), [Fish Audio](https://fish.audio), or in a Gemini voice you pick with your own [Google AI Studio](https://aistudio.google.com/apikey) key.
+- **It talks back.** Spoken replies through [ElevenLabs](https://elevenlabs.io) (a library voice or your own), [Fish Audio](https://fish.audio), a Gemini voice you pick with your own [Google AI Studio](https://aistudio.google.com/apikey) key, or your own [OpenRouter](https://openrouter.ai) key with Google's Gemini voices.
 - **It remembers.** What you said you'd do, reminders down to the second (or on repeat: "every weekday at 9", "every 2 hours"), and what matters to you.
 - **It draws on your screen.** Rings the exact button to click, walks you through each step, and sketches answers beside what you're reading.
 - **It thinks with you.** Ask it to weigh a real choice: the options side by side, what matters most, the trade-offs, and one recommendation on a card.
@@ -53,7 +53,7 @@ quizzes you answer with a click.
 - **The J.A.R.V.I.S panel:** click the menu bar or tray icon (on Linux, **Open Panel** in its menu) for what it's doing, what it remembers, and every setting.
 - **Safe by default:** file edits, commands and app control stay off until you turn them on, and risky steps always ask.
 - **Shows its work:** every tool plays its own animation, so you can see what it's doing.
-- **Where keys live:** your Fish Audio or Gemini voice key stays in the macOS Keychain (encrypted with Windows DPAPI on Windows, in your desktop's keyring on Linux). AI sign-ins are stored in `~/.gg/auth.json`, shared with GG Coder.
+- **Where keys live:** your Fish Audio, Gemini or OpenRouter voice key stays in the macOS Keychain (encrypted with Windows DPAPI on Windows, in your desktop's keyring on Linux). AI sign-ins are stored in `~/.gg/auth.json`, shared with GG Coder.
 - **Out of the way:** no Dock or taskbar button, a shortcut shows or hides it (see the table), Esc stops a reply.
 - **Quick setup:** permissions, sign-in and a short chat so it gets to know you.
 
@@ -61,7 +61,7 @@ quizzes you answer with a click.
 | ---------------------- | -------------------------- | --------------------------- | ---------------------------------- |
 | Talk to it             | Yes, best on macOS 26+     | Yes, speech runs on your PC | Yes, speech runs on your PC        |
 | Circle while talking   | Yes                        | Yes                         | No                                 |
-| Spoken replies         | ElevenLabs, Fish Audio or Gemini key | ElevenLabs, Fish Audio or Gemini key | ElevenLabs, Fish Audio or Gemini key |
+| Spoken replies         | ElevenLabs, Fish Audio, Gemini or OpenRouter key | ElevenLabs, Fish Audio, Gemini or OpenRouter key | ElevenLabs, Fish Audio, Gemini or OpenRouter key |
 | Memory and reminders   | Yes                        | Yes                         | Yes                                |
 | Read windows and point | Yes                        | Yes                         | Points from screenshots only       |
 | Cards and diagrams     | Yes                        | Yes                         | Yes                                |
@@ -84,7 +84,7 @@ recognition (it needs a Windows language with text recognition, which most have)
 running as administrator, and it borrows your cursor for real clicks, keys and scrolling, giving it back when it's done.
 Windows also leaves J.A.R.V.I.S out of every screen capture, so it won't show in your screenshots or screen shares.</sub>
 
-<sub>Spoken replies are billed to your own Fish Audio or Google AI Studio account; the panel shows what each voice model costs. Voice on
+<sub>Spoken replies are billed to your own Fish Audio, Google AI Studio or OpenRouter account; the panel shows what each voice model costs. Voice on
 Windows and Linux uses [NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)
 ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), in the ONNX export by
 [istupakov](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx), run with

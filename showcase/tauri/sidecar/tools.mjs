@@ -1148,10 +1148,10 @@ A drawing stays until the user clears it or the window changes; your next drawin
       },
     },
     {
-      name: 'panel_action', description: `Trigger one of the app's own settings from the voice. Actions: 'brief' (Brief mode on/off), 'localawareness' (share locale/timezone), 'studiolisten' (dictate to the Studio page), 'actions' (allow file edits & commands), 'sound' (sound effects), 'panel' (open the panel), 'new' (new conversation), 'stop' (stop what I'm doing), 'replies:text' / 'replies:voice', 'tts:fish' / 'tts:gemini' / 'tts:voicestudio' / 'tts:elevenlabs' (switch the voice). One action per call; unknown ids fail.`,
+      name: 'panel_action', description: `Trigger one of the app's own settings from the voice. Actions: 'brief' (Brief mode on/off), 'localawareness' (share locale/timezone), 'studiolisten' (dictate to the Studio page), 'actions' (allow file edits & commands), 'sound' (sound effects), 'panel' (open the panel), 'new' (new conversation), 'stop' (stop what I'm doing), 'replies:text' / 'replies:voice', 'tts:fish' / 'tts:gemini' / 'tts:openrouter' / 'tts:voicestudio' / 'tts:elevenlabs' (switch the voice). One action per call; unknown ids fail.`,
       parameters: z.object({ action: z.string() }),
       execute: async ({ action }) => {
-        const PANEL_ACTIONS = new Set(['brief', 'localawareness', 'studiolisten', 'actions', 'sound', 'panel', 'new', 'stop', 'replies:text', 'replies:voice', 'tts:fish', 'tts:gemini', 'tts:voicestudio', 'tts:elevenlabs']);
+        const PANEL_ACTIONS = new Set(['brief', 'localawareness', 'studiolisten', 'actions', 'sound', 'panel', 'new', 'stop', 'replies:text', 'replies:voice', 'tts:fish', 'tts:gemini', 'tts:openrouter', 'tts:voicestudio', 'tts:elevenlabs']);
         if (!PANEL_ACTIONS.has(action)) throw new Error(`That action isn't voice-reachable. Known: ${[...PANEL_ACTIONS].join(', ')}.`);
         if (!onPanelAction) throw new Error('The panel isn\'t running.');
         onPanelAction(action);

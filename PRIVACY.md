@@ -22,7 +22,7 @@ key) receives:
 - screenshots or window text, when J.A.R.V.I.S looks at your screen to answer
 - your time zone and locale, unless you turn off **Local awareness** on the General page (Settings → General)
 
-**Fish Audio, Google or ElevenLabs**, whichever you pick as the voice, receives the text of each reply to speak it, only if spoken replies are on. It uses your own key for that service (for Gemini, the Gemini key you added for the AI is used unless you save a separate one for the voice).
+**Fish Audio, Google, OpenRouter or ElevenLabs**, whichever you pick as the voice, receives the text of each reply to speak it, only if spoken replies are on. It uses your own key for that service (for Gemini and OpenRouter, the key you added for the AI is used unless you save a separate one for the voice).
 
 **Gmail** is connected only when you set it up (an app password, stored encrypted on your computer). It receives
 only the asks you make of it: reading a message sends that message's text to the model provider; sending or
@@ -98,7 +98,7 @@ permission states, and your settings. Keys, tokens, email addresses, names, your
 first. Nothing is uploaded: it stays on your computer unless you choose to send it (for example by attaching it to a
 GitHub issue).
 
-Your Fish Audio key and your Gemini voice key are kept in the macOS Keychain, encrypted with DPAPI on Windows, or in your desktop's keyring
+Your Fish Audio, Gemini or OpenRouter voice key are kept in the macOS Keychain, encrypted with DPAPI on Windows, or in your desktop's keyring
 (through the Secret Service) on Linux.
 
 You can see what J.A.R.V.I.S remembers on the panel's **Memory** page, and remove it with **Forget** or

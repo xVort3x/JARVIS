@@ -563,13 +563,13 @@
       ) : null,
     ];
   }
-  const TTS_NAMES = { fish: 'Fish Audio', gemini: 'Gemini', voicestudio: 'VoiceStudio', elevenlabs: 'ElevenLabs' };
+  const TTS_NAMES = { fish: 'Fish Audio', gemini: 'Gemini', openrouter: 'OpenRouter', voicestudio: 'VoiceStudio', elevenlabs: 'ElevenLabs' };
   function speakingPage() {
     // The service that speaks, each with its own key: Fish Audio's voice is the look's and it has models to pick
     // from; Gemini has a list of voices and two models; VoiceStudio runs on this computer and needs no key.
     const tts = TTS_NAMES[state.tts] ? state.tts : 'fish', T = TTS_NAMES[tts], local = tts === 'voicestudio', hasKey = local || !!state[`${tts}Key`];
-    // Gemini can speak with the key the AI already has (the Model page), until the voice gets one of its own.
-    const shared = tts === 'gemini' && hasKey && !!state.geminiShared;
+    // Gemini (and OpenRouter, which speaks with Gemini's voices) can use the key the AI already has (the Model page).
+    const shared = hasKey && !!state[`${tts}Shared`];
     const textOnly = state.voice?.mode === 'text';
     return [
       group('Spoken replies', 'Hear me as well as read me.', null,
@@ -582,9 +582,9 @@
         picks('Voice provider', Object.entries(TTS_NAMES), tts, (x) => {
           if (x !== 'voicestudio' && !state[`${x}Key`]) { ui.key = x; note(`Add a ${TTS_NAMES[x]} key to hear me talk.`); } // its key field opens with it
           act(`tts:${x}`);
-        }, 'tts', { fish: "J.A.R.V.I.S's voice, acted out with feeling. Billed to your Fish Audio account.", gemini: "Google's voices: pick one of 30. Billed to your Google AI Studio account.", voicestudio: 'The free VoiceStudio app on this computer, in the engine and voices you set up there. Nothing leaves your computer.', elevenlabs: "J.A.R.V.I.S's ElevenLabs voice: a library voice, or your own created voice. Billed to your ElevenLabs account." }),
+        }, 'tts', { fish: "J.A.R.V.I.S's voice, acted out with feeling. Billed to your Fish Audio account.", gemini: "Google's voices: pick one of 30. Billed to your Google AI Studio account.", openrouter: "Google's Gemini voices through your OpenRouter account. Billed to your OpenRouter credits.", voicestudio: 'The free VoiceStudio app on this computer, in the engine and voices you set up there. Nothing leaves your computer.', elevenlabs: "J.A.R.V.I.S's ElevenLabs voice: a library voice, or your own created voice. Billed to your ElevenLabs account." }),
         local ? el('div', { className: 'reveal', 'data-anim': 'studio' }, studioRows()) : null,
-        tts === 'gemini' && hasKey && state.geminiVoices?.length ? el('div', { className: 'reveal', 'data-anim': 'gemini-voice' },
+        (tts === 'gemini' || tts === 'openrouter') && hasKey && state.geminiVoices?.length ? el('div', { className: 'reveal', 'data-anim': 'gemini-voice' },
           el('p', { className: 'sub', textContent: `Voice for ${state.name}` }),
           el('span', { className: 'px field select' },
             el('select', { 'aria-label': 'Gemini voice', 'data-k': 'geminivoice', on: { change: (e) => act(`geminivoice:${e.target.value}`) } },

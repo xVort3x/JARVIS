@@ -1,5 +1,5 @@
-// Speaks replies with Fish Audio, Gemini or VoiceStudio (the user's pick) and hands the audio to the overlay
-// ({ kind: 'speech' } messages).
+// Speaks replies with Fish Audio, Gemini, OpenRouter, ElevenLabs or VoiceStudio (the user's pick) and hands the audio
+// to the overlay ({ kind: 'speech' } messages).
 // - VoiceStudio is the VoiceStudio app on this computer (voicestudio.mjs): no key, its selected engine, the user's saved
 //   VoiceStudio voice. A reply that fails there is reported and stays text; it never falls back to a paid service.
 //   Beats aren't made in it (each one would hold up the GPU for seconds), so its replies have none.
@@ -21,6 +21,7 @@ import { DEFAULT_VOICE, FISH_MODELS, FREE_MODEL, FishVoice, RATE, fishAccount } 
 import { ELEVEN_MODELS, ELEVEN_MODEL, ELEVEN_RATE, ELEVEN_DEFAULT_VOICE, ElevenVoice, elevenAccount } from './eleven.mjs';
 import { StudioVoice, studioStatus } from './voicestudio.mjs';
 import { GEMINI_DEFAULT_VOICE, GEMINI_MODEL, GEMINI_MODELS, GEMINI_PITCH, GEMINI_RATE, GeminiVoice, geminiAccount } from './gemini.mjs';
+import { OPENROUTER_DEFAULT_VOICE, OPENROUTER_MODEL, OPENROUTER_MODELS, OPENROUTER_PITCH, OPENROUTER_RATE, OpenRouterVoice, openrouterAccount } from './openrouter.mjs';
 
 // The services that can speak. models: priciest first, the pick and the ones after it are tried in turn; pick:
 // the one used until the user picks (else the first); freeModel: the one for an account with no credit; rate:
@@ -30,6 +31,7 @@ export const PROVIDERS = {
   fish: { id: 'fish', name: 'Fish Audio', Voice: FishVoice, account: fishAccount, models: FISH_MODELS, freeModel: FREE_MODEL, rate: RATE, defaultVoice: DEFAULT_VOICE },
   gemini: { id: 'gemini', name: 'Gemini', Voice: GeminiVoice, account: geminiAccount, models: GEMINI_MODELS, pick: GEMINI_MODEL, freeModel: null, rate: GEMINI_RATE, play: Math.round(GEMINI_RATE * GEMINI_PITCH), defaultVoice: GEMINI_DEFAULT_VOICE, warmDelay: 15_000 },
   elevenlabs: { id: 'elevenlabs', name: 'ElevenLabs', Voice: ElevenVoice, account: elevenAccount, models: ELEVEN_MODELS, pick: ELEVEN_MODEL, freeModel: null, rate: ELEVEN_RATE, defaultVoice: ELEVEN_DEFAULT_VOICE },
+  openrouter: { id: 'openrouter', name: 'OpenRouter', Voice: OpenRouterVoice, account: openrouterAccount, models: OPENROUTER_MODELS, pick: OPENROUTER_MODEL, freeModel: null, rate: OPENROUTER_RATE, play: Math.round(OPENROUTER_RATE * OPENROUTER_PITCH), defaultVoice: OPENROUTER_DEFAULT_VOICE, warmDelay: 15_000 },
 };
 
 // Silence trimmed from both ends (a little kept), so a beat starts the moment it plays.
