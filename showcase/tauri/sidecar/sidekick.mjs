@@ -51,6 +51,7 @@ import { FISH_CHOICES } from './fish.mjs';
 import { GROQ_BASE_URL, GROQ_MODELS, GROQ_DEFAULT_MODEL } from './groq.mjs';
 import { GEMINI_FREE_MODEL } from './gemini-models.mjs';
 import { GEMINI_CHOICES, GEMINI_DEFAULT_VOICE, GEMINI_LOOK_VOICES, GEMINI_MODEL, GEMINI_VOICES } from './gemini.mjs';
+import { accountNames, brainName, brainLayout, checkForm, checkSecondBrain, createBrain, desktopBrainDir, KEYS as BRAIN_KEYS, layoutFound, makeDesktopBrain, migrateBrain, resolveBrain, secondBrainBlock } from './secondbrain.mjs';
 import { createSecrets, retryLoad, runInput } from './secrets.mjs';
 import { showTrayIcon } from './wintray.mjs';
 import { createActivity } from './activity.mjs';
@@ -125,6 +126,7 @@ const DEFAULTS = {
   provider: null, model: null, sound: false, allowActions: false, voice: true,
   onboarded: false, onboardStep: 0, filesAsked: false, keys: DEFAULT_KEYS, muteWhileTalking: true, autoListen: false, wakeWord: false, setupVersion: 0, size: 'default', look: 'jarvis', introDone: false,
   replies: 'text', // 'voice': spoken (with Fish Audio or Gemini) as well as shown
+  secondBrain: null, // the user's second brain (secondbrain.mjs): { root, raw, context, research, projects, agents }, '' = found in root; null = off
   voiceMode: 'handsfree', // 'handsfree' (tap the talk keys, a pause sends it), 'ptt' (hold to talk), 'text' (no microphone)
   vadPause: 1.5, // seconds of silence that ends a hands-free take
   vadSensitivity: 'normal', // how loud over the room it has to be to count as talking
@@ -163,6 +165,8 @@ const lookVoice = () => LOOKS[0][2];
 const geminiVoice = () => config.geminiVoices?.jarvis ?? GEMINI_LOOK_VOICES.jarvis ?? GEMINI_DEFAULT_VOICE;
 const studioVoice = () => config.studioVoices?.jarvis ?? null;
 const lookName = () => 'J.A.R.V.I.S';
+const BRAIN_NAME = brainName(accountNames({ user: (() => { try { return os.userInfo().username; } catch { return ''; } })() }));
+const brain = () => resolveBrain(config.secondBrain, HOME);
 const VOICE_OK = hasVoice(process.platform);
 // Windows and Linux have no on-device speech API apps can use, so voice there runs Parakeet on the PC. Its model
 // is downloaded once: from the setup guide, or the first time voice is used.
@@ -199,6 +203,7 @@ let shellInfo = null; // resolves the shell's reply to it: screens, tray, panel,
   config.vadSensitivity = vadSensitivity(config);
   config.schemaVersion = 2;
   config.look = 'jarvis';
+  if (typeof config.secondBrain === 'string') { config.secondBrain = migrateBrain(config.secondBrain); }
   config.sound = false;
   // The type-to-ask shortcut became F7 on a PC. A config from before it moves off the old default pair (Ctrl+Shift,
   // which typed "Ask" only after a tap); a pair someone picked on purpose stays.
@@ -728,7 +733,7 @@ ${config.brief ? "- Brief mode: they want answers short and sharp. One or two se
 ${facts.length ? `What you know about ${userName}${total > facts.length ? ` (${facts.length} most relevant of ${total})` : ''}:\n${facts.map((f) => `- ${f.id}: ${f.text}`).join('\n')}` : `You don't know anything lasting about ${userName} yet.`}${preferences.length ? `\nHow they want it:\n${preferences.map((p) => `- ${p.id}: ${p.text}`).join('\n')}` : ''}${recent.length ? `\nRecent work:\n${recent.map((r) => `- ${dateLine(r.at)}: ${r.digest}`).join('\n')}` : ''}${working ? `\n${working}` : ''}`;
   return { turn, memory };
 };
-const system = () => stablePrompt();
+const system = () => stablePrompt() + secondBrainBlock(brain());
 const LIVE_OPEN = '<live-state>', LIVE_CLOSE = '</live-state>';
 const stripLive = (text) => (typeof text === 'string' && text.startsWith(LIVE_OPEN) ? text.slice(text.indexOf(LIVE_CLOSE) + LIVE_CLOSE.length).replace(/^\n+/, '') : text);
 // Each request's live block is made once and kept on that message from then on, so earlier messages
