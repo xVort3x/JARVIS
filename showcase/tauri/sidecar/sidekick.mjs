@@ -1974,7 +1974,7 @@ function panelState() {
       pairs: writeChoices(process.platform).filter((c) => !sameChoice(c, keys().talk))
         .map((c) => (typeof c === 'string' ? [c, c] : [sortMods(c).join('+'), pairWords(c)])),
     } : null,
-    model: current ? { provider: config.provider, id: config.model, name: current.name, providerLabel: PROVIDER_LABELS[config.provider] ?? config.provider } : null,
+    model: current ? { provider: config.provider, id: config.model, name: current.name, providerLabel: PROVIDER_LABELS[config.provider] ?? config.provider, levels: levelsOf(config.provider, config.model) } : null,
     providers: MENU_PROVIDERS.map((p) => {
       const meta = AUTH_PROVIDERS.find((x) => x.value === p);
       const on = !!signedIn.get(p);

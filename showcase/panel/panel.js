@@ -498,7 +498,12 @@
     { label: 'Accounts', pin: accounts.findIndex((p) => p.id === ui.key) });
     return [
       group('Model', 'Which AI answers you.', null,
-        select ?? el('p', { className: 'empty', textContent: 'Sign in to an account below first.' })),
+        select ?? el('p', { className: 'empty', textContent: 'Sign in to an account below first.' }),
+        state.model?.levels?.length ? el('div', { className: 'setting' },
+          el('span', {}, 'Effort', el('small', { textContent: 'How hard the model thinks before answering.' })),
+          el('span', { className: 'px field select' },
+            el('select', { 'aria-label': 'Effort', 'data-k': 'effort_default', on: { change: (e) => act(`effort_default:${e.target.value}`) } },
+              ['' , 'off', ...state.model.levels].map((l) => el('option', { value: l, textContent: l === '' ? 'Automatic' : l, selected: (state.efforts?.default ?? '') === l }))))) : null),
       el('div', { className: 'group paged' }, el('div', { className: 'ghead' }, el('h2', { textContent: 'Accounts' }), el('p', { textContent: 'Sign in to use their models.' })), box),
       foot(null, nav),
     ];
