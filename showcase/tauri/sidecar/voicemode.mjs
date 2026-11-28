@@ -32,3 +32,5 @@ export const helperVad = (cfg) => {
   const sens = vadSensitivity(cfg);
   return { handsfree: mode === 'handsfree', pause: vadPause(cfg), sensitivity: sens, ...SENSITIVITY[sens] };
 };
+
+export const DEFAULT_LIVE_MODEL = 'gemini-3.8-live';

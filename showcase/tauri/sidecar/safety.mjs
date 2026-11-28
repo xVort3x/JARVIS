@@ -502,3 +502,72 @@ export function checkDrawAction({ kind, url, text, action } = {}, { allowActions
     default: return verdict(BLOCK, `${kind} isn't something a drawing can do.`);
   }
 }
+
+// --- backported from EricTechPro/jarvis for skills/mcp/live support ---
+export const toolLog = ({ turn, id, name, args }) => ({ turn, id, name, args: redactArgs(name, args ?? {}) });
+// ---------- learned skills ----------
+
+// A skill is steps Jarvis follows later, so text that would turn it against the user never gets saved: reading
+// secrets, keeping things from them, skipping their yes, or words dressed up as instructions from the app.
+const SKILL_RULES = [
+  [/(?:^|[\s"'`(/~])(?:\.ssh|\.gnupg|\.aws\/credentials|\.netrc|\.npmrc|\.git-credentials|\.password-store|\.env(?:\.[\w-]+)?|auth\.json|id_(?:rsa|ed25519|ecdsa|dsa)|cookies\.sqlite|key4\.db|login data)(?![\w.-])/i, 'it reads passwords, keys or sign-in files'],
+  [/\b(?:keychain|credential manager|find-(?:generic|internet)-password|saved passwords?|browser cookies)\b/i, 'it reads passwords, keys or sign-in files'],
+  [/\b(?:don'?t|do not|never|without)\s+(?:tell(?:ing)?|inform(?:ing)?|show(?:ing)?|mention(?:ing)?|alert(?:ing)?|notify(?:ing)?)\s+(?:the\s+)?(?:user|them|him|her|anyone|anybody)\b/i, 'it keeps things from the user'],
+  [/\b(?:secretly|covertly|behind (?:their|the user'?s) back|without (?:the user|them) (?:knowing|noticing)|hide (?:it|this|that|them) from)\b/i, 'it keeps things from the user'],
+  [/\b(?:skip|bypass|ignore|disable|turn off|avoid|suppress|auto-?approve|without)\b[^.\n]{0,40}\b(?:confirmations?|allow prompts?|approvals?|permissions? prompts?|the yes|asking (?:first|for permission)|safety (?:checks?|rules))\b/i, 'it skips the user\'s yes or the safety checks'],
+  [/<\s*\/?\s*(?:important|system|instructions?|admin|override|developer)\b[^>]*>/i, 'it has text dressed up as instructions from the app'],
+  [/\b(?:ignore|disregard|forget|override)\s+(?:all\s+|any\s+)?(?:(?:previous|prior|earlier|above|your|other)\s+)+(?:instructions|rules|prompts?|guidelines)\b/i, 'it has text dressed up as instructions from the app'],
+];
+
+/** A learned skill's whole text (name, description and steps): SAFE, or BLOCK with the reason. */
+export function checkSkill(text) {
+  const t = String(text ?? '');
+  for (const [re, why] of SKILL_RULES) if (re.test(t)) return verdict(BLOCK, `That skill can't be saved: ${why}.`);
+  return verdict(SAFE);
+}
+
+// ---------- MCP connections ----------
+
+export const MCP_NAME = /^[a-z0-9][a-z0-9_-]{0,31}$/i;
+const MCP_NO_RUN = new Set([...SHELLS, 'curl', 'wget', 'sudo', 'su', 'doas', 'env', 'xargs', 'eval', 'exec', 'nohup', 'open', 'start', 'rm', 'osascript']);
+const INLINE_CODE = new Set(['-c', '-e', '--eval', '-p', '--print', '-command', '-encodedcommand', '/c', '/k']);
+const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[?::1\]?)$/i;
+
+/** A server about to be added: { name, command, args } (runs on this computer) or { name, url } (a remote one).
+ *  Never SAFE: adding one always asks, even with Allow prompts skipped. BLOCK for shells, inline code, a command line
+ *  smuggled into the arguments, or an address that isn't https (http only on this computer) or carries a password. */
+export function checkMcpServer({ name, command, args = [], url } = {}) {
+  if (!MCP_NAME.test(String(name ?? ''))) return verdict(BLOCK, 'The name must be 1 to 32 letters, digits, dashes or underscores.');
+  if (!!command === !!url) return verdict(BLOCK, 'A connection needs either a command (a server on this computer) or a url (a remote one), not both.');
+  if (url) {
+    let u;
+    try { u = new URL(String(url)); } catch { return verdict(BLOCK, "That isn't a valid address."); }
+    if (u.username || u.password) return verdict(BLOCK, 'Addresses with passwords in them are blocked; a key goes in its own field.');
+    const local = LOCAL_HOST.test(u.hostname);
+    if (u.protocol !== 'https:' && !(u.protocol === 'http:' && local)) return verdict(BLOCK, 'A remote server needs an https address (plain http only on this computer).');
+    const host = u.hostname.replace(/^\[|\]$/g, '');
+    if (!local && (PRIVATE_HOST.test(u.hostname) || ((/^[\d.]+$/.test(host) || host.includes(':')) && isPrivateAddress(host)))) return verdict(BLOCK, `${u.hostname} is on your local network; only public servers or this computer.`);
+    return verdict(ASK, `Connect to ${u.origin}${u.pathname === '/' ? '' : u.pathname}`);
+  }
+  const all = [String(command), ...(Array.isArray(args) ? args : []).map(String)];
+  if (all.some((a) => /[;&|`$<>\n\r]|\$\(/.test(a))) return verdict(BLOCK, 'The command has shell symbols in it (; & | ` $ < >); give the program and its arguments plainly.');
+  const prog = slash(command).split('/').pop().toLowerCase().replace(/\.(exe|cmd|bat|ps1)$/, '');
+  if (MCP_NO_RUN.has(prog)) return verdict(BLOCK, `${prog} can run anything, so it can't start a connection. Use the server's own command (npx, uvx, docker or its program).`);
+  if (all.slice(1).some((a) => INLINE_CODE.has(a.toLowerCase()))) return verdict(BLOCK, 'Inline code in the arguments is blocked; use the server\'s own package or program.');
+  return verdict(ASK, `Run ${all.join(' ').slice(0, 300)}`);
+}
+
+// Verbs that act on the world: a tool named like this always asks, whatever the server says about it.
+const MCP_RISKY = /(?:^|_)(send|delete|remove|destroy|erase|wipe|drop|purge|truncate|pay|purchase|buy|charge|transfer|withdraw|refund|publish|post|tweet|reply|forward|invite|share|cancel|revoke|unsubscribe|deploy|kill|terminate)(?:_|$)/;
+const snake = (s) => String(s ?? '').replace(/([a-z0-9])([A-Z])/g, '$1_$2').replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+
+/** A call to a connected server's tool: { name, annotations }. A read-only tool (readOnlyHint, not destructive, not
+ *  named like an action) is SAFE. Anything else ASKs; `always` (destructive, or named send/delete/pay…) means even
+ *  "Skip Allow prompts" doesn't skip it. */
+export function checkMcpCall({ name, annotations } = {}) {
+  const a = annotations ?? {};
+  if (a.destructiveHint === true || MCP_RISKY.test(snake(name))) return { ...verdict(ASK, 'It can change, send or delete things.'), always: true };
+  if (a.readOnlyHint === true) return verdict(SAFE);
+  return { ...verdict(ASK, "The server doesn't say it only reads."), always: false };
+}
+

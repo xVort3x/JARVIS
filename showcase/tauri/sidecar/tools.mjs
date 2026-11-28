@@ -18,6 +18,7 @@ import { snoozeTarget, snoozeUntil } from './snooze.mjs';
 import { thinkBeats, thinkProblems, THINK_MAX_OPTIONS } from './think.mjs';
 
 const HOME = os.homedir();
+export const SLOW_TOOLS = new Set(['web_search', 'web_fetch', 'see_photo', 'take_screenshot', 'read_window', 'act_in_app', 'run_command', 'search_files', 'list_windows']);
 export const expand = (p) => path.resolve(String(p).replace(/^~(?=$|\/|\\)/, HOME));
 const clip = (s, n) => (s.length > n ? s.slice(0, n) + `\n…(${s.length - n} more characters)` : s);
 // windowsHide: no console window flashing up for each command or screenshot on Windows.
@@ -1397,4 +1398,20 @@ A drawing stays until the user clears it or the window changes; your next drawin
     return Array.isArray(b) && b.length === 4 && b.every(Number.isFinite) ? b : null;
   }
   return { tools, hands, frontNow, frontBounds, ink: inkEvents, nextTurn: () => ++turn };
+}
+
+
+export function oneYesNoAtATime(ask) {
+  let last = Promise.resolve();
+  return (opts, signal) => {
+    if (!opts?.choices) return ask(opts, signal);
+    const prev = last;
+    const mine = new Promise((resolve) => {
+      const gone = () => resolve(null);
+      signal?.addEventListener('abort', gone, { once: true });
+      prev.then(() => { signal?.removeEventListener('abort', gone); if (!signal?.aborted) resolve(ask(opts, signal)); });
+    });
+    last = prev.then(() => mine).then(() => {}, () => {});
+    return mine;
+  };
 }

@@ -117,3 +117,5 @@ export function reveal(file) {
   else if (process.platform === 'win32') execFile('explorer.exe', [`/select,"${file}"`], { windowsVerbatimArguments: true }, () => {});
   else execFile('xdg-open', [path.dirname(file)], () => {});
 }
+
+export const redactKeys = (text) => KEYS.slice(0, -1).reduce((s, [re, to]) => s.replace(re, to), String(text));
