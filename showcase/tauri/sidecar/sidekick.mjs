@@ -2005,6 +2005,7 @@ function panelState() {
     look: config.look ?? 'classic', looks: LOOKS.map(([id, label]) => [id, label]), name: lookName(),
     size: sizeNow(), sizes: SIZES,
     replies: VOICE_ON() ? 'voice' : 'text', tts: tts().id, fishKey: hasVoiceKey('fish'), geminiKey: hasVoiceKey('gemini'), openrouterKey: hasVoiceKey('openrouter'), elevenlabsKey: hasVoiceKey('elevenlabs'),
+    efforts: Object.fromEntries(SLOTS.map((k) => [k, config.efforts?.[k] ?? ''])),
     fishModel: config.fishModel, fishModels: FISH_CHOICES, fishFree: tts().id === 'fish' && speech.on && speech.model.endsWith('-free'),
     geminiVoice: geminiVoice(), geminiVoices: GEMINI_VOICES, geminiShared: ttsKeys.gemini === 'shared',
     geminiModel: config.geminiModel, geminiModels: GEMINI_CHOICES,
@@ -2226,6 +2227,10 @@ async function onMenu(id, via) {
   else if (id === 'voicestudio_check') { await speech.checkLocal(); menu(); if (onboarding) obState(); }
   else if (id.startsWith('geminimodel:') && GEMINI_CHOICES.some((c) => c.id === id.slice(12))) {
     config.geminiModel = id.slice(12); saveConfig(); if (tts().id === 'gemini') speech.setModel(config.geminiModel); menu();
+  }
+  else if (id.startsWith('effort_')) {
+    const m = id.match(/^effort_(\w+):(.*)$/);
+    if (m && SLOTS.includes(m[1]) && isSetting(m[2])) { config.efforts = { ...config.efforts, [m[1]]: m[2] }; saveConfig(); agentStale = true; menu(); }
   }
   else if (id === 'morningbrief') { config.morningBrief = !config.morningBrief; saveConfig(); menu(); }
   else if (id === 'brieftodoist' && HANDS_OK) { config.briefTodoist = !config.briefTodoist; saveConfig(); menu(); }

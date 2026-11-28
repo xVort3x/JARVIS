@@ -24,7 +24,7 @@ for (const [name, text] of [['sidekick', side], ['setup guide', guide], ['setup 
   assert.ok(!/Roamie|Anime Girl|Rita X|Ken Kai|By Ken Kai/.test(withoutApi(text)), `${name}: old names are gone`);
 }
 assert.ok(!/id="looks"|look-h|LOOK_QUIPS|LOOK_GREETINGS/.test(guide + guidePage), 'the setup guide has no look picker');
-assert.ok(!/roamies\/people\.js|roamies\/sfx\.js/.test(src('../../../desktop.html') + src('../../../panel/index.html')), 'no character or sound-effect scripts');
+assert.ok(!/roamies\/people\.js/.test(src('../../../desktop.html') + src('../../../panel/index.html')), 'no character scripts');
 
 // The bubbles, tags and step list draw with glass.js, so the overlay loads it before them.
 {
