@@ -1952,6 +1952,36 @@ function panel() {
 let panelTab = null;
 function openPanel(tab) { panelTab = tab; send({ type: 'panel_show' }); if (panelOpen) panel(); }
 const panelNote = (text, bad = false, p = null) => panelOpen && send({ type: 'panel', msg: { kind: 'note', text, bad, ...(p ? linked(p) : {}) } });
+function brainState() {
+  const saved = migrateBrain(config.secondBrain), using = brain();
+  return { saved, using, missing: !!saved && !using, found: using ? layoutFound(brainLayout(using)) : [], home: HOME, name: BRAIN_NAME };
+}
+function onSecondBrain(m) {
+  const form = Object.fromEntries(BRAIN_KEYS.map((k) => [k, String(m.form?.[k] ?? '').slice(0, 1000)]));
+  const reply = (msg) => send({ type: 'panel', msg: { kind: 'brain', seq: m.seq ?? 0, ...msg } });
+  if (m.op === 'check') return reply({ op: 'check', ...checkForm(form, HOME, { create: m.mode === 'create' }) });
+  if (m.op === 'save') {
+    const r = checkSecondBrain(form.root, HOME);
+    if (!r.ok) return panelNote(r.why === 'empty' ? 'Choose the root folder first.' : `Root: ${r.why}`, true);
+    const { status } = checkForm(form, HOME);
+    const bad = BRAIN_KEYS.find((k) => status[k].status === 'bad');
+    if (bad) return panelNote(`${bad[0].toUpperCase()}${bad.slice(1)}: ${status[bad].why}`, true);
+    config.secondBrain = Object.fromEntries(BRAIN_KEYS.map((k) => [k, k === 'root' ? r.dir : status[k].path]));
+    saveConfig(); agentStale = true; menu();
+    const using = brain();
+    const found = using ? layoutFound(brainLayout(using)) : [];
+    return panelNote(`Saved. I work from ${path.basename(r.dir)} from the next message on.${found.length ? ` Found: ${found.join(', ')}.` : ''}`);
+  }
+  if (m.op === 'create') {
+    const r = createBrain(form, HOME);
+    if (!r.ok) return panelNote(r.why, true);
+    config.secondBrain = r.locations;
+    saveConfig(); agentStale = true; menu();
+    reply({ op: 'created' });
+    return panelNote(`Made ${path.basename(r.locations.root)}: ${r.made.length} new${r.kept.length ? `, ${r.kept.length} kept as they were` : ''}. I work from it from now on.`);
+  }
+  if (m.op === 'clear') { config.secondBrain = null; saveConfig(); agentStale = true; menu(); return panelNote('Second brain cleared.'); }
+}
 function panelState() {
   const current = getModel(config.model);
   const doing = activity.doing();
@@ -2006,6 +2036,7 @@ function panelState() {
     size: sizeNow(), sizes: SIZES,
     replies: VOICE_ON() ? 'voice' : 'text', tts: tts().id, fishKey: hasVoiceKey('fish'), geminiKey: hasVoiceKey('gemini'), openrouterKey: hasVoiceKey('openrouter'), elevenlabsKey: hasVoiceKey('elevenlabs'),
     efforts: Object.fromEntries(SLOTS.map((k) => [k, config.efforts?.[k] ?? ''])),
+    secondBrain: brainState(),
     fishModel: config.fishModel, fishModels: FISH_CHOICES, fishFree: tts().id === 'fish' && speech.on && speech.model.endsWith('-free'),
     geminiVoice: geminiVoice(), geminiVoices: GEMINI_VOICES, geminiShared: ttsKeys.gemini === 'shared',
     geminiModel: config.geminiModel, geminiModels: GEMINI_CHOICES,
@@ -2573,6 +2604,7 @@ createInterface({ input: process.stdin }).on('line', (line) => {
     const provider = { panel_fishkey: 'fish', panel_geminikey: 'gemini', panel_openrouterkey: 'openrouter', panel_elevenlabskey: 'elevenlabs' }[m.type];
     voiceKeyLogin({ provider, given: m.key.slice(0, 1000), note: panelNote }).catch((e) => console.error('voice key', e));
   } else if (m.type === 'panel_studio_get') { fs.readFile(STUDIO_PATH, 'utf8').then((text) => ui({ kind: 'studio', text })).catch(() => ui({ kind: 'studio', text: '' })); }
+  else if (m.type === 'secondbrain') onSecondBrain(m);
   else if (m.type === 'panel_studio_set' && typeof m.text === 'string') { fs.writeFile(STUDIO_PATH, m.text.slice(0, 200_000), 'utf8').catch((e) => console.error('studio save', e)); }
   else if (m.type === 'panel_studio_listen') { studioWriting = m.on === true; panel(); }
   else if (m.type === 'panel_studio_refine' && typeof m.text === 'string' && typeof m.instruction === 'string') {
