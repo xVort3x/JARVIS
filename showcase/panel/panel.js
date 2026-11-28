@@ -16,7 +16,7 @@
   let state = null, tab = 'home', deferred = false;
   // What's open in the panel itself: a key field (provider id, 'fish' or 'gemini'), the row action waiting for its
   // Confirm, each long list's page (pg) and how many rows fit on one (per, measured), Memory's tab and its search.
-  const ui = { key: null, kind: {}, arm: null, add: { label: '', url: '', key: '', images: false }, addSent: null, pg: {}, per: {}, base: {}, rec: null, mtab: 'facts', q: '', bindShown: new Set() };
+  const ui = { key: null, kind: {}, arm: null, add: { label: '', url: '', key: '', images: false }, addSent: null, pg: {}, per: {}, base: {}, rec: null, mtab: 'facts', q: '', bindShown: new Set(), sb: null };
   let armTimer = 0;
   const disarm = () => { clearTimeout(armTimer); if (ui.arm) { ui.arm = null; return true; } return false; };
   // Prompt Studio: the draft is owned by the sidecar (one file on disk); this is the panel's working copy.
@@ -473,6 +473,115 @@
 
   // Settings, one page per concern.
   const SIZE_TIPS = { default: 'My full size.', small: 'Half my size, so I take less of your screen.', cursor: 'I become a little arrow pointer, like your cursor.' };
+  // ---------------------------------------------------------------- Second brain
+  const SB_LOCS = [
+    ['root', 'Root', 'Its rules (AGENTS.md); relative file paths start here'],
+    ['raw', 'Raw evidence', 'Unedited proof: I read it, never change it', '_raw'],
+    ['context', 'Context (wiki)', 'Summarised memory, words only', '_context'],
+    ['research', 'Research', 'Write-ups built from the context', '_research'],
+    ['projects', 'Projects', 'Each one self-contained', 'projects'],
+    ['agents', 'Agents folder', 'Its skills/ folder is listed beside your skills', '.agents'],
+  ];
+  const SB_STATUS = { found: 'Found', missing: 'Missing', 'will create': 'Will create' };
+  const sepOf = (p) => (/^[a-z]:\\/i.test(p) || (p.includes('\\') && !p.includes('/')) ? '\\' : '/');
+  const joinPath = (dir, name) => (dir && name ? `${dir.replace(/[\\/]+$/, '')}${sepOf(dir)}${name}` : '');
+  function sbInit() {
+    const b = state.secondBrain ?? {}, saved = b.saved ?? {}, using = b.using ?? {};
+    const form = Object.fromEntries(SB_LOCS.map(([k]) => [k, saved[k] || using[k] || '']));
+    ui.sb = { savedKey: JSON.stringify(b.saved ?? null), mode: 'existing', form, over: new Set(SB_LOCS.map(([k]) => k).filter((k) => k !== 'root' && saved[k])), parent: b.home ? joinPath(b.home, 'Desktop') : '', name: b.name || 'Second Brain', status: null, found: {}, seq: 0, fill: false };
+    if (form.root) sbCheck();
+  }
+  function sbCheck(fill = false) {
+    const sb = ui.sb;
+    sb.seq += 1; if (fill) sb.fill = true;
+    send({ type: 'secondbrain', op: 'check', mode: sb.mode, form: sb.form, seq: sb.seq });
+  }
+  function sbDefaults() {
+    const sb = ui.sb, root = joinPath(sb.parent, sb.name.trim());
+    sb.form.root = root;
+    for (const [k, , , name] of SB_LOCS) if (k !== 'root' && !sb.over.has(k)) sb.form[k] = root ? joinPath(root, name) : '';
+  }
+  function sbMode(m) {
+    const sb = ui.sb;
+    if (sb.mode === m) return;
+    sb.mode = m; sb.over.clear(); sb.status = null;
+    if (m === 'create') sbDefaults(); else { const b = state.secondBrain ?? {}; for (const [k] of SB_LOCS) sb.form[k] = b.saved?.[k] || b.using?.[k] || ''; }
+    render(`sbmode:${m}`);
+    if (sb.form.root) sbCheck(m === 'existing');
+  }
+  const pickFor = (title, start) => invoke('pick_folder', { title, start: start || state.secondBrain?.using?.root || null }).catch(() => null);
+  async function sbChoose(k) {
+    const sb = ui.sb, label = SB_LOCS.find(([x]) => x === k)[1];
+    const dir = await pickFor(k === 'root' ? 'Choose your second brain folder' : `Choose the ${label.toLowerCase()} folder`, sb.form[k] || sb.form.root);
+    if (!dir) return;
+    sb.form[k] = dir;
+    if (k === 'root') { for (const [x] of SB_LOCS) if (x !== 'root' && !sb.over.has(x)) sb.form[x] = ''; } else sb.over.add(k);
+    render(`sbpick:${k}`); sbCheck(k === 'root');
+  }
+  async function sbParent() {
+    const dir = await pickFor('Choose where to make your second brain', ui.sb.parent);
+    if (!dir) return;
+    ui.sb.parent = dir; sbDefaults(); render('sbparent'); sbCheck();
+  }
+  function sbAuto(k) {
+    const sb = ui.sb;
+    sb.over.delete(k);
+    if (sb.mode === 'create') sbDefaults(); else sb.form[k] = sb.found?.[k] || '';
+    render(`sbpick:${k}`); sbCheck();
+  }
+  let sbTimer = 0;
+  function onBrain(m) {
+    const sb = ui.sb;
+    if (!sb) return;
+    if (m.op === 'created') { ui.sb = null; return; }
+    if (m.op !== 'check' || m.seq !== sb.seq) return;
+    sb.status = m.status; sb.found = m.found ?? {};
+    if (sb.fill && sb.mode === 'existing') {
+      sb.fill = false;
+      for (const [k] of SB_LOCS) if (k !== 'root' && !sb.over.has(k)) sb.form[k] = sb.found[k] || '';
+      return sbCheck();
+    }
+    if (tab === 'secondbrain') render();
+  }
+  function sbRow(k, label, hint) {
+    const sb = ui.sb, st = sb.status?.[k], p = sb.form[k];
+    const create = sb.mode === 'create', over = sb.over.has(k);
+    const line = !p ? (k === 'root' ? (create ? 'Choose a parent folder and a name' : 'Choose a folder') : create ? 'Not made' : 'None found in the root. I look again at each new chat.')
+      : st ? (st.status === 'bad' ? st.why : `${SB_STATUS[st.status] ?? ''}${over ? ' · chosen by hand' : ''}`) : 'Checking…';
+    const bad = st && p && (st.status === 'bad' || st.status === 'missing');
+    return el('div', { className: 'setting' },
+      el('span', { id: `lbl-sb-${k}` }, label, el('small', { title: p || hint, textContent: p || hint }),
+        el('small', { className: `wrap${bad ? ' late' : st?.status === 'found' || st?.status === 'will create' ? ' ok' : ''}`, textContent: line }),
+        st?.warn && p ? el('small', { className: 'wrap late', textContent: st.warn }) : null),
+      el('span', { className: 'links' },
+        over ? link(create ? 'Default' : 'Auto', () => sbAuto(k), { k: `sbauto:${k}`, aria: `${label}: back to ${create ? 'the default name' : 'what is found in the root'}` }) : null,
+        create && k === 'root' ? null : link('Choose folder…', () => sbChoose(k), { k: `sbpick:${k}`, aria: `Choose the ${label} folder` })));
+  }
+  function secondBrainPage() {
+    if (!ui.sb || ui.sb.savedKey !== JSON.stringify(state.secondBrain?.saved ?? null)) sbInit();
+    const sb = ui.sb, b = state.secondBrain ?? {}, create = sb.mode === 'create';
+    const nameField = el('span', { className: 'px field' }, el('input', {
+      id: 'sb-name', value: sb.name, placeholder: 'Second brain', 'aria-label': 'Name of the new second brain folder', type: 'text', autocomplete: 'off', spellcheck: false, maxLength: 80,
+      on: { input: (e) => { sb.name = e.target.value.replace(/[\\/:]/g, ''); sbDefaults(); clearTimeout(sbTimer); sbTimer = setTimeout(() => sbCheck(), 250); } } }));
+    const save = () => send({ type: 'secondbrain', op: create ? 'create' : 'save', form: sb.form });
+    return [
+      group('Second brain', 'A folder of your notes I work from: its rules, files and skills.', null,
+        el('div', { className: 'setting' },
+          el('span', {}, 'In use', el('small', { title: using || '', textContent: using || (b.missing ? `Can't find ${b.saved?.root}` : 'None yet') }),
+            b.found?.length ? el('small', { className: 'wrap', textContent: `Found: ${b.found.join(', ')}` }) : null),
+          b.saved ? link('Clear', () => act('secondbrainclear'), { k: 'secondbrainclear', aria: 'Stop using the second brain folder' }) : null),
+        picks('How to start', [['existing', 'Use an existing folder'], ['create', 'Create a new one']], sb.mode, sbMode, 'sbmode',
+          { existing: 'Choose its folder; I find the rest by name.', create: 'Pick where and a name; I make the folders and starter files.' })),
+      create ? group('New one', 'Made with AGENTS.md and the index files. Nothing there already is written over.', null,
+        el('div', { className: 'setting' },
+          el('span', {}, 'Parent folder', el('small', { title: sb.parent, textContent: sb.parent || 'Where to make it' })),
+          link('Choose folder…', sbParent, { k: 'sbparent', aria: 'Choose the folder to make the second brain in' })),
+        el('div', { className: 'keyform' }, nameField)) : null,
+      group('Locations', 'Outside the root is fine while it is in your home folder.', null, SB_LOCS.map(([k, label, hint]) => sbRow(k, label, hint))),
+      foot(el('span', { className: 'links' },
+        btn(create ? 'Create' : 'Save', save, { k: 'sbsave', kind: 'primary', disabled: !sb.form.root || SB_LOCS.some(([k]) => sb.status?.[k]?.status === 'bad') })), null),
+    ];
+  }
   function modelPage() {
     const on = state.providers.filter((p) => p.on);
     const model = state.model ? `${state.model.provider}:${state.model.id}` : '';
@@ -822,7 +931,7 @@
   }
 
   // ---------------------------------------------------------------- render
-  const PANES = { home, memory, model: modelPage, appearance: appearancePage, speaking: speakingPage, listening: listeningPage, screen: screenPage, shortcuts: shortcutsPage, routines: routinesPage, studio: studioPage, general: generalPage, about: aboutPage };
+  const PANES = { home, memory, model: modelPage, appearance: appearancePage, speaking: speakingPage, listening: listeningPage, screen: screenPage, shortcuts: shortcutsPage, routines: routinesPage, studio: studioPage, general: generalPage, about: aboutPage, secondbrain: secondBrainPage };
   // focusKey: what to focus after (a data-k, or an element id); otherwise whatever had focus keeps it.
   function render(focusKey, animate = false) {
     if (!state) return;
@@ -1005,6 +1114,7 @@
       note(m.ok ? 'Copied. Paste it into a new custom shortcut.' : "Couldn't copy it. Select the command and copy it instead.", !m.ok);
     }
     else if (m.kind === 'studio') { studioCache = m.text ?? ''; const ta = $('studio-canvas'); if (ta) ta.value = studioCache; }
+    else if (m.kind === 'brain') onBrain(m);
     else if (m.kind === 'studio_append' && m.text) {
       const add = m.text.trim(), sep = studioCache && !/\s$/.test(studioCache) ? ' ' : '';
       studioCache += sep + add + ' ';
