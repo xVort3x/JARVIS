@@ -32,7 +32,7 @@ import { foldInput, foldPrompt, memoryInput, memoryPrompt, oneShot, parseBrain, 
 import { briefNote } from './brief.mjs';
 import { CHECK_MS, DEFAULT_DISTRACTIONS, check as focusCheck, parseDistractions, startBlock } from './focus.mjs';
 import { saveCardImage } from './cardimage.mjs';
-import { SENSITIVITY, helperVad, vadPause, vadSensitivity, voiceMode } from './voicemode.mjs';
+import { DEFAULT_LIVE_MODEL, SENSITIVITY, helperVad, vadPause, vadSensitivity, voiceMode } from './voicemode.mjs';
 import { screenLine, exclusionsOf, awareMode, cleanExclusion } from './aware.mjs';
 import { DEFAULT_WAKE_NAME, cleanWakeName, wakeName } from './wakename.mjs';
 import { KEY_NAME as SYNC_KEY, MIN_PASSPHRASE, checkFolder, folderReady, merge as syncMerge, newDevice, prepareFolder, readRemotes, suggestFolders, tooMuchGone, writeOwn } from './sync.mjs';
@@ -53,6 +53,7 @@ import { GEMINI_FREE_MODEL } from './gemini-models.mjs';
 import { OPENROUTER_DEFAULT_VOICE, OPENROUTER_VOICES } from './openrouter.mjs';
 import { accountNames, brainName, brainLayout, checkForm, checkSecondBrain, createBrain, desktopBrainDir, KEYS as BRAIN_KEYS, layoutFound, makeDesktopBrain, migrateBrain, resolveBrain, secondBrainBlock } from './secondbrain.mjs';
 import { SLOTS, isSetting, resolveEffort } from './effort.mjs';
+import { createLive } from './live.mjs';
 import { createSecrets, retryLoad, runInput } from './secrets.mjs';
 import { showTrayIcon } from './wintray.mjs';
 import { createActivity } from './activity.mjs';
@@ -129,6 +130,8 @@ const DEFAULTS = {
   replies: 'text', // 'voice': spoken (with Fish Audio or Gemini) as well as shown
   secondBrain: null, // the user's second brain (secondbrain.mjs): { root, raw, context, research, projects, agents }, '' = found in root; null = off
   efforts: {}, // how hard each model slot thinks: default, each heavy job, backup1, backup2 ('' = automatic, 'off', or a level)
+  liveVoice: null, // the Gemini Live voice (a prebuilt one); null follows the look's Gemini voice
+  liveModel: DEFAULT_LIVE_MODEL, // the Gemini Live model
   voiceMode: 'handsfree', // 'handsfree' (tap the talk keys, a pause sends it), 'ptt' (hold to talk), 'text' (no microphone)
   vadPause: 1.5, // seconds of silence that ends a hands-free take
   vadSensitivity: 'normal', // how loud over the room it has to be to count as talking
