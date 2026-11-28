@@ -12,7 +12,7 @@ import { agentEvents, stallWatch } from './agentstream.mjs';
 import { CATALOG_PROVIDERS, createCatalogs } from './catalogs.mjs';
 import {
   AUTH_PROVIDERS, AuthStorage, OPENAI_CHATGPT_KEY, apiKeyStorageKeys, claudeCodeEnv, dualAuthProvider, getAuthStorageKeys, getContextWindow, getDefaultModel, getModel,
-  getModelsForProvider, loginChatGPT, ollamaServedContext, parseLocalModelId, pointScale, registerRuntimeModels, resolveClaudeCodeBinary, revokeChatGPTSignIn, signInWithClaudeCode,
+  getModelsForProvider, getSupportedThinkingLevels, loginChatGPT, ollamaServedContext, parseLocalModelId, pointScale, registerRuntimeModels, resolveClaudeCodeBinary, revokeChatGPTSignIn, signInWithClaudeCode,
   signOutOfClaudeCode, storageKeyProvider,
 } from '@kenkaiiii/gg-core';
 import { execFile, execFileSync, fork } from 'node:child_process';
@@ -50,8 +50,9 @@ import { ELEVEN_DEFAULT_VOICE, ELEVEN_MODEL, ELEVEN_MODELS, ELEVEN_VOICES } from
 import { FISH_CHOICES } from './fish.mjs';
 import { GROQ_BASE_URL, GROQ_MODELS, GROQ_DEFAULT_MODEL } from './groq.mjs';
 import { GEMINI_FREE_MODEL } from './gemini-models.mjs';
-import { GEMINI_CHOICES, GEMINI_DEFAULT_VOICE, GEMINI_LOOK_VOICES, GEMINI_MODEL, GEMINI_VOICES } from './gemini.mjs';
+import { OPENROUTER_DEFAULT_VOICE, OPENROUTER_VOICES } from './openrouter.mjs';
 import { accountNames, brainName, brainLayout, checkForm, checkSecondBrain, createBrain, desktopBrainDir, KEYS as BRAIN_KEYS, layoutFound, makeDesktopBrain, migrateBrain, resolveBrain, secondBrainBlock } from './secondbrain.mjs';
+import { SLOTS, isSetting, resolveEffort } from './effort.mjs';
 import { createSecrets, retryLoad, runInput } from './secrets.mjs';
 import { showTrayIcon } from './wintray.mjs';
 import { createActivity } from './activity.mjs';
@@ -127,6 +128,7 @@ const DEFAULTS = {
   onboarded: false, onboardStep: 0, filesAsked: false, keys: DEFAULT_KEYS, muteWhileTalking: true, autoListen: false, wakeWord: false, setupVersion: 0, size: 'default', look: 'jarvis', introDone: false,
   replies: 'text', // 'voice': spoken (with Fish Audio or Gemini) as well as shown
   secondBrain: null, // the user's second brain (secondbrain.mjs): { root, raw, context, research, projects, agents }, '' = found in root; null = off
+  efforts: {}, // how hard each model slot thinks: default, each heavy job, backup1, backup2 ('' = automatic, 'off', or a level)
   voiceMode: 'handsfree', // 'handsfree' (tap the talk keys, a pause sends it), 'ptt' (hold to talk), 'text' (no microphone)
   vadPause: 1.5, // seconds of silence that ends a hands-free take
   vadSensitivity: 'normal', // how loud over the room it has to be to count as talking
@@ -167,6 +169,14 @@ const studioVoice = () => config.studioVoices?.jarvis ?? null;
 const lookName = () => 'J.A.R.V.I.S';
 const BRAIN_NAME = brainName(accountNames({ user: (() => { try { return os.userInfo().username; } catch { return ''; } })() }));
 const brain = () => resolveBrain(config.secondBrain, HOME);
+const levelsOf = (provider, model) => { try { return [...getSupportedThinkingLevels(provider, model)]; } catch { return []; } };
+function thinkingFor(slot, provider, model) {
+  const m = getModel(model);
+  if (!m?.supportsThinking) return undefined;
+  const setting = config.efforts?.[slot] ?? '', supported = levelsOf(provider, model);
+  if (!supported.length) return setting === 'off' ? undefined : (setting || CHAT_THINKING) ?? undefined;
+  return resolveEffort(setting, supported, CHAT_THINKING) ?? undefined;
+}
 const VOICE_OK = hasVoice(process.platform);
 // Windows and Linux have no on-device speech API apps can use, so voice there runs Parakeet on the PC. Its model
 // is downloaded once: from the setup guide, or the first time voice is used.
@@ -295,7 +305,7 @@ function aimSpeaker(id) {
   speech.setProvider(id);
   if (TTS[id]?.local) speech.setLocalVoice(studioVoice());
   else if (id === 'gemini') { speech.setVoice(geminiVoice()); speech.setModel(config.geminiModel); }
-  else if (id === 'openrouter') speech.setVoice(geminiVoice()); // Gemini's voices, its default model
+  else if (id === 'openrouter') speech.setVoice(OPENROUTER_DEFAULT_VOICE); // HeyGen's voices, its default model
   else if (id === 'elevenlabs') { speech.setVoice(config.elevenVoice || ELEVEN_DEFAULT_VOICE); speech.setModel(config.elevenModel ?? ELEVEN_MODEL); }
   else { speech.setVoice(lookVoice()); speech.setModel(config.fishModel); }
 }
@@ -1998,7 +2008,7 @@ function panelState() {
     fishModel: config.fishModel, fishModels: FISH_CHOICES, fishFree: tts().id === 'fish' && speech.on && speech.model.endsWith('-free'),
     geminiVoice: geminiVoice(), geminiVoices: GEMINI_VOICES, geminiShared: ttsKeys.gemini === 'shared',
     geminiModel: config.geminiModel, geminiModels: GEMINI_CHOICES,
-    openrouterVoice: geminiVoice(), openrouterVoices: GEMINI_VOICES, openrouterShared: ttsKeys.openrouter === 'shared',
+    openrouterVoice: OPENROUTER_DEFAULT_VOICE, openrouterVoices: OPENROUTER_VOICES, openrouterShared: ttsKeys.openrouter === 'shared',
     elevenVoice: config.elevenVoice || ELEVEN_DEFAULT_VOICE, elevenVoiceCustom: !!config.elevenVoice, elevenVoices: ELEVEN_VOICES,
     elevenModel: config.elevenModel ?? ELEVEN_MODEL, elevenModels: ELEVEN_MODELS,
     studio: tts().local ? studioState() : null,
