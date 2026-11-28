@@ -582,6 +582,9 @@
         btn(create ? 'Create' : 'Save', save, { k: 'sbsave', kind: 'primary', disabled: !sb.form.root || SB_LOCS.some(([k]) => sb.status?.[k]?.status === 'bad') })), null),
     ];
   }
+  function skillsPage() { return [group('Skills', 'Learned how-tos the chat follows.', null, el('p', { className: 'empty', textContent: 'Skills are saved in the sidecar; manage them from the chat.' })]; }
+  function mcpPage() { return [group('MCP', 'Connected servers and their tools.', null, el('p', { className: 'empty', textContent: 'MCP servers are managed from the chat.' })]; }
+  function subagentsPage() { return [group('Subagents', 'Specialists the chat hands background work to.', null, el('p', { className: 'empty', textContent: 'Subagents run with smaller models; configure from the chat.' })]; }
   function modelPage() {
     const on = state.providers.filter((p) => p.on);
     const model = state.model ? `${state.model.provider}:${state.model.id}` : '';
@@ -931,7 +934,7 @@
   }
 
   // ---------------------------------------------------------------- render
-  const PANES = { home, memory, model: modelPage, appearance: appearancePage, speaking: speakingPage, listening: listeningPage, screen: screenPage, shortcuts: shortcutsPage, routines: routinesPage, studio: studioPage, general: generalPage, about: aboutPage, secondbrain: secondBrainPage };
+  const PANES = { home, memory, model: modelPage, appearance: appearancePage, speaking: speakingPage, listening: listeningPage, screen: screenPage, shortcuts: shortcutsPage, routines: routinesPage, studio: studioPage, general: generalPage, about: aboutPage, secondbrain: secondBrainPage, skills: skillsPage, mcp: mcpPage, subagents: subagentsPage };
   // focusKey: what to focus after (a data-k, or an element id); otherwise whatever had focus keeps it.
   function render(focusKey, animate = false) {
     if (!state) return;
